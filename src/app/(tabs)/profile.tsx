@@ -1,27 +1,64 @@
-import ColorPickerIosComponent from "@/components/color-picker.io";
-import { Host } from "@expo/ui/swift-ui";
-import { useState } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "@/context/AuthContext";
+import { Image } from "expo-image";
+import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+
 export default function Profile() {
+  const { user } = useAuth();
 
-  const [isOpened, setIsOpened] = useState(false);
-  const [color, setColor] = useState("#FF6347");
+
   return (
-    <View style={styles.container}>
-
-
-      <Text>Profile</Text>
-      <Host>
-          {Platform.OS === "ios" && <ColorPickerIosComponent />}
-      </Host>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Image
+            source={{ uri: user?.avatar }}
+            style={styles.avatar}
+          />
+          <Text style={styles.name}>{user?.name || "No Name"}</Text>
+          <Text style={styles.username}>@{user?.username || "username"}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#fff",
+  },
+  content: {
+    flex: 1,
+    padding: 24,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginTop: 40,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#f5f5f5",
+    marginBottom: 16,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  username: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 8,
+  },
+  email: {
+    fontSize: 14,
+    color: "#999",
   },
 });

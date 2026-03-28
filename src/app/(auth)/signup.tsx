@@ -2,18 +2,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SignUpScreen() {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +21,8 @@ export default function SignUpScreen() {
   const { signUp } = useAuth();
 
   const handleSignUp = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!email.trim()) {
+      Alert.alert("Error", "Please enter your email");
       return;
     }
 
@@ -34,7 +33,7 @@ export default function SignUpScreen() {
 
     setIsLoading(true);
     try {
-      await signUp(name, email, password);
+      await signUp(email, password);
       router.push("/(auth)/onboarding");
     } catch (error) {
       console.error(error);
@@ -50,15 +49,6 @@ export default function SignUpScreen() {
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Sign Up to Get Started</Text>
         <View style={styles.form}>
-          <TextInput
-            placeholder="Full Name..."
-            placeholderTextColor={"#999"}
-            autoComplete="name"
-            autoCapitalize="words"
-            value={name}
-            onChangeText={setName}
-            style={styles.input}
-          />
           <TextInput
             placeholder="Email..."
             placeholderTextColor={"#999"}

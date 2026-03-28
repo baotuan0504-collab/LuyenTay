@@ -16,8 +16,10 @@ const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000;
 const buildUserResponse = (user: any) => ({
   id: user._id.toString(),
   name: user.name,
+  username: user.username,
   email: user.email,
   avatar: user.avatar,
+  onboardingCompleted: user.onboardingCompleted,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
 });
@@ -60,10 +62,10 @@ async function createTokenPair(userId: string) {
 
 export async function register(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { name, email, password } = req.body;
+    const { name = "", email, password } = req.body;
 
-    if (!name || !email || !password) {
-      res.status(400).json({ message: "Name, email, and password are required" });
+    if (!email || !password) {
+      res.status(400).json({ message: "Email and password are required" });
       return;
     }
 
@@ -76,7 +78,7 @@ export async function register(req: AuthRequest, res: Response, next: NextFuncti
     const hashedPassword = await hashPassword(password);
 
     const newUser = await User.create({
-      name,
+      name: name || "",
       email,
       password: hashedPassword,
     });

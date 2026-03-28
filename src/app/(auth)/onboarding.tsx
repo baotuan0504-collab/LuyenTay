@@ -1,18 +1,18 @@
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase/client";
 import { uploadProfileImage } from "@/lib/supabase/storage";
+import { checkUsername as checkUsernameService } from "@/services/user.service";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,7 +21,7 @@ export default function SignUpScreen() {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const { user, updateUser } = useAuth();
+  const { user, updateUser ,accessToken} = useAuth();
   const router = useRouter();
 
   const pickImage = async () => {
@@ -73,12 +73,19 @@ export default function SignUpScreen() {
     ]);
   };
   const handleComplete = async () => {
-    if (!name || !username) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (!name.trim()) {
+      Alert.alert("Error", "Please enter your full name");
+      return;
+    }
+
+    if (!username) {
+      Alert.alert("Error", "Please fill in your username");
+      return;
     }
 
     if (username.length < 3) {
       Alert.alert("Error", "Username must be at least 3 characters");
+      return;
     }
 
     setIsLoading(true);
@@ -87,14 +94,10 @@ export default function SignUpScreen() {
         throw new Error("User not authenticated");
       }
       // Check if username exists
-      const { data: existingUser } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", username)
-        .neq("id", user.id)
-        .single();
+      const {available} = await checkUsernameService(username, accessToken!);
+      
 
-      if (existingUser) {
+      if (!available) {
         Alert.alert(
           "Error",
           "This username is already taken. Please choose another one.",
@@ -121,7 +124,7 @@ export default function SignUpScreen() {
       await updateUser({
         name,
         username,
-        profileImage: profileImageUrl,
+        avatar: profileImageUrl,
         onboardingCompleted: true,
       });
       router.replace("/(tabs)");

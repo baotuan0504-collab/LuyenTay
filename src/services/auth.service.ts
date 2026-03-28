@@ -13,7 +13,7 @@ export const login = async (email: string, password: string) => {
   }
 };
 
-export const register = async (name: string, email: string, password: string) => {
+export const register = async (email: string, password: string, name = "") => {
   try {
     const data = await apiFetch("/auth/register", {
       method: "POST",
