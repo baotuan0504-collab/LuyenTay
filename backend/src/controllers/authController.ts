@@ -14,7 +14,7 @@ import {
 const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000;
 
 const buildUserResponse = (user: any) => ({
-  _id: user._id,
+  id: user._id.toString(),
   name: user.name,
   email: user.email,
   avatar: user.avatar,

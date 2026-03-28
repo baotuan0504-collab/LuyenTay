@@ -1,4 +1,4 @@
-import { login } from "@/services/auth.service";
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
     const router = useRouter();
+    const { signIn } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -14,7 +15,7 @@ export default function LoginScreen() {
         setError("");
 
         try {
-            await login(email, password);
+            await signIn(email, password);
             router.push("/(tabs)");
         } catch (err) {
             const message = err instanceof Error ? err.message : typeof err === "string" ? err : "Login failed. Please check your credentials.";
