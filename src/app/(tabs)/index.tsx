@@ -19,7 +19,6 @@ import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PostCardProps {
   post: Post;
@@ -190,12 +189,13 @@ export default function Index() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "top"]}>
+    <View style={styles.container}>
       {/* LIST */}
       <FlatList
         data={posts}
         renderItem={renderPost}
         keyExtractor={(item) => item.id}
+        style={{ flex: 1 }}
         contentContainerStyle={
           posts.length === 0 ? styles.emptyContent : styles.content
         }
@@ -262,15 +262,14 @@ export default function Index() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor : "#fff",
   },
   fab: {
     position: "absolute",
@@ -361,11 +360,11 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    padding: 16,
-    paddingBottom: 100,
+    padding: 0,
+    paddingBottom: 80,
   },
   emptyContent: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
@@ -373,20 +372,16 @@ const styles = StyleSheet.create({
 
   postContainer: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    overflow: "hidden",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom:24,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   postHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   userInfo: {
     flexDirection: "row",
@@ -434,7 +429,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   postFooter: {
-    padding: 16,
+     paddingHorizontal: 16,
+     paddingVertical: 12,    
   },
   postDescription: {
     fontSize: 15,
