@@ -124,7 +124,7 @@ export default function SignUpScreen() {
       await updateUser({
         name,
         username,
-        avatar: profileImageUrl,
+        profileImage: profileImageUrl,
         onboardingCompleted: true,
       });
       router.replace("/(tabs)");
