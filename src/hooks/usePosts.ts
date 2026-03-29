@@ -1,7 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase/client";
 import { uploadPostImage } from "@/lib/supabase/storage";
+import * as postService from "@/services/post.service";
 import { useEffect, useState } from "react";
+
 
 export interface PostUser {
   id: string;
@@ -9,6 +10,7 @@ export interface PostUser {
   username: string;
   profile_image_url?: string;
 }
+
 
 export interface Post {
   id: string;
@@ -21,47 +23,47 @@ export interface Post {
   profiles?: PostUser;
 }
 
+
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
+
 
   useEffect(() => {
-    loadPosts();
-  }, []);
+    if (accessToken) {
+      loadPosts();
+    }
+  }, [accessToken]);
+
 
   const loadPosts = async () => {
-    if (!user) return;
+    if (!accessToken) return;
+
 
     setIsLoading(true);
     try {
-      const { data: postsData, error: postsError } = await supabase
-        .from("posts")
-        .select(
-          `
-            *,
-            profiles(id, name, username, profile_image_url)`,
-        )
-        .eq("is_active", true)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false });
+      const postsData = await postService.getPosts(accessToken);
 
-      if (postsError) {
-        console.error("Error loading posts:", postsError);
-        throw postsError;
-      }
 
-      if (!postsData || postsData.length === 0) {
-        setPosts([]);
-        return;
-      }
-
-      const postsWithProfiles = postsData.map((post) => ({
-        ...post,
-        profiles: post.profiles || null,
+      const formattedPosts: Post[] = postsData.map((post) => ({
+        id: post._id,
+        user_id: post.user._id,
+        image_url: post.imageUrl,
+        description: post.description,
+        created_at: post.createdAt,
+        expires_at: post.expiresAt,
+        is_active: post.isActive,
+        profiles: {
+          id: post.user._id,
+          name: post.user.name,
+          username: post.user.username,
+          profile_image_url: post.user.avatar,
+        },
       }));
 
-      setPosts(postsWithProfiles);
+
+      setPosts(formattedPosts);
     } catch (error) {
       console.error("Error in loadPosts:", error);
     } finally {
@@ -69,45 +71,27 @@ export const usePosts = () => {
     }
   };
 
+
   const createPost = async (imageUri: string, description?: string) => {
-    if (!user) {
+    if (!user || !accessToken) {
       throw new Error("User not authenticated");
     }
 
+
     try {
-      // Deactivate any existing posts
-      const { error: deactivateError } = await supabase
-        .from("posts")
-        .update({ is_active: false })
-        .eq("user_id", user.id)
-        .eq("is_active", true);
-
-      if (deactivateError) {
-        console.error("Error deactivating old posts:", deactivateError);
-      }
-
+      // 1. Upload to Supabase Storage
       const imageUrl = await uploadPostImage(user.id, imageUri);
 
-      // Calculate expiration time
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      const { error } = await supabase
-        .from("posts")
-        .insert({
-          user_id: user.id,
-          image_url: imageUrl,
-          description: description || null,
-          expires_at: expiresAt.toISOString(),
-          is_active: true,
-        })
-        .select()
-        .single();
+      // 2. Save metadata to Backend
+      await postService.createPost(
+        {
+          imageUrl,
+          description: description || "",
+        },
+        accessToken
+      );
 
-      if (error) {
-        console.error("Error creating post:", error);
-        throw error;
-      }
 
       // Refresh posts
       await loadPosts();
@@ -117,9 +101,14 @@ export const usePosts = () => {
     }
   };
 
+
   const refreshPosts = async () => {
     await loadPosts();
   };
 
-  return { createPost, posts, refreshPosts };
+
+  return { createPost, posts, refreshPosts, isLoading };
 };
+
+
+
