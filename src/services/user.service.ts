@@ -35,3 +35,18 @@ export const checkUsername = async (username: string, token: string) => {
         throw error;
     }
 };
+
+export const getUserById = async (userId: string, token: string) => {
+    try {
+        const data = await apiFetch(`/users/${userId}`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return data;
+    } catch (error) {
+        console.error("Error fetching user by ID:", error);
+        throw error;
+    }
+}

@@ -28,31 +28,37 @@ interface PostCardProps {
 const PostCard = ({ post, currentUserId }: PostCardProps) => {
   const postUser = post.profiles;
   const isOwnPost = post.user_id === currentUserId;
+  const router = useRouter();
   return (
     <View style={styles.postContainer}>
       <View style={styles.postHeader}>
-        <View style={styles.userInfo}>
-          {postUser?.profile_image_url ? (
-            <Image
-              cachePolicy={"none"}
-              source={{ uri: postUser.profile_image_url }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
-                {postUser?.name?.[0]?.toUpperCase() || "U"}
-              </Text>
-            </View>
-          )}
+           <TouchableOpacity
+            style={styles.userInfo}
+            onPress={() => router.push(`/profile/${post.user_id}`)}
+          >
+            {postUser?.profile_image_url ? (
+              <Image
+                cachePolicy={"none"}
+                source={{ uri: postUser.profile_image_url }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarText}>
+                  {postUser?.name?.[0]?.toUpperCase() || "U"}
+                </Text>
+              </View>
+            )}
 
-          <View>
-            <Text style={styles.username}>
-              {isOwnPost ? "You" : `@${postUser?.username}`}
-            </Text>
-            <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
-          </View>
-        </View>
+
+            <View>
+              <Text style={styles.username}>
+                {isOwnPost ? "You" : `@${postUser?.username}`}
+              </Text>
+              <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
+            </View>
+          </TouchableOpacity>
+
 
         {/* Post content */}
         <View style={styles.timeRemainingBadge}>

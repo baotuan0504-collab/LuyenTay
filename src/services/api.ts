@@ -1,5 +1,5 @@
 
-const BASE_URL = "http://localhost:5201/api";
+const BASE_URL = "http://192.168.38.103:5201/api";
 
 export const apiFetch = async (
     endpoint: string,

@@ -53,3 +53,18 @@ export async function checkUsername(req: AuthRequest, res: Response, next: NextF
     next(error);
   }
 }
+
+export async function getUserById(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const {userId} = req.params;
+    const user = await User.findById(userId).select("name email avatar username createdAt");
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500);
+    next(error);
+  }
+}
