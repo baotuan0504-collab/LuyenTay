@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+
 import {
   ActivityIndicator,
   FlatList,
@@ -101,15 +102,23 @@ export default function MessagesScreen() {
             </Text>
 
             {item.lastMessageAt && (
-              <Text style={styles.time}>
-                {new Date(item.lastMessageAt).toLocaleTimeString(
-                  [],
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
-              </Text>
+              <View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={styles.time}>
+                    {new Date(item.lastMessageAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+
+                  <Ionicons
+                    name="ellipsis-horizontal"
+                    size={16}
+                    color="#999"
+                    style={{ marginLeft: 10 }}
+                  />
+                </View>
+              </View>
             )}
           </View>
 
@@ -123,7 +132,7 @@ export default function MessagesScreen() {
             {isTyping
               ? "typing..."
               : item.lastMessage?.text ||
-                "No messages yet"}
+              "No messages yet"}
           </Text>
         </View>
       </TouchableOpacity>
@@ -188,7 +197,7 @@ const styles = StyleSheet.create({
 
   listContent: {
     flexGrow: 1,
-    paddingTop:20,
+    paddingTop: 20,
   },
 
   chatItem: {
@@ -275,7 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#999",
   },
-
   /* Floating Button */
 
   fab: {

@@ -129,7 +129,7 @@ export default function Profile() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={styles.sectionTitle}>More</Text>
 
           <TouchableOpacity style={styles.settingItem}>
             <Text style={styles.settingLabel}>Help & Support</Text>

@@ -39,7 +39,8 @@ export default function TabsLayout() {
               backgroundColor: "#fff",
               borderTopWidth: 1,
               borderTopColor: "#eaeaea",
-              height: 64,
+              height: 65,
+              paddingTop: 20,
               paddingBottom: 8,
             },
           }}
@@ -71,25 +72,6 @@ export default function TabsLayout() {
               ),
             }}
           />
-
-          <Tabs.Screen
-            name="about"
-            options={{
-              title: "About",
-              tabBarIcon: ({ color, size, focused }) => (
-                <Ionicons
-                  name={
-                    focused
-                      ? "information-circle"
-                      : "information-circle-outline"
-                  }
-                  color={color}
-                  size={size}
-                />
-              ),
-            }}
-          />
-
           <Tabs.Screen
             name="messages"
             options={{
@@ -97,6 +79,23 @@ export default function TabsLayout() {
               tabBarIcon: ({ color, size, focused }) => (
                 <Ionicons
                   name={focused ? "chatbubbles" : "chatbubbles-outline"}
+                  color={color}
+                  size={size}
+                />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="more"
+            options={{
+              title: "More",
+              tabBarIcon: ({ color, size, focused }) => (
+                <Ionicons
+                  name={
+                    focused
+                      ? "ellipsis-horizontal"
+                      : "ellipsis-horizontal-outline"
+                  }
                   color={color}
                   size={size}
                 />

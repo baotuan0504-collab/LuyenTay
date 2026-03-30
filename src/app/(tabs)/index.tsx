@@ -68,6 +68,12 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         </View>
       </View>
 
+      {post.description ? (
+        <View style={styles.postDescriptionContainer}>
+          <Text style={styles.postDescription}>{post.description}</Text>
+        </View>
+      ) : null}
+
       <Image
         cachePolicy={"none"}
         source={{ uri: post.image_url }}
@@ -75,15 +81,12 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         contentFit="cover"
       />
 
-      <View style={styles.postFooter}>
-        {post.description && (
-          <Text style={styles.postDescription}>{post.description}</Text>
-        )}
+      {/* <View style={styles.postFooter}>
         <Text style={styles.postInfo}>
           {isOwnPost ? "Your Post" : `${postUser?.name}' post`} • Expires in{" "}
           {formatTimeRemaining(post.expires_at)}
         </Text>
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -420,6 +423,10 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: "#f5f5f5",
   },
+  postDescriptionContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   postFooter: {
      paddingHorizontal: 16,
      paddingVertical: 12,    
@@ -427,7 +434,6 @@ const styles = StyleSheet.create({
   postDescription: {
     fontSize: 15,
     color: "#000",
-    marginBottom: 8,
     lineHeight: 20,
   },
   postInfo: {

@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
-export default function About() {
+export default function More() {
   return (
     <View style={styles.container}>
-      <Text>About Us</Text>
+      <Text>More</Text>
     </View>
   );
 }
