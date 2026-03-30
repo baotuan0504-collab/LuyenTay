@@ -1,28 +1,29 @@
 import { MessageBubble, type MessageData } from "@/components/MessageBubble";
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/context/ChatContext";
+import { isUnauthorizedError } from "@/services/api";
 import * as messageService from "@/services/message.service";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function ChatRoomScreen() {
   const { id: chatId, name, avatar, participantId } = useLocalSearchParams();
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, signOut } = useAuth();
   const { joinChat, leaveChat, sendMessage, sendTyping, isConnected, typingUsers, socket } = useChat();
   const router = useRouter();
 
@@ -79,6 +80,11 @@ export default function ChatRoomScreen() {
       const data = await messageService.getMessages(chatId as string, accessToken!);
       setMessages(data as any);
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        await signOut();
+        router.replace("/login");
+        return;
+      }
       console.error("Error loading messages:", error);
     } finally {
       setIsLoading(false);

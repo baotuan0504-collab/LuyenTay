@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useChat } from "@/context/ChatContext";
+import { isUnauthorizedError } from "@/services/api";
 import * as chatService from "@/services/chat.service";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -20,7 +21,7 @@ export default function MessagesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const { accessToken } = useAuth();
+  const { accessToken, signOut } = useAuth();
   const { onlineUsers, typingUsers } = useChat();
   const router = useRouter();
 
@@ -36,6 +37,11 @@ export default function MessagesScreen() {
       const data = await chatService.getChats(accessToken);
       setChats(data);
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        await signOut();
+        router.replace("/login");
+        return;
+      }
       console.error("Error loading chats:", error);
     } finally {
       setIsLoading(false);

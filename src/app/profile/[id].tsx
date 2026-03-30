@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import { isUnauthorizedError } from "@/services/api";
 import * as chatService from "@/services/chat.service";
 import * as userService from "@/services/user.service";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,20 +7,20 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function PublicProfileScreen() {
   const { id: userId } = useLocalSearchParams();
-  const { accessToken, user: currentUser } = useAuth();
+  const { accessToken, user: currentUser, signOut } = useAuth();
   const router = useRouter();
 
 
@@ -40,6 +41,11 @@ export default function PublicProfileScreen() {
       const data = await userService.getUserById(userId as string, accessToken!);
       setProfile(data);
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        await signOut();
+        router.replace("/login");
+        return;
+      }
       console.error("Error loading profile:", error);
       Alert.alert("Error", "Could not load user profile");
     } finally {
@@ -64,6 +70,11 @@ export default function PublicProfileScreen() {
         },
       });
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        await signOut();
+        router.replace("/login");
+        return;
+      }
       console.error("Error starting chat:", error);
       Alert.alert("Error", "Could not start conversation");
     } finally {

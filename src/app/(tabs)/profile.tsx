@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Profile() {
   const { user, updateUser, signOut } = useAuth();
@@ -76,7 +75,7 @@ export default function Profile() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileSection}>
           <TouchableOpacity
@@ -160,7 +159,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -170,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   content: {
-    padding: 32,
+    padding: 32
   },
   profileSection: {
     alignItems: "center",

@@ -49,4 +49,19 @@ export const getUserById = async (userId: string, token: string) => {
         console.error("Error fetching user by ID:", error);
         throw error;
     }
-}
+};
+
+export const getUsers = async (token: string) => {
+    try {
+        const data = await apiFetch("/users", {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return data as Array<{ _id: string; name: string; username?: string; avatar?: string; email?: string }>;
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        throw error;
+    }
+};
