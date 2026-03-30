@@ -4,6 +4,7 @@ import mongoose, { Schema, type Document } from "mongoose";
 export interface IPost extends Document {
   user: mongoose.Types.ObjectId;
   imageUrl: string;
+  videoUrl?: string;
   description?: string;
   expiresAt: Date;
   isActive: boolean;
@@ -22,6 +23,10 @@ const PostSchema = new Schema<IPost>(
     imageUrl: {
       type: String,
       required: true,
+    },
+    videoUrl: {
+      type: String,
+      required: false,
     },
     description: {
       type: String,

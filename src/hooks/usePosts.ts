@@ -1,7 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
-import { uploadPostImage } from "@/lib/supabase/storage";
+import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage";
 import * as postService from "@/services/post.service";
 import { useEffect, useState } from "react";
+
+
 
 
 export interface PostUser {
@@ -12,10 +14,13 @@ export interface PostUser {
 }
 
 
+
+
 export interface Post {
   id: string;
   user_id: string;
   image_url: string;
+  video_url?: string;
   description?: string;
   created_at: string;
   expires_at: string;
@@ -24,10 +29,14 @@ export interface Post {
 }
 
 
+
+
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, accessToken } = useAuth();
+
+
 
 
   useEffect(() => {
@@ -37,8 +46,12 @@ export const usePosts = () => {
   }, [accessToken]);
 
 
+
+
   const loadPosts = async () => {
     if (!accessToken) return;
+
+
 
 
     setIsLoading(true);
@@ -46,10 +59,13 @@ export const usePosts = () => {
       const postsData = await postService.getPosts(accessToken);
 
 
+
+
       const formattedPosts: Post[] = postsData.map((post) => ({
         id: post._id,
         user_id: post.user._id,
         image_url: post.imageUrl,
+        video_url: post.videoUrl,
         description: post.description,
         created_at: post.createdAt,
         expires_at: post.expiresAt,
@@ -63,6 +79,8 @@ export const usePosts = () => {
       }));
 
 
+
+
       setPosts(formattedPosts);
     } catch (error) {
       console.error("Error in loadPosts:", error);
@@ -72,25 +90,42 @@ export const usePosts = () => {
   };
 
 
-  const createPost = async (imageUri: string, description?: string) => {
+
+
+  const createPost = async (imageUri: string, description?: string, videoUri?: string) => {
     if (!user || !accessToken) {
       throw new Error("User not authenticated");
     }
 
 
     try {
-      // 1. Upload to Supabase Storage
-      const imageUrl = await uploadPostImage(user.id, imageUri);
+      let imageUrl = "";
+      let videoUrl = undefined;
+
+
+      if (videoUri) {
+        // 1. Upload thumbnail (imageUri is the thumbnail here) and video
+        imageUrl = await uploadPostImage(user.id, imageUri);
+        videoUrl = await uploadPostVideo(user.id, videoUri);
+      } else {
+        // 1. Upload only image
+        imageUrl = await uploadPostImage(user.id, imageUri);
+      }
+
+
 
 
       // 2. Save metadata to Backend
       await postService.createPost(
         {
           imageUrl,
+          videoUrl,
           description: description || "",
         },
         accessToken
       );
+
+
 
 
       // Refresh posts
@@ -102,13 +137,14 @@ export const usePosts = () => {
   };
 
 
+
+
   const refreshPosts = async () => {
     await loadPosts();
   };
 
 
+
+
   return { createPost, posts, refreshPosts, isLoading };
 };
-
-
-

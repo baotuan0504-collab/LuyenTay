@@ -1,5 +1,9 @@
 
+
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { VideoView, useVideoPlayer } from "expo-video";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import {
   ActivityIndicator,
   Alert,
@@ -13,22 +17,42 @@ import {
   View,
 } from "react-native";
 
+
 import { useAuth } from "@/context/AuthContext";
 import { Post, usePosts } from "@/hooks/usePosts";
 import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 
 interface PostCardProps {
   post: Post;
   currentUserId?: string;
 }
 
+
 const PostCard = ({ post, currentUserId }: PostCardProps) => {
   const postUser = post.profiles;
   const isOwnPost = post.user_id === currentUserId;
   const router = useRouter();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const player = useVideoPlayer(post.video_url ?? null, (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.volume = 1;
+  });
+
+  useEffect(() => {
+    if (!post.video_url) return;
+    if (isPlaying) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isPlaying, player, post.video_url]);
+
+
   return (
     <View style={styles.postContainer}>
       <View style={styles.postHeader}>
@@ -51,6 +75,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
             )}
 
 
+
+
             <View>
               <Text style={styles.username}>
                 {isOwnPost ? "You" : `@${postUser?.username}`}
@@ -58,6 +84,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
             </View>
           </TouchableOpacity>
+
+
 
 
         {/* Post content */}
@@ -68,39 +96,66 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         </View>
       </View>
 
+
       {post.description ? (
         <View style={styles.postDescriptionContainer}>
           <Text style={styles.postDescription}>{post.description}</Text>
         </View>
       ) : null}
 
-      <Image
-        cachePolicy={"none"}
-        source={{ uri: post.image_url }}
-        style={styles.postImage}
-        contentFit="cover"
-      />
 
-      {/* <View style={styles.postFooter}>
-        <Text style={styles.postInfo}>
-          {isOwnPost ? "Your Post" : `${postUser?.name}' post`} • Expires in{" "}
-          {formatTimeRemaining(post.expires_at)}
-        </Text>
-      </View> */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => post.video_url && setIsPlaying(!isPlaying)}
+        style={styles.mediaContainer}
+      >
+        {post.video_url && isPlaying ? (
+          <VideoView
+            player={player}
+            nativeControls
+            contentFit="cover"
+            style={styles.postImage}
+          />
+        ) : (
+          <View>
+            <Image
+              cachePolicy={"none"}
+              source={{ uri: post.image_url }}
+              style={styles.postImage}
+              contentFit="cover"
+            />
+            {post.video_url && (
+              <View style={styles.playButtonOverlay}>
+                <Ionicons name="play" size={50} color="#fff" />
+              </View>
+            )}
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
 
+
 export default function Index() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<string | null>(null);
   const [description, setDescription] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const previewPlayer = useVideoPlayer(previewVideo ?? null, (player) => {
+    player.loop = true;
+    player.muted = false;
+    player.volume = 1;
+  });
+
 
   const router = useRouter();
   const { createPost, posts, refreshPosts } = usePosts();
   const { user } = useAuth();
+
+
 
 
   const onRefresh = async () => {
@@ -114,6 +169,7 @@ export default function Index() {
     }
   };
 
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -124,6 +180,7 @@ export default function Index() {
       return;
     }
 
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -132,10 +189,48 @@ export default function Index() {
     });
     if (!result.canceled && result.assets[0]) {
       setPreviewImage(result.assets[0].uri);
+      setPreviewVideo(null);
       setShowPreview(true);
       setDescription("");
     }
   };
+
+
+  const pickVideo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "We need camera roll permissions to select a video.",
+      );
+      return;
+    }
+
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const videoUri = result.assets[0].uri;
+      setPreviewVideo(videoUri);
+      setPreviewImage(null);
+      setIsUploading(true);
+      try {
+        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+          time: 0,
+        });
+        setPreviewImage(uri);
+      } catch (e) {
+        console.warn("Video thumbnail generation failed:", e);
+      } finally {
+        setIsUploading(false);
+      }
+      setShowPreview(true);
+      setDescription("");
+    }
+  };
+
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -147,33 +242,91 @@ export default function Index() {
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPreviewImage(result.assets[0].uri);
-      setShowPreview(true);
-      setDescription("");
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setPreviewImage(result.assets[0].uri);
+        setPreviewVideo(null);
+        setShowPreview(true);
+        setDescription("");
+      }
+    } catch (error) {
+      console.error("Camera launch failed:", error);
+      Alert.alert(
+        "Camera unavailable",
+        "Camera is not available on this device or simulator.",
+      );
     }
   };
 
+
+  const recordVideo = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "We need camera permissions to record a video.",
+      );
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const videoUri = result.assets[0].uri;
+        setPreviewVideo(videoUri);
+        setPreviewImage(null);
+        setIsUploading(true);
+        try {
+          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+            time: 0,
+          });
+          setPreviewImage(uri);
+        } catch (e) {
+          console.warn("Video thumbnail generation failed:", e);
+        } finally {
+          setIsUploading(false);
+        }
+        setShowPreview(true);
+        setDescription("");
+      }
+    } catch (error) {
+      console.error("Camera launch failed:", error);
+      Alert.alert(
+        "Camera unavailable",
+        "Camera is not available on this device or simulator.",
+      );
+    }
+  };
+
+
   const showImagePicker = () => {
-    Alert.alert("Select Profile Image", "Choose an option", [
-      { text: "Camera", onPress: takePhoto },
-      { text: "Photo Library", onPress: pickImage },
+    Alert.alert("Create Post", "Choose an option", [
+      { text: "Take Photo", onPress: takePhoto },
+      { text: "Record Video", onPress: recordVideo },
+      { text: "Photo Library (Image)", onPress: pickImage },
+      { text: "Photo Library (Video)", onPress: pickVideo },
       { text: "Cancel", style: "cancel" },
     ]);
   };
 
+
   const handlePost = async () => {
     if (!previewImage) return;
 
+
     setIsUploading(true);
     try {
-      await createPost(previewImage, description);
+      await createPost(previewImage, description, previewVideo || undefined);
       setPreviewImage(null);
+      setPreviewVideo(null);
       setDescription("");
       setShowPreview(false);
     } catch (error) {
@@ -184,9 +337,11 @@ export default function Index() {
     }
   };
 
+
   const renderPost = ({ item }: { item: Post }) => (
     <PostCard post={item} currentUserId={user?.id} />
   );
+
 
   return (
     <View style={styles.container}>
@@ -205,21 +360,39 @@ export default function Index() {
         }
       />
 
+
       <TouchableOpacity style={styles.fab} onPress={showImagePicker}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
 
       <Modal visible={showPreview} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Preview Your Post</Text>
-            {previewImage && (
-              <Image
-                cachePolicy={"none"}
-                source={{ uri: previewImage }}
-                style={styles.previewImage}
-                contentFit="cover"
-              />
+            {(previewImage || previewVideo) && (
+              <View style={styles.previewMediaContainer}>
+                {previewImage ? (
+                  <Image
+                    cachePolicy={"none"}
+                    source={{ uri: previewImage }}
+                    style={styles.previewImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <VideoView
+                    player={previewPlayer}
+                    nativeControls
+                    contentFit="cover"
+                    style={styles.previewImage}
+                  />
+                )}
+                {previewVideo && (
+                  <View style={styles.previewVideoOverlay}>
+                    <Ionicons name="videocam" size={40} color="#fff" />
+                  </View>
+                )}
+              </View>
             )}
             <TextInput
               style={styles.descriptionInput}
@@ -260,6 +433,7 @@ export default function Index() {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -354,6 +528,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+
   content: {
     padding: 0,
     paddingBottom: 80,
@@ -364,6 +539,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
   },
+
 
   postContainer: {
     backgroundColor: "#fff",
@@ -439,5 +615,29 @@ const styles = StyleSheet.create({
   postInfo: {
     fontSize: 14,
     color: "#666",
+  },
+  mediaContainer: {
+    position: "relative",
+    width: "100%",
+    aspectRatio: 1,
+  },
+  playButtonOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
+  previewMediaContainer: {
+    position: "relative",
+    width: "100%",
+    aspectRatio: 1,
+    marginBottom: 16,
+  },
+  previewVideoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.2)",
+    borderRadius: 12,
   },
 });

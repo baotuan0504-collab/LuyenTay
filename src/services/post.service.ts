@@ -10,6 +10,7 @@ export interface PostResponse {
     avatar: string;
   };
   imageUrl: string;
+  videoUrl?: string;
   description?: string;
   expiresAt: string;
   isActive: boolean;
@@ -19,7 +20,7 @@ export interface PostResponse {
 
 
 export const createPost = async (
-  postData: { imageUrl: string; description?: string },
+  postData: { imageUrl?: string; videoUrl?: string; description?: string },
   token: string
 ): Promise<PostResponse> => {
   try {

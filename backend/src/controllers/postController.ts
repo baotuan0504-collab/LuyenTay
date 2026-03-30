@@ -6,11 +6,11 @@ import { Post } from "../models/Post";
 export async function createPost(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { imageUrl, description } = req.body;
+    const { imageUrl, videoUrl, description } = req.body;
 
 
-    if (!imageUrl) {
-      res.status(400).json({ message: "Image URL is required" });
+    if (!imageUrl && !videoUrl) {
+      res.status(400).json({ message: "Either Image URL or Video URL is required" });
       return;
     }
 
@@ -21,6 +21,7 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
     const post = new Post({
       user: userId,
       imageUrl,
+      videoUrl,
       description,
       expiresAt,
       isActive: true,
