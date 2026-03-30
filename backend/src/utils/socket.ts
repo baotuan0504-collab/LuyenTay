@@ -11,8 +11,8 @@ export const onlineUsers: Map<string, string> = new Map();
 
 export const initializeSocket = (httpServer: HttpServer) => {
   const allowedOrigins = [
-    "http://192.168.38.103:8081", // Expo mobile
-    "http://192.168.38.103:5173", // Vite web dev
+    "http://localhost:8081", // Expo mobile
+    "http://localhost:5173", // Vite web dev
     process.env.FRONTEND_URL, // production
   ].filter(Boolean) as string[];
 

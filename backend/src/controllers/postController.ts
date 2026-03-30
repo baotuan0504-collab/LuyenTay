@@ -14,14 +14,6 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
       return;
     }
 
-
-    // Deactivate previous active posts for the same user
-    await Post.updateMany(
-      { user: userId, isActive: true },
-      { $set: { isActive: false } }
-    );
-
-
     // Calculate expiration time (24 hours from now)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -55,11 +47,8 @@ export async function createPost(req: AuthRequest, res: Response, next: NextFunc
 
 export async function getPosts(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    // Fetch active posts that haven't expired
-    const posts = await Post.find({
-      isActive: true,
-      expiresAt: { $gt: new Date() },
-    })
+    // Fetch all posts, including multiple posts per user
+    const posts = await Post.find({})
       .populate("user", "name username avatar")
       .sort({ createdAt: -1 });
 
