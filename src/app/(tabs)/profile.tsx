@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -16,6 +17,11 @@ import {
 export default function Profile() {
   const { user, updateUser, signOut } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftUsername, setDraftUsername] = useState("");
+  const [draftAvatar, setDraftAvatar] = useState("");
   const router = useRouter();
 
   const handleUpdateProfileImage = async () => {
@@ -54,6 +60,43 @@ export default function Profile() {
       } finally {
         setIsUpdating(false);
       }
+    }
+  };
+
+  const startProfileEdit = () => {
+    if (!user) return;
+    setDraftName(user.name || "");
+    setDraftUsername(user.username || "");
+    setDraftAvatar(user.avatar || "");
+    setIsEditing(true);
+  };
+
+  const cancelProfileEdit = () => {
+    setIsEditing(false);
+  };
+
+  const saveProfileEdit = async () => {
+    if (!user) return;
+    const payload: Record<string, unknown> = {};
+    if (draftName !== user.name) payload.name = draftName;
+    if (draftUsername !== user.username) payload.username = draftUsername;
+    if (draftAvatar !== user.avatar) payload.avatar = draftAvatar;
+
+    if (Object.keys(payload).length === 0) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      await updateUser(payload);
+      Alert.alert("Success", "Profile updated successfully.");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", "Could not update profile.");
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -112,10 +155,53 @@ export default function Profile() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={startProfileEdit}
+          >
             <Text style={styles.settingLabel}>Edit Profile</Text>
             <Text style={styles.settingValue}>→</Text>
           </TouchableOpacity>
+
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <Text style={styles.label}>Name</Text>
+              <TextInput
+                style={styles.input}
+                value={draftName}
+                onChangeText={setDraftName}
+                placeholder="Enter your name"
+              />
+
+              <Text style={styles.label}>Username</Text>
+              <TextInput
+                style={styles.input}
+                value={draftUsername}
+                onChangeText={setDraftUsername}
+                placeholder="Enter your username"
+                autoCapitalize="none"
+              />
+
+              <View style={styles.editActions}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.saveButton]}
+                  onPress={saveProfileEdit}
+                  disabled={isSavingProfile}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {isSavingProfile ? "Saving..." : "Save"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.cancelButton]}
+                  onPress={cancelProfileEdit}
+                  disabled={isSavingProfile}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
 
           <TouchableOpacity style={styles.settingItem}>
             <Text style={styles.settingLabel}>Notifications</Text>
@@ -269,5 +355,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#ff3b30",
     fontWeight: "500",
+  },
+  editForm: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+  },
+  label: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+    backgroundColor: "#fff",
+  },
+  editActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  saveButton: {
+    backgroundColor: "black",
+    marginRight: 8,
+  },
+  cancelButton: {
+    backgroundColor: "#e5e5e5",
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontWeight: "600",
   },
 });

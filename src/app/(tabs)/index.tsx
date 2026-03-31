@@ -37,6 +37,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
   const isOwnPost = post.user_id === currentUserId;
   const router = useRouter();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const player = useVideoPlayer(post.video_url ?? null, (player) => {
     player.loop = true;
     player.muted = false;
@@ -74,9 +75,6 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               </View>
             )}
 
-
-
-
             <View>
               <Text style={styles.username}>
                 {isOwnPost ? "You" : `@${postUser?.username}`}
@@ -84,9 +82,6 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
             </View>
           </TouchableOpacity>
-
-
-
 
         {/* Post content */}
         <View style={styles.timeRemainingBadge}>
@@ -110,12 +105,27 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         style={styles.mediaContainer}
       >
         {post.video_url && isPlaying ? (
-          <VideoView
-            player={player}
-            nativeControls
-            contentFit="cover"
-            style={styles.postImage}
-          />
+          <View style={styles.videoWrapper}>
+            <VideoView
+              player={player}
+              nativeControls
+              contentFit="cover"
+              useExoShutter
+              onFirstFrameRender={() => setVideoReady(true)}
+              style={[styles.postImage, { backgroundColor: "#000" }]}
+            />
+            {!videoReady && (
+              <View style={styles.videoCover}>
+                <Image
+                  cachePolicy={"none"}
+                  source={{ uri: post.image_url }}
+                  style={[styles.postImage, styles.coverImage]}
+                  contentFit="cover"
+                />
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )}
+          </View>
         ) : (
           <View>
             <Image
@@ -620,6 +630,22 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     aspectRatio: 1,
+  },
+  videoWrapper: {
+    position: "relative",
+  },
+  videoCover: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  coverImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   playButtonOverlay: {
     ...StyleSheet.absoluteFillObject,

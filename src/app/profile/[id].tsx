@@ -53,7 +53,6 @@ export default function PublicProfileScreen() {
     }
   };
 
-
   const handleMessage = async () => {
     if (!accessToken || !profile) return;
    
@@ -120,6 +119,7 @@ export default function PublicProfileScreen() {
          
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.username}>@{profile.username}</Text>
+         
          
           <Text style={styles.joinedDate}>
             Joined {new Date(profile.createdAt).toLocaleDateString()}
@@ -230,6 +230,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
+  editButton: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#007AFF",
+  },
+  editButtonText: {
+    color: "#007AFF",
+    fontWeight: "500",
+  },
+  input:{
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#fff",
+  }
 });
 
 
