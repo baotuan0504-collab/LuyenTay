@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "tsx index.js",
-    "start": "tsx index.js"
+    "dev": "tsx index.ts",
+    "start": "tsx index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

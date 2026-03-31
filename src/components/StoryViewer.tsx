@@ -8,17 +8,21 @@ import {
     Animated,
     Dimensions,
     Modal,
-    SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+
 
 
 const { width, height } = Dimensions.get("window");
 const STORY_DURATION = 5000; // 5 seconds for images
+
+
 
 
 interface StoryViewerProps {
@@ -27,6 +31,8 @@ interface StoryViewerProps {
   initialIndex: number;
   onClose: () => void;
 }
+
+
 
 
 export const StoryViewer = ({
@@ -39,11 +45,8 @@ export const StoryViewer = ({
   const progress = useRef(new Animated.Value(0)).current;
   const currentStory = stories[index];
  
-  // Track video loading/duration
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-
-
-  const player = useVideoPlayer(currentStory?.video_url ?? null, (player) => {
+  // Initialize player with a stable null source to prevent recreation crashes
+  const player = useVideoPlayer(null, (player) => {
     player.loop = false;
     player.muted = false;
     player.volume = 1;
@@ -56,21 +59,50 @@ export const StoryViewer = ({
 
 
   useEffect(() => {
+    // If not visible or no video, just pause existing player safely
+    if (!visible || !currentStory?.video_url) {
+      try {
+        player.pause();
+      } catch (e) {
+        // Ignore native object missing
+      }
+      return;
+    }
+
+
+    try {
+      // Use replace for the current story video
+      player.replace(currentStory.video_url);
+      player.play();
+    } catch (error) {
+      console.warn("Error playing story video:", error);
+    }
+
+
+    return () => {
+      try {
+        player.pause();
+      } catch (e) {
+        // Safe cleanup
+      }
+    };
+  }, [index, visible, currentStory?.video_url, player]);
+
+
+  useEffect(() => {
     if (!visible || !currentStory) return;
 
 
     progress.setValue(0);
    
-    let duration = STORY_DURATION;
-   
-    // If it's a video, we might want to wait for duration?
-    // For simplicity, let's keep 5s unless we want to be fancy.
-    // Most story viewers use video duration if available.
+    // For videos, we could ideally get duration, but for now let's use a safe STORY_DURATION
+    // unless we want to implement player.duration listener.
+    const duration = STORY_DURATION;
    
     const animation = Animated.timing(progress, {
       toValue: 1,
       duration: duration,
-      useNativeDriver: false, // We're animating width
+      useNativeDriver: false,
     });
 
 
@@ -81,18 +113,12 @@ export const StoryViewer = ({
     });
 
 
-    if (currentStory.video_url) {
-      player.play();
-    }
-
-
     return () => {
       animation.stop();
-      if (currentStory.video_url) {
-        player.pause();
-      }
     };
   }, [index, visible, currentStory]);
+
+
 
 
   const handleNext = () => {
@@ -102,6 +128,8 @@ export const StoryViewer = ({
       onClose();
     }
   };
+
+
 
 
   const handlePrev = () => {
@@ -115,6 +143,8 @@ export const StoryViewer = ({
   };
 
 
+
+
   const handlePress = (evt: any) => {
     const x = evt.nativeEvent.locationX;
     if (x < width / 3) {
@@ -125,7 +155,11 @@ export const StoryViewer = ({
   };
 
 
+
+
   if (!visible || !currentStory) return null;
+
+
 
 
   return (
@@ -143,7 +177,7 @@ export const StoryViewer = ({
             <VideoView
               player={player}
               nativeControls={false}
-              contentFit="contain"
+              contentFit="cover"
               style={styles.media}
             />
           ) : (
@@ -154,6 +188,8 @@ export const StoryViewer = ({
             />
           )}
         </TouchableOpacity>
+
+
 
 
         {/* Top Overlay */}
@@ -178,6 +214,8 @@ export const StoryViewer = ({
           </View>
 
 
+
+
           {/* User Info */}
           <View style={styles.userInfoContainer}>
             <View style={styles.userInfo}>
@@ -197,6 +235,8 @@ export const StoryViewer = ({
         </View>
 
 
+
+
         {/* Description if any */}
         {currentStory.description ? (
           <View style={styles.bottomOverlay}>
@@ -207,6 +247,8 @@ export const StoryViewer = ({
     </Modal>
   );
 };
+
+
 
 
 const styles = StyleSheet.create({
@@ -292,6 +334,12 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
 });
+
+
+
+
+
+
 
 
 

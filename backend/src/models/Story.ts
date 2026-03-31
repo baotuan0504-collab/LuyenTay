@@ -1,9 +1,10 @@
 import mongoose, { Schema, type Document } from "mongoose";
 
+
 export interface IStory extends Document {
     user: mongoose.Types.ObjectId;
-    imageUri: string;
-    videoUri?: string;
+    imageUrl: string;
+    videoUrl?: string;
     description?: string;
     expiresAt: Date;
     isActive: boolean;
@@ -11,19 +12,26 @@ export interface IStory extends Document {
     updatedAt: Date;
 }
 
+
 const StorySchema = new Schema<IStory>(
     {
         user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-        imageUri: { type: String, required: true },
-        videoUri: { type: String, required: false },
+        imageUrl: { type: String, required: true },
+        videoUrl: { type: String, required: false },
         description: { type: String, required: false },
-        expiresAt: { type: Date, required: true , index:{ expires: 0 }},
-        isActive:{
+        expiresAt: { type: Date, required: true },
+        isActive: {
             type: Boolean,
             default: true
         }
-
     },
     { timestamps: true }
-)
+);
+
+
+// TTL index: expire the document exactly at the value of 'expiresAt'
+StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+
 export const Story = mongoose.model<IStory>("Story", StorySchema);
+

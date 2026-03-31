@@ -10,13 +10,18 @@ import {
 } from "react-native";
 
 
+
+
 export interface StoryUser {
   id: string;
   name: string;
   username: string;
   avatar?: string;
+  thumbnail?: string;
   hasUnseenStory?: boolean;
 }
+
+
 
 
 interface StoryBarProps {
@@ -24,17 +29,23 @@ interface StoryBarProps {
     id: string;
     avatar?: string;
     name: string;
+    thumbnail?: string;
+    hasStory?: boolean;
   };
   usersWithStories: StoryUser[];
   onUserPress: (userId: string) => void;
+  onSelfPress: () => void;
   onAddStoryPress: () => void;
 }
+
+
 
 
 export const StoryBar = ({
   currentUser,
   usersWithStories,
   onUserPress,
+  onSelfPress,
   onAddStoryPress,
 }: StoryBarProps) => {
   return (
@@ -44,71 +55,99 @@ export const StoryBar = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Current User "Add Story" */}
+        {/* Current User "Add Story" or "View Own Story" */}
         <TouchableOpacity
-          style={styles.storyItem}
-          onPress={onAddStoryPress}
-          activeOpacity={0.8}
+          style={styles.cardContainer}
+          onPress={onSelfPress}
+          activeOpacity={0.9}
         >
-          <View style={styles.avatarContainer}>
-            {currentUser?.avatar ? (
-              <Image
-                source={{ uri: currentUser.avatar }}
-                style={styles.avatar}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.placeholderAvatar]}>
-                <Text style={styles.placeholderText}>
-                  {currentUser?.name?.[0]?.toUpperCase() || "U"}
-                </Text>
-              </View>
-            )}
-            <View style={styles.addButton}>
-              <Ionicons name="add" size={16} color="#fff" />
+          {/* Card Background */}
+          {currentUser?.hasStory ? (
+            <Image
+              source={{ uri: currentUser.thumbnail || currentUser.avatar }}
+              style={styles.cardBackground}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.cardBackground, { backgroundColor: "#f0f2f5" }]}>
+              {currentUser?.avatar ? (
+                <Image source={{ uri: currentUser.avatar }} style={styles.cardBackground} />
+              ) : (
+                <Ionicons name="person" size={40} color="#ccc" style={{ alignSelf: "center", marginTop: 40 }} />
+              )}
             </View>
+          )}
+
+
+          {/* User Avatar Overlay (Top Left) */}
+          <View style={[styles.miniAvatarContainer, currentUser?.hasStory && styles.unseenRing]}>
+            <Image
+              source={{ uri: currentUser?.avatar }}
+              style={styles.miniAvatar}
+            />
           </View>
-          <Text style={styles.username} numberOfLines={1}>
-            Your Story
-          </Text>
+
+
+          {/* Plus Button Overlay (Center/Bottom depending on style) */}
+          <TouchableOpacity
+            style={styles.cardAddButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              onAddStoryPress();
+            }}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
+
+
+          <View style={styles.cardTextContainer}>
+            <Text style={styles.cardUsername} numberOfLines={2}>
+              Create Story
+            </Text>
+          </View>
         </TouchableOpacity>
+
+
 
 
         {/* Other Users' Stories */}
         {usersWithStories.map((user) => (
           <TouchableOpacity
             key={user.id}
-            style={styles.storyItem}
+            style={styles.cardContainer}
             onPress={() => onUserPress(user.id)}
-            activeOpacity={0.8}
+            activeOpacity={0.9}
           >
-            <View
-              style={[
-                styles.avatarContainer,
-                user.hasUnseenStory && styles.unseenRing,
-              ]}
-            >
-              {user.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={[styles.avatar, styles.innerAvatar]}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.innerAvatar, styles.placeholderAvatar]}>
-                  <Text style={styles.placeholderText}>
-                    {user.name?.[0]?.toUpperCase() || "U"}
-                  </Text>
-                </View>
-              )}
+            {/* Card Background (Story Thumbnail) */}
+            <Image
+              source={{ uri: user.thumbnail || user.avatar }}
+              style={styles.cardBackground}
+              contentFit="cover"
+            />
+           
+            {/* User Avatar Overlay (Top Left) */}
+            <View style={[styles.miniAvatarContainer, user.hasUnseenStory && styles.unseenRing]}>
+              <Image
+                source={{ uri: user.avatar }}
+                style={styles.miniAvatar}
+              />
             </View>
-            <Text style={styles.username} numberOfLines={1}>
-              {user.username}
-            </Text>
+
+
+            {/* Username Overlay (Bottom) */}
+            <View style={styles.cardTextContainer}>
+              <Text style={styles.cardUsername} numberOfLines={2}>
+                {user.name}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
   );
 };
+
+
 
 
 const styles = StyleSheet.create({
@@ -120,66 +159,81 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    gap: 16,
+    gap: 8,
   },
-  storyItem: {
-    alignItems: "center",
-    width: 72,
-  },
-  avatarContainer: {
+  cardContainer: {
+    width: 100,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: "#eee",
+    overflow: "hidden",
     position: "relative",
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: "center",
-    alignItems: "center",
+  },
+  cardBackground: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
+  },
+  miniAvatarContainer: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#fff",
+    overflow: "hidden",
+    zIndex: 2,
+    backgroundColor: "#fff",
   },
   unseenRing: {
-    borderWidth: 2,
-    borderColor: "#ff3b30", // Reddish like FB/IG unseen
-    padding: 2,
+    borderColor: "#007bff", // FB Blue for unseen
   },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#f5f5f5",
+  miniAvatar: {
+    width: "100%",
+    height: "100%",
   },
-  innerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  placeholderAvatar: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#e0e0e0",
-  },
-  placeholderText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: "#666",
-  },
-  addButton: {
+  cardAddButton: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#007bff", // FB Blue
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
+    top: 30,
+    alignSelf: "center",
+    backgroundColor: "#007bff",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 3,
     borderColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 3,
   },
-  username: {
-    marginTop: 4,
+  cardTextContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 8,
+    paddingTop: 20,
+    backgroundColor: "rgba(0,0,0,0.3)", // Soft overlay for text
+    height: 60,
+    justifyContent: "flex-end",
+  },
+  cardUsername: {
+    color: "#fff",
     fontSize: 12,
-    color: "#333",
-    textAlign: "center",
+    fontWeight: "bold",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: -1, height: 1 },
+    textShadowRadius: 3,
   },
 });
+
+
+
+
+
+
 
 
 

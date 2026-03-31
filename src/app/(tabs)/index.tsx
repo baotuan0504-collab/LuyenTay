@@ -1,5 +1,7 @@
 
 
+
+
 import { compressImage, compressVideo } from "@/lib/media";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -21,6 +23,10 @@ import {
 
 
 
+
+
+
+
 import { StoryBar } from "@/components/StoryBar";
 import { StoryViewer } from "@/components/StoryViewer";
 import { useAuth } from "@/context/AuthContext";
@@ -34,10 +40,18 @@ import { useEffect, useMemo, useState } from "react";
 
 
 
+
+
+
+
 interface PostCardProps {
   post: Post;
   currentUserId?: string;
 }
+
+
+
+
 
 
 
@@ -55,6 +69,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
   });
 
 
+
+
   useEffect(() => {
     if (!post.video_url) return;
     if (isPlaying) {
@@ -63,6 +79,10 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
       player.pause();
     }
   }, [isPlaying, player, post.video_url]);
+
+
+
+
 
 
 
@@ -89,6 +109,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
             )}
 
 
+
+
             <View>
               <Text style={styles.username}>
                 {isOwnPost ? "You" : `@${postUser?.username}`}
@@ -96,6 +118,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
             </View>
           </TouchableOpacity>
+
+
 
 
         {/* Post content */}
@@ -109,11 +133,19 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
 
 
 
+
+
+
+
       {post.description ? (
         <View style={styles.postDescriptionContainer}>
           <Text style={styles.postDescription}>{post.description}</Text>
         </View>
       ) : null}
+
+
+
+
 
 
 
@@ -168,6 +200,10 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
 
 
 
+
+
+
+
 export default function Index() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -184,10 +220,16 @@ export default function Index() {
 
 
 
+
+
+
+
   const router = useRouter();
   const { createPost, posts, refreshPosts } = usePosts();
   const { createStory, stories, refreshStories } = useStories();
   const { user } = useAuth();
+
+
 
 
   const [selectedUserStories, setSelectedUserStories] = useState<Post[]>([]);
@@ -195,7 +237,10 @@ export default function Index() {
   const [isStoryMode, setIsStoryMode] = useState(false);
 
 
+
+
   const usersWithStories = useMemo(() => {
+    console.log("Processing stories for bar:", stories.length);
     const userGroups: Record<string, Post[]> = {};
     stories.forEach((story) => {
       const userId = story.user_id;
@@ -215,6 +260,7 @@ export default function Index() {
           name: profile?.name || "Unknown",
           username: profile?.username || "user",
           avatar: profile?.profile_image_url,
+          thumbnail: userStories[userStories.length - 1]?.image_url, // Latest story as thumb
           hasUnseenStory: true,
           stories: userStories.sort(
             (a, b) =>
@@ -223,16 +269,27 @@ export default function Index() {
         };
       })
       .sort((a, b) => {
-        // Sort groups by the most recent story in each group
-        const latestA = Math.max(
-          ...a.stories.map((s) => new Date(s.created_at).getTime())
-        );
-        const latestB = Math.max(
-          ...b.stories.map((s) => new Date(s.created_at).getTime())
-        );
+        const latestA = Math.max(...a.stories.map((s) => new Date(s.created_at).getTime()));
+        const latestB = Math.max(...b.stories.map((s) => new Date(s.created_at).getTime()));
         return latestB - latestA;
       });
   }, [stories]);
+
+
+  const currentUserStory = useMemo(() => {
+    if (!user?.id) return undefined;
+    const self = usersWithStories.find((u) => String(u.id) === String(user.id));
+    console.log("Current user story status:", !!self, "for ID:", user.id);
+    return self;
+  }, [usersWithStories, user?.id]);
+
+
+  const otherUsersStories = useMemo(() => {
+    if (!user?.id) return usersWithStories;
+    return usersWithStories.filter((u) => String(u.id) !== String(user.id));
+  }, [usersWithStories, user?.id]);
+
+
 
 
   const handleUserStoryPress = (userId: string) => {
@@ -242,6 +299,14 @@ export default function Index() {
       setIsViewerVisible(true);
     }
   };
+
+
+
+
+
+
+
+
 
 
 
@@ -264,6 +329,10 @@ export default function Index() {
 
 
 
+
+
+
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -273,6 +342,10 @@ export default function Index() {
       );
       return;
     }
+
+
+
+
 
 
 
@@ -307,6 +380,10 @@ export default function Index() {
 
 
 
+
+
+
+
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -316,6 +393,10 @@ export default function Index() {
       );
       return;
     }
+
+
+
+
 
 
 
@@ -363,6 +444,10 @@ export default function Index() {
 
 
 
+
+
+
+
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -372,6 +457,8 @@ export default function Index() {
       );
       return;
     }
+
+
 
 
     try {
@@ -411,6 +498,10 @@ export default function Index() {
 
 
 
+
+
+
+
   const recordVideo = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -420,6 +511,8 @@ export default function Index() {
       );
       return;
     }
+
+
 
 
     try {
@@ -473,6 +566,10 @@ export default function Index() {
 
 
 
+
+
+
+
   const showImagePicker = (forStory = false) => {
     setIsStoryMode(forStory);
     Alert.alert(forStory ? "Add Story" : "Create Post", "Choose an option", [
@@ -487,8 +584,14 @@ export default function Index() {
 
 
 
+
+
+
+
   const handlePost = async () => {
     if (!previewImage) return;
+
+
 
 
     setIsUploading(true);
@@ -513,9 +616,17 @@ export default function Index() {
 
 
 
+
+
+
+
   const renderPost = ({ item }: { item: Post }) => (
     <PostCard post={item} currentUserId={user?.id} />
   );
+
+
+
+
 
 
 
@@ -535,12 +646,15 @@ export default function Index() {
         ListHeaderComponent={
           <StoryBar
             currentUser={{
-              id: user?.id || "",
+              id: String(user?.id || ""),
               name: user?.name || "You",
               avatar: user?.avatar,
+              thumbnail: currentUserStory?.thumbnail,
+              hasStory: !!currentUserStory,
             }}
-            usersWithStories={usersWithStories}
+            usersWithStories={otherUsersStories}
             onUserPress={handleUserStoryPress}
+            onSelfPress={() => currentUserStory ? handleUserStoryPress(String(user?.id || "")) : showImagePicker(true)}
             onAddStoryPress={() => showImagePicker(true)}
           />
         }
@@ -548,6 +662,8 @@ export default function Index() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
+
+
 
 
       <StoryViewer
@@ -560,9 +676,17 @@ export default function Index() {
 
 
 
+
+
+
+
       <TouchableOpacity style={styles.fab} onPress={() => showImagePicker(false)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+
+
+
 
 
 
@@ -638,6 +762,10 @@ export default function Index() {
     </View>
   );
 }
+
+
+
+
 
 
 
@@ -738,6 +866,10 @@ const styles = StyleSheet.create({
 
 
 
+
+
+
+
   content: {
     padding: 0,
     paddingBottom: 80,
@@ -748,6 +880,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
   },
+
+
+
+
 
 
 
@@ -868,6 +1004,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 });
+
+
+
+
+
+
 
 
 

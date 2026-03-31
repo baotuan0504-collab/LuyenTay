@@ -5,10 +5,14 @@ import { useEffect, useState } from "react";
 import { Post as Story } from "./usePosts"; // Using the same Post interface for UI compatibility
 
 
+
+
 export const useStories = () => {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user, accessToken } = useAuth();
+
+
 
 
   useEffect(() => {
@@ -18,8 +22,12 @@ export const useStories = () => {
   }, [accessToken]);
 
 
+
+
   const loadStories = async () => {
     if (!accessToken) return;
+
+
 
 
     setIsLoading(true);
@@ -27,9 +35,11 @@ export const useStories = () => {
       const storiesData = await storyService.getStories(accessToken);
 
 
+
+
       const formattedStories: Story[] = storiesData.map((story) => ({
-        id: story._id,
-        user_id: story.user._id,
+        id: String(story._id),
+        user_id: String(story.user._id),
         image_url: story.imageUrl,
         video_url: story.videoUrl,
         description: story.description,
@@ -37,12 +47,14 @@ export const useStories = () => {
         expires_at: story.expiresAt,
         is_active: story.isActive,
         profiles: {
-          id: story.user._id,
+          id: String(story.user._id),
           name: story.user.name,
           username: story.user.username,
           profile_image_url: story.user.avatar,
         },
       }));
+
+
 
 
       setStories(formattedStories);
@@ -54,10 +66,14 @@ export const useStories = () => {
   };
 
 
+
+
   const createStory = async (imageUri: string, description?: string, videoUri?: string) => {
     if (!user || !accessToken) {
       throw new Error("User not authenticated");
     }
+
+
 
 
     try {
@@ -65,17 +81,23 @@ export const useStories = () => {
       let videoUrl = undefined;
 
 
+
+
       if (videoUri) {
         // Upload thumbnail (imageUri) and video to Supabase
+        console.log("Uploading story thumbnail...");
         imageUrl = await uploadStoryImage(user.id, imageUri);
+        console.log("Uploading story video...");
         videoUrl = await uploadStoryVideo(user.id, videoUri);
+        console.log("Video upload success:", videoUrl);
       } else {
         // Upload only image to Supabase
+        console.log("Uploading story image...");
         imageUrl = await uploadStoryImage(user.id, imageUri);
       }
 
 
-      // Save metadata to Backend Story table
+      console.log("Saving story metadata to backend:", { imageUrl, videoUrl });
       await storyService.createStory(
         {
           imageUrl,
@@ -84,6 +106,8 @@ export const useStories = () => {
         },
         accessToken
       );
+
+
 
 
       // Refresh stories
@@ -95,13 +119,23 @@ export const useStories = () => {
   };
 
 
+
+
   const refreshStories = async () => {
     await loadStories();
   };
 
 
+
+
   return { createStory, stories, refreshStories, isLoading };
 };
+
+
+
+
+
+
 
 
 

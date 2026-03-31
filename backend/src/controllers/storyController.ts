@@ -2,36 +2,52 @@ import type { NextFunction, Response } from "express";
 import type { AuthRequest } from "../middleware/auth";
 import { Story } from "../models/Story";
 
+
 export async function createStory(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { imageUri, videoUri, description } = req.body;
+    const { imageUrl, videoUrl, description } = req.body;
+    console.log("Creating story with body:", { userId, imageUrl, videoUrl, hasDescription: !!description });
 
-    if (!imageUri) {
-      res.status(400).json({ message: "Image URI is required" });
+
+    if (!imageUrl) {
+      res.status(400).json({ message: "Image URL is required" });
       return;
     }
 
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // expires in 24 hours
+
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
 
     const story = new Story({
       user: userId,
-      imageUri,
-      videoUri,
+      imageUrl,
+      videoUrl,
       description,
       expiresAt,
       isActive: true,
     });
 
-    await story.save();
+
+    try {
+      await story.save();
+      console.log("Story saved successfully:", { id: story._id, type: videoUrl ? "video" : "image" });
+    } catch (saveError: any) {
+      console.error("Story save error:", saveError.message);
+      res.status(400).json({ message: `Failed to save story: ${saveError.message}` });
+      return;
+    }
+
 
     const populatedStory = await Story.findById(story._id).populate("user", "name username avatar");
     res.status(201).json(populatedStory);
-  } catch (error) {
-    res.status(500);
+  } catch (error: any) {
+    console.error("Internal Story Controller Error:", error.message);
+    res.status(500).json({ message: error.message || "Internal Server Error" });
     next(error);
   }
 }
+
 
 export async function getStories(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -44,3 +60,4 @@ export async function getStories(req: AuthRequest, res: Response, next: NextFunc
     next(error);
   }
 }
+
