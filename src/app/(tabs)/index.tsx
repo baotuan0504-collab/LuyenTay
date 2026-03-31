@@ -19,18 +19,27 @@ import {
 } from "react-native";
 
 
+
+
+import { StoryBar } from "@/components/StoryBar";
+import { StoryViewer } from "@/components/StoryViewer";
 import { useAuth } from "@/context/AuthContext";
 import { Post, usePosts } from "@/hooks/usePosts";
+import { useStories } from "@/hooks/useStories";
 import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+
 
 
 interface PostCardProps {
   post: Post;
   currentUserId?: string;
 }
+
+
 
 
 const PostCard = ({ post, currentUserId }: PostCardProps) => {
@@ -45,6 +54,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
     player.volume = 1;
   });
 
+
   useEffect(() => {
     if (!post.video_url) return;
     if (isPlaying) {
@@ -53,6 +63,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
       player.pause();
     }
   }, [isPlaying, player, post.video_url]);
+
+
 
 
   return (
@@ -76,6 +88,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               </View>
             )}
 
+
             <View>
               <Text style={styles.username}>
                 {isOwnPost ? "You" : `@${postUser?.username}`}
@@ -83,6 +96,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
               <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
             </View>
           </TouchableOpacity>
+
 
         {/* Post content */}
         <View style={styles.timeRemainingBadge}>
@@ -93,11 +107,15 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
       </View>
 
 
+
+
       {post.description ? (
         <View style={styles.postDescriptionContainer}>
           <Text style={styles.postDescription}>{post.description}</Text>
         </View>
       ) : null}
+
+
 
 
       <TouchableOpacity
@@ -148,6 +166,8 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
 };
 
 
+
+
 export default function Index() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -162,9 +182,70 @@ export default function Index() {
   });
 
 
+
+
   const router = useRouter();
   const { createPost, posts, refreshPosts } = usePosts();
+  const { createStory, stories, refreshStories } = useStories();
   const { user } = useAuth();
+
+
+  const [selectedUserStories, setSelectedUserStories] = useState<Post[]>([]);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+  const [isStoryMode, setIsStoryMode] = useState(false);
+
+
+  const usersWithStories = useMemo(() => {
+    const userGroups: Record<string, Post[]> = {};
+    stories.forEach((story) => {
+      const userId = story.user_id;
+      if (!userGroups[userId]) {
+        userGroups[userId] = [];
+      }
+      userGroups[userId].push(story);
+    });
+
+
+    // Sort users by latest story
+    return Object.entries(userGroups)
+      .map(([userId, userStories]) => {
+        const profile = userStories[0].profiles;
+        return {
+          id: userId,
+          name: profile?.name || "Unknown",
+          username: profile?.username || "user",
+          avatar: profile?.profile_image_url,
+          hasUnseenStory: true,
+          stories: userStories.sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          ),
+        };
+      })
+      .sort((a, b) => {
+        // Sort groups by the most recent story in each group
+        const latestA = Math.max(
+          ...a.stories.map((s) => new Date(s.created_at).getTime())
+        );
+        const latestB = Math.max(
+          ...b.stories.map((s) => new Date(s.created_at).getTime())
+        );
+        return latestB - latestA;
+      });
+  }, [stories]);
+
+
+  const handleUserStoryPress = (userId: string) => {
+    const userGroup = usersWithStories.find((u) => u.id === userId);
+    if (userGroup) {
+      setSelectedUserStories(userGroup.stories);
+      setIsViewerVisible(true);
+    }
+  };
+
+
+
+
 
 
 
@@ -172,13 +253,15 @@ export default function Index() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshPosts();
+      await Promise.all([refreshPosts(), refreshStories()]);
     } catch (error) {
-      console.error("Error refreshing posts:", error);
+      console.error("Error refreshing content:", error);
     } finally {
       setRefreshing(false);
     }
   };
+
+
 
 
   const pickImage = async () => {
@@ -190,6 +273,8 @@ export default function Index() {
       );
       return;
     }
+
+
 
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -220,6 +305,8 @@ export default function Index() {
   };
 
 
+
+
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -229,6 +316,8 @@ export default function Index() {
       );
       return;
     }
+
+
 
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -272,6 +361,8 @@ export default function Index() {
   };
 
 
+
+
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -281,6 +372,7 @@ export default function Index() {
       );
       return;
     }
+
 
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -317,6 +409,8 @@ export default function Index() {
   };
 
 
+
+
   const recordVideo = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -326,6 +420,7 @@ export default function Index() {
       );
       return;
     }
+
 
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -376,8 +471,11 @@ export default function Index() {
   };
 
 
-  const showImagePicker = () => {
-    Alert.alert("Create Post", "Choose an option", [
+
+
+  const showImagePicker = (forStory = false) => {
+    setIsStoryMode(forStory);
+    Alert.alert(forStory ? "Add Story" : "Create Post", "Choose an option", [
       { text: "Take Photo", onPress: takePhoto },
       { text: "Record Video", onPress: recordVideo },
       { text: "Photo Library (Image)", onPress: pickImage },
@@ -387,29 +485,39 @@ export default function Index() {
   };
 
 
+
+
   const handlePost = async () => {
     if (!previewImage) return;
 
 
     setIsUploading(true);
     try {
-      await createPost(previewImage, description, previewVideo || undefined);
+      if (isStoryMode) {
+        await createStory(previewImage, description, previewVideo || undefined);
+      } else {
+        await createPost(previewImage, description, previewVideo || undefined);
+      }
       setPreviewImage(null);
       setPreviewVideo(null);
       setDescription("");
       setShowPreview(false);
     } catch (error) {
-      console.error("Error creating post:", error);
-      Alert.alert("Error", "Failed to create post. Please try again.");
+      console.error("Error creating content:", error);
+      Alert.alert("Error", `Failed to create ${isStoryMode ? "story" : "post"}. Please try again.`);
     } finally {
       setIsUploading(false);
     }
   };
 
 
+
+
   const renderPost = ({ item }: { item: Post }) => (
     <PostCard post={item} currentUserId={user?.id} />
   );
+
+
 
 
   return (
@@ -424,21 +532,47 @@ export default function Index() {
           posts.length === 0 ? styles.emptyContent : styles.content
         }
         ListEmptyComponent={<Text>No posts found</Text>}
+        ListHeaderComponent={
+          <StoryBar
+            currentUser={{
+              id: user?.id || "",
+              name: user?.name || "You",
+              avatar: user?.avatar,
+            }}
+            usersWithStories={usersWithStories}
+            onUserPress={handleUserStoryPress}
+            onAddStoryPress={() => showImagePicker(true)}
+          />
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       />
 
 
-      <TouchableOpacity style={styles.fab} onPress={showImagePicker}>
+      <StoryViewer
+        visible={isViewerVisible}
+        stories={selectedUserStories}
+        initialIndex={0}
+        onClose={() => setIsViewerVisible(false)}
+      />
+
+
+
+
+      <TouchableOpacity style={styles.fab} onPress={() => showImagePicker(false)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+
 
 
       <Modal visible={showPreview} transparent animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Preview Your Post</Text>
+            <Text style={styles.modalTitle}>
+              Preview Your {isStoryMode ? "Story" : "Post"}
+            </Text>
             {(previewImage || previewVideo) && (
               <View style={styles.previewMediaContainer}>
                 {previewImage ? (
@@ -492,7 +626,9 @@ export default function Index() {
                 {isUploading ? (
                   <ActivityIndicator size={24} color="#fff" />
                 ) : (
-                  <Text style={styles.postButtonText}>Post</Text>
+                  <Text style={styles.postButtonText}>
+                    {isStoryMode ? "Share Story" : "Post"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -502,6 +638,8 @@ export default function Index() {
     </View>
   );
 }
+
+
 
 
 const styles = StyleSheet.create({
@@ -598,6 +736,8 @@ const styles = StyleSheet.create({
   },
 
 
+
+
   content: {
     padding: 0,
     paddingBottom: 80,
@@ -608,6 +748,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
   },
+
+
 
 
   postContainer: {
@@ -726,3 +868,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 });
+
+
+
