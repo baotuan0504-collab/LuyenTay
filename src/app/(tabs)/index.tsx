@@ -1,5 +1,6 @@
 
 
+import { compressImage, compressVideo } from "@/lib/media";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { VideoView, useVideoPlayer } from "expo-video";
@@ -198,10 +199,23 @@ export default function Index() {
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
-      setPreviewImage(result.assets[0].uri);
-      setPreviewVideo(null);
-      setShowPreview(true);
-      setDescription("");
+       const uri = result.assets[0].uri;
+        setIsUploading(true);
+        try {
+          const compressed = await compressImage(uri);
+          setPreviewImage(compressed.uri);
+          setPreviewVideo(null);
+          setShowPreview(true);
+          setDescription("");
+        } catch (error) {
+          console.warn("Image compression failed, using original image:", error);
+          setPreviewImage(uri);
+          setPreviewVideo(null);
+          setShowPreview(true);
+          setDescription("");
+        } finally {
+          setIsUploading(false);
+        }
     }
   };
 
@@ -218,26 +232,42 @@ export default function Index() {
 
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      mediaTypes: ["videos"],
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
       const videoUri = result.assets[0].uri;
-      setPreviewVideo(videoUri);
-      setPreviewImage(null);
       setIsUploading(true);
       try {
-        const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
-          time: 0,
-        });
-        setPreviewImage(uri);
+         const compressedVideoUri = await compressVideo(videoUri);
+         setPreviewVideo(compressedVideoUri);
+         setPreviewImage(null);
+         try {
+           const { uri } = await VideoThumbnails.getThumbnailAsync(compressedVideoUri, {
+             time: 0,
+           });
+           setPreviewImage(uri);
+         } catch (e) {
+           console.warn("Video thumbnail generation failed:", e);
+         }
+         setShowPreview(true);
+         setDescription("");
       } catch (e) {
         console.warn("Video thumbnail generation failed:", e);
+        setPreviewVideo(videoUri);
+         try {
+           const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+             time: 0,
+           });
+           setPreviewImage(uri);
+         } catch (error) {
+           console.error("Error generating video thumbnail:", error);
+         }
+         setShowPreview(true);
+         setDescription("");
       } finally {
         setIsUploading(false);
       }
-      setShowPreview(true);
-      setDescription("");
     }
   };
 
@@ -259,10 +289,23 @@ export default function Index() {
         quality: 0.8,
       });
       if (!result.canceled && result.assets[0]) {
-        setPreviewImage(result.assets[0].uri);
-        setPreviewVideo(null);
-        setShowPreview(true);
-        setDescription("");
+        const uri = result.assets[0].uri;
+        setIsUploading(true);
+        try {
+          const compressed = await compressImage(uri);
+          setPreviewImage(compressed.uri);
+          setPreviewVideo(null);
+          setShowPreview(true);
+          setDescription("");
+        } catch (error) {
+          console.error("Image compression failed:", error);
+          setPreviewImage(uri);
+          setPreviewVideo(null);
+          setShowPreview(true);
+          setDescription("");
+        } finally {
+          setIsUploading(false);
+        }
       }
     } catch (error) {
       console.error("Camera launch failed:", error);
@@ -286,26 +329,42 @@ export default function Index() {
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        mediaTypes: ["videos"],
         quality: 0.8,
       });
       if (!result.canceled && result.assets[0]) {
         const videoUri = result.assets[0].uri;
-        setPreviewVideo(videoUri);
-        setPreviewImage(null);
         setIsUploading(true);
         try {
-          const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
-            time: 0,
-          });
-          setPreviewImage(uri);
+          const compressedUri = await compressVideo(videoUri);
+          setPreviewVideo(compressedUri);
+          setPreviewImage(null);
+          try {
+            const { uri } = await VideoThumbnails.getThumbnailAsync(compressedUri, {
+              time: 0,
+            });
+            setPreviewImage(uri);
+          } catch (e) {
+            console.warn("Video thumbnail generation failed:", e);
+          }
+          setShowPreview(true);
+          setDescription("");
         } catch (e) {
-          console.warn("Video thumbnail generation failed:", e);
+          console.error("Video compression failed:", e)
+          setPreviewVideo(videoUri);
+          try {
+            const { uri } = await VideoThumbnails.getThumbnailAsync(videoUri, {
+              time: 0,
+            });
+            setPreviewImage(uri);
+          } catch (error) {
+            console.error("Error generating video thumbnail:", error);
+          }
+          setShowPreview(true);
+          setDescription("");
         } finally {
           setIsUploading(false);
         }
-        setShowPreview(true);
-        setDescription("");
       }
     } catch (error) {
       console.error("Camera launch failed:", error);

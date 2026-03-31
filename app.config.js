@@ -5,7 +5,10 @@ dotenv.config();
 
 module.exports = ({ config }) => ({
   ...config,
-  plugins: ["expo-video"],
+  plugins: [
+    "expo-video",
+    "expo-secure-store"
+  ],
   extra: {
     ...(config.extra || {}),
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
