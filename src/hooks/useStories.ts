@@ -1,8 +1,27 @@
 import { useAuth } from "@/context/AuthContext";
-import { uploadPostImage as uploadStoryImage, uploadPostVideo as uploadStoryVideo } from "@/lib/supabase/storage";
+import { uploadStoryImage, uploadStoryVideo } from "@/lib/supabase/storage";
 import * as storyService from "@/services/story.service";
 import { useEffect, useState } from "react";
-import { Post as Story } from "./usePosts"; // Using the same Post interface for UI compatibility
+
+
+
+
+export interface Story {
+  id: string;
+  user_id: string;
+  image_url: string;
+  video_url?: string;
+  description?: string;
+  created_at: string;
+  expires_at: string;
+  is_active: boolean;
+  profiles: {
+    id: string;
+    name: string;
+    username: string;
+    profile_image_url?: string;
+  };
+}
 
 
 
@@ -37,9 +56,9 @@ export const useStories = () => {
 
 
 
-      const formattedStories: Story[] = storiesData.map((story) => ({
+      const formattedStories: Story[] = storiesData.map((story: any) => ({
         id: String(story._id),
-        user_id: String(story.user._id),
+        user_id: String(story.user?._id),
         image_url: story.imageUrl,
         video_url: story.videoUrl,
         description: story.description,
@@ -47,10 +66,10 @@ export const useStories = () => {
         expires_at: story.expiresAt,
         is_active: story.isActive,
         profiles: {
-          id: String(story.user._id),
-          name: story.user.name,
-          username: story.user.username,
-          profile_image_url: story.user.avatar,
+          id: String(story.user?._id),
+          name: story.user?.name || "Unknown",
+          username: story.user?.username || "user",
+          profile_image_url: story.user?.avatar,
         },
       }));
 
@@ -84,20 +103,18 @@ export const useStories = () => {
 
 
       if (videoUri) {
-        // Upload thumbnail (imageUri) and video to Supabase
         console.log("Uploading story thumbnail...");
         imageUrl = await uploadStoryImage(user.id, imageUri);
         console.log("Uploading story video...");
         videoUrl = await uploadStoryVideo(user.id, videoUri);
-        console.log("Video upload success:", videoUrl);
       } else {
-        // Upload only image to Supabase
         console.log("Uploading story image...");
         imageUrl = await uploadStoryImage(user.id, imageUri);
       }
 
 
-      console.log("Saving story metadata to backend:", { imageUrl, videoUrl });
+
+
       await storyService.createStory(
         {
           imageUrl,
@@ -110,7 +127,6 @@ export const useStories = () => {
 
 
 
-      // Refresh stories
       await loadStories();
     } catch (error) {
       console.error("Error in createStory:", error);
@@ -130,12 +146,6 @@ export const useStories = () => {
 
   return { createStory, stories, refreshStories, isLoading };
 };
-
-
-
-
-
-
 
 
 

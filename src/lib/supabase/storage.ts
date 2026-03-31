@@ -2,6 +2,8 @@ import { File } from "expo-file-system";
 import { supabase } from "./client";
 
 
+
+
 const getFileData = async (uri: string) => {
   try {
     const file = new File(uri);
@@ -13,12 +15,16 @@ const getFileData = async (uri: string) => {
 };
 
 
+
+
 export const uploadProfileImage = async (userId: string, imageUri: string) => {
   if (!userId) throw new Error("userId is required for upload");
   try {
     const fileExtension = imageUri.split(".").pop() || "jpg";
     const fileName = `${userId}/profile.${fileExtension}`;
     const data = await getFileData(imageUri);
+
+
 
 
     const { error } = await supabase.storage
@@ -29,14 +35,20 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
       });
 
 
+
+
     if (error) {
       throw error;
     }
 
 
+
+
     const { data: urlData } = supabase.storage
       .from("profiles")
       .getPublicUrl(fileName);
+
+
 
 
     return `${urlData.publicUrl}?t=${Date.now()}`;
@@ -47,12 +59,16 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
 };
 
 
+
+
 export const uploadPostImage = async (userId: string, imageUri: string) => {
   if (!userId) throw new Error("userId is required for upload");
   try {
     const fileExtension = imageUri.split(".").pop() || "jpg";
     const fileName = `${userId}/${Date.now()}.${fileExtension}`;
     const data = await getFileData(imageUri);
+
+
 
 
     const { error } = await supabase.storage
@@ -63,14 +79,20 @@ export const uploadPostImage = async (userId: string, imageUri: string) => {
       });
 
 
+
+
     if (error) {
       throw error;
     }
 
 
+
+
     const { data: urlData } = supabase.storage
       .from("posts")
       .getPublicUrl(fileName);
+
+
 
 
     return urlData.publicUrl;
@@ -81,12 +103,16 @@ export const uploadPostImage = async (userId: string, imageUri: string) => {
 };
 
 
+
+
 export const uploadPostVideo = async (userId: string, videoUri: string) => {
   if (!userId) throw new Error("userId is required for upload");
   try {
     const fileExtension = videoUri.split(".").pop() || "mp4";
     const fileName = `${userId}/${Date.now()}.${fileExtension}`;
     const data = await getFileData(videoUri);
+
+
 
 
     const { error } = await supabase.storage
@@ -97,9 +123,13 @@ export const uploadPostVideo = async (userId: string, videoUri: string) => {
       });
 
 
+
+
     if (error) {
       throw error;
     }
+
+
 
 
     const { data: urlData } = supabase.storage
@@ -107,11 +137,102 @@ export const uploadPostVideo = async (userId: string, videoUri: string) => {
       .getPublicUrl(fileName);
 
 
+
+
     return urlData.publicUrl;
   } catch (error) {
     console.error("Error uploading post video:", error);
     throw error;
   }
-}
+};
+
+
+
+
+export const uploadStoryImage = async (userId: string, imageUri: string) => {
+  if (!userId) throw new Error("userId is required for upload");
+  try {
+    const fileExtension = imageUri.split(".").pop() || "jpg";
+    const fileName = `${userId}/${Date.now()}.${fileExtension}`;
+    const data = await getFileData(imageUri);
+
+
+
+
+    const { error } = await supabase.storage
+      .from("stories")
+      .upload(fileName, data, {
+        contentType: `image/${fileExtension}`,
+        upsert: false,
+      });
+
+
+
+
+    if (error) throw error;
+
+
+
+
+    const { data: urlData } = supabase.storage
+      .from("stories")
+      .getPublicUrl(fileName);
+
+
+
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error uploading story image:", error);
+    throw error;
+  }
+};
+
+
+
+
+export const uploadStoryVideo = async (userId: string, videoUri: string) => {
+  if (!userId) throw new Error("userId is required for upload");
+  try {
+    const fileExtension = videoUri.split(".").pop() || "mp4";
+    const fileName = `${userId}/${Date.now()}.${fileExtension}`;
+    const data = await getFileData(videoUri);
+
+
+
+
+    const { error } = await supabase.storage
+      .from("stories")
+      .upload(fileName, data, {
+        contentType: fileExtension === "mov" ? "video/quicktime" : "video/mp4",
+        upsert: false,
+      });
+
+
+
+
+    if (error) throw error;
+
+
+
+
+    const { data: urlData } = supabase.storage
+      .from("stories")
+      .getPublicUrl(fileName);
+
+
+
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error("Error uploading story video:", error);
+    throw error;
+  }
+};
+
+
+
+
+
 
 

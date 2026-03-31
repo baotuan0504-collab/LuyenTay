@@ -31,7 +31,7 @@ import { StoryBar } from "@/components/StoryBar";
 import { StoryViewer } from "@/components/StoryViewer";
 import { useAuth } from "@/context/AuthContext";
 import { Post, usePosts } from "@/hooks/usePosts";
-import { useStories } from "@/hooks/useStories";
+import { Story, useStories } from "@/hooks/useStories";
 import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -225,14 +225,14 @@ export default function Index() {
 
 
   const router = useRouter();
-  const { createPost, posts, refreshPosts } = usePosts();
-  const { createStory, stories, refreshStories } = useStories();
+  const { createPost, posts, refreshPosts, isLoading: postsLoading } = usePosts();
+  const { createStory, stories, refreshStories, isLoading: storiesLoading } = useStories();
   const { user } = useAuth();
 
 
 
 
-  const [selectedUserStories, setSelectedUserStories] = useState<Post[]>([]);
+  const [selectedUserStories, setSelectedUserStories] = useState<Story[]>([]);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
   const [isStoryMode, setIsStoryMode] = useState(false);
 
@@ -241,7 +241,7 @@ export default function Index() {
 
   const usersWithStories = useMemo(() => {
     console.log("Processing stories for bar:", stories.length);
-    const userGroups: Record<string, Post[]> = {};
+    const userGroups: Record<string, Story[]> = {};
     stories.forEach((story) => {
       const userId = story.user_id;
       if (!userGroups[userId]) {
@@ -1004,12 +1004,3 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 });
-
-
-
-
-
-
-
-
-

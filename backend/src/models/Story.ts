@@ -25,7 +25,10 @@ const StorySchema = new Schema<IStory>(
             default: true
         }
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        collection: "stories"
+    }
 );
 
 
