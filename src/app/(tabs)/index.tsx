@@ -24,6 +24,7 @@ import { Post, usePosts } from "@/hooks/usePosts"
 import { Story, useStories } from "@/hooks/useStories"
 import { formatTimeAgo, formatTimeRemaining } from "@/lib/date-helper"
 import { events } from "@/lib/events"
+import { useIsFocused } from "@react-navigation/native"
 import { Image } from "expo-image"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
@@ -280,6 +281,16 @@ export default function Index() {
     })
     return () => unsub && unsub()
   }, [refreshPosts])
+
+
+  const isFocused = useIsFocused()
+  useEffect(() => {
+    if (isFocused) {
+      refreshPosts().catch(e =>
+        console.error("Error refreshing posts on focus:", e),
+      )
+    }
+  }, [isFocused, refreshPosts])
 
 
   const pickImage = async () => {

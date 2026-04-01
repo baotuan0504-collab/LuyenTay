@@ -5,25 +5,19 @@ import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import React, { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Modal,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-
-
-
 const { width, height } = Dimensions.get("window");
 const STORY_DURATION = 5000; // 5 seconds for images
-
-
-
 
 interface StoryViewerProps {
   visible: boolean;
@@ -31,9 +25,6 @@ interface StoryViewerProps {
   initialIndex: number;
   onClose: () => void;
 }
-
-
-
 
 export const StoryViewer = ({
   visible,
@@ -52,11 +43,9 @@ export const StoryViewer = ({
     player.volume = 1;
   });
 
-
   useEffect(() => {
     setIndex(initialIndex);
   }, [initialIndex, visible]);
-
 
   useEffect(() => {
     // If not visible or no video, just pause existing player safely
@@ -69,7 +58,6 @@ export const StoryViewer = ({
       return;
     }
 
-
     try {
       // Use replace for the current story video
       player.replace(currentStory.video_url);
@@ -77,7 +65,6 @@ export const StoryViewer = ({
     } catch (error) {
       console.warn("Error playing story video:", error);
     }
-
 
     return () => {
       try {
@@ -88,10 +75,8 @@ export const StoryViewer = ({
     };
   }, [index, visible, currentStory?.video_url, player]);
 
-
   useEffect(() => {
     if (!visible || !currentStory) return;
-
 
     progress.setValue(0);
    
@@ -105,21 +90,16 @@ export const StoryViewer = ({
       useNativeDriver: false,
     });
 
-
     animation.start(({ finished }) => {
       if (finished) {
         handleNext();
       }
     });
 
-
     return () => {
       animation.stop();
     };
   }, [index, visible, currentStory]);
-
-
-
 
   const handleNext = () => {
     if (index < stories.length - 1) {
@@ -128,9 +108,6 @@ export const StoryViewer = ({
       onClose();
     }
   };
-
-
-
 
   const handlePrev = () => {
     if (index > 0) {
@@ -142,9 +119,6 @@ export const StoryViewer = ({
     }
   };
 
-
-
-
   const handlePress = (evt: any) => {
     const x = evt.nativeEvent.locationX;
     if (x < width / 3) {
@@ -154,13 +128,7 @@ export const StoryViewer = ({
     }
   };
 
-
-
-
   if (!visible || !currentStory) return null;
-
-
-
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -188,10 +156,6 @@ export const StoryViewer = ({
             />
           )}
         </TouchableOpacity>
-
-
-
-
         {/* Top Overlay */}
         <View style={styles.topOverlay}>
           {/* Progress Bars */}
@@ -213,9 +177,6 @@ export const StoryViewer = ({
             ))}
           </View>
 
-
-
-
           {/* User Info */}
           <View style={styles.userInfoContainer}>
             <View style={styles.userInfo}>
@@ -234,9 +195,6 @@ export const StoryViewer = ({
           </View>
         </View>
 
-
-
-
         {/* Description if any */}
         {currentStory.description ? (
           <View style={styles.bottomOverlay}>
@@ -247,9 +205,6 @@ export const StoryViewer = ({
     </Modal>
   );
 };
-
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -334,12 +289,3 @@ const styles = StyleSheet.create({
     textShadowRadius: 10,
   },
 });
-
-
-
-
-
-
-
-
-
