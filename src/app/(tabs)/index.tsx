@@ -494,7 +494,7 @@ export default function Index() {
         initialIndex={0}
         onClose={() => setIsViewerVisible(false)}
       />
-      <TouchableOpacity style={styles.fab} onPress={() => showImagePicker(false)}>
+      <TouchableOpacity style={styles.fab} onPress={() => router.push("/post/new")}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
       <Modal visible={showPreview} transparent animationType="fade">
