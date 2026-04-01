@@ -79,6 +79,8 @@ export async function searchUsers(
     const q = (req.query.q as string) || "";
     const friendsOnly = req.query.friendsOnly === "true";
 
+    console.log("Search Users:", { userId, q, friendsOnly });
+
 
     const searchRegex = q ? { $regex: q, $options: "i" } : { $exists: true };
 

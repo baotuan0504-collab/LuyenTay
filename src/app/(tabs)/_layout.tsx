@@ -1,28 +1,46 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons"
+import { Tabs, useRouter } from "expo-router"
+import { StyleSheet, TouchableOpacity, View } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 function AppHeader() {
+  const router = useRouter()
+
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <TouchableOpacity style={styles.headerIcon}>
-          <Ionicons name="menu-outline" size={24} color="#000" />
+          <Ionicons
+            name="menu-outline"
+            size={24}
+            color="#000"
+          />
         </TouchableOpacity>
 
         {/* <Text style={styles.headerTitle}>My App</Text> */}
       </View>
 
-      <TouchableOpacity style={styles.headerIcon}>
-        <Ionicons name="notifications-outline" size={24} color="#000" />
-      </TouchableOpacity>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <TouchableOpacity
+          style={styles.headerIcon}
+          onPress={() => router.push("/search")}>
+          <Ionicons
+            name="search-outline"
+            size={22}
+            color="#000"
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.headerIcon}>
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color="#000"
+          />
+        </TouchableOpacity>
+      </View>
     </View>
-  );
+  )
 }
 
 export default function TabsLayout() {
@@ -43,8 +61,7 @@ export default function TabsLayout() {
               paddingTop: 20,
               paddingBottom: 8,
             },
-          }}
-        >
+          }}>
           <Tabs.Screen
             name="index"
             options={{
@@ -105,7 +122,7 @@ export default function TabsLayout() {
         </Tabs>
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -150,4 +167,4 @@ const styles = StyleSheet.create({
   tabs: {
     flex: 1,
   },
-});
+})

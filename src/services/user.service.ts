@@ -65,3 +65,22 @@ export const getUsers = async (token: string) => {
         throw error;
     }
 };
+
+export const searchUsers = async (q: string, token: string, friendsOnly: boolean = false) => {
+    try {
+        const params = new URLSearchParams();
+        if (q) params.append("q", q);
+        if (friendsOnly) params.append("friendsOnly", "true");
+        const data = await apiFetch(`/users/search?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return data as Array<{ _id: string; name: string; username?: string; avatar?: string;}>;
+        
+    } catch (error) {
+        console.error("Error searching users:", error);
+        throw error;
+    }
+}
