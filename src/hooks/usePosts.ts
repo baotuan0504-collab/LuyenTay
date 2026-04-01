@@ -1,67 +1,54 @@
-import { useAuth } from "@/context/AuthContext";
-import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage";
-import * as postService from "@/services/post.service";
-import { useEffect, useState } from "react";
-
-
+import { useAuth } from "@/context/AuthContext"
+import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage"
+import { isUnauthorizedError } from "@/services/api"
+import * as postService from "@/services/post.service"
+import { useEffect, useState } from "react"
 
 
 export interface PostUser {
-  id: string;
-  name: string;
-  username: string;
-  profile_image_url?: string;
+  id: string
+  name: string
+  username: string
+  profile_image_url?: string
 }
-
-
 
 
 export interface Post {
-  id: string;
-  user_id: string;
-  image_url: string;
-  video_url?: string;
-  description?: string;
-  created_at: string;
-  expires_at: string;
-  is_active: boolean;
-  profiles?: PostUser;
+  id: string
+  user_id: string
+  image_url: string
+  video_url?: string
+  description?: string
+  created_at: string
+  expires_at: string
+  is_active: boolean
+  profiles?: PostUser
 }
 
 
-
-
 export const usePosts = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user, accessToken } = useAuth();
-
-
+  const [posts, setPosts] = useState<Post[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { user, accessToken, signOut } = useAuth()
 
 
   useEffect(() => {
     if (accessToken) {
-      loadPosts();
+      loadPosts()
     }
-  }, [accessToken]);
-
-
+  }, [accessToken])
 
 
   const loadPosts = async () => {
-    if (!accessToken) return;
+    if (!accessToken) return
 
 
-
-
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      const postsData = await postService.getPosts(accessToken);
+      const postsData = await postService.getPosts(accessToken)
 
 
-
-
-      const formattedPosts: Post[] = postsData.map((post) => ({
+      const formattedPosts: Post[] = postsData.map(post => ({
         id: post._id,
         user_id: post.user._id,
         image_url: post.imageUrl,
@@ -76,43 +63,50 @@ export const usePosts = () => {
           username: post.user.username,
           profile_image_url: post.user.avatar,
         },
-      }));
+      }))
 
 
-
-
-      setPosts(formattedPosts);
+      setPosts(formattedPosts)
     } catch (error) {
-      console.error("Error in loadPosts:", error);
+      console.error("Error in loadPosts:", error)
+      if (isUnauthorizedError(error)) {
+        console.warn("Access token unauthorized — signing out user.")
+        try {
+          await signOut()
+        } catch (e) {
+          console.error("Error signing out after 401:", e)
+        }
+        return
+      }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
 
-
-
-  const createPost = async (imageUri: string, description?: string, videoUri?: string) => {
+  const createPost = async (
+    imageUri: string,
+    description?: string,
+    videoUri?: string,
+  ) => {
     if (!user || !accessToken) {
-      throw new Error("User not authenticated");
+      throw new Error("User not authenticated")
     }
 
 
     try {
-      let imageUrl = "";
-      let videoUrl = undefined;
+      let imageUrl = ""
+      let videoUrl = undefined
 
 
       if (videoUri) {
         // 1. Upload thumbnail (imageUri is the thumbnail here) and video
-        imageUrl = await uploadPostImage(user.id, imageUri);
-        videoUrl = await uploadPostVideo(user.id, videoUri);
+        imageUrl = await uploadPostImage(user.id, imageUri)
+        videoUrl = await uploadPostVideo(user.id, videoUri)
       } else {
         // 1. Upload only image
-        imageUrl = await uploadPostImage(user.id, imageUri);
+        imageUrl = await uploadPostImage(user.id, imageUri)
       }
-
-
 
 
       // 2. Save metadata to Backend
@@ -122,29 +116,26 @@ export const usePosts = () => {
           videoUrl,
           description: description || "",
         },
-        accessToken
-      );
-
-
+        accessToken,
+      )
 
 
       // Refresh posts
-      await loadPosts();
+      await loadPosts()
     } catch (error) {
-      console.error("Error in createPost:", error);
-      throw error;
+      console.error("Error in createPost:", error)
+      throw error
     }
-  };
-
-
+  }
 
 
   const refreshPosts = async () => {
-    await loadPosts();
-  };
+    await loadPosts()
+  }
+
+
+  return { createPost, posts, refreshPosts, isLoading }
+}
 
 
 
-
-  return { createPost, posts, refreshPosts, isLoading };
-};
