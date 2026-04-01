@@ -110,7 +110,6 @@ export async function searchUsers(
       return;
     }
 
-
     // global search (exclude self)
     const users = await User.find({
       _id: { $ne: userId },
@@ -118,8 +117,6 @@ export async function searchUsers(
     })
       .select("name username avatar")
       .limit(50);
-
-
     res.json(users);
   } catch (error) {
     res.status(500);
