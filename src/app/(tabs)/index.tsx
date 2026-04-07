@@ -195,18 +195,13 @@ export default function Index() {
 
 
   const usersWithStories = useMemo(() => {
-    console.log("Processing stories for bar:", stories.length)
+    // Pure function, no side effects, only depends on stories
     const userGroups: Record<string, Story[]> = {}
-    stories.forEach(story => {
+    for (const story of stories) {
       const userId = story.user_id
-      if (!userGroups[userId]) {
-        userGroups[userId] = []
-      }
+      if (!userGroups[userId]) userGroups[userId] = []
       userGroups[userId].push(story)
-    })
-
-
-    // Sort users by latest story
+    }
     return Object.entries(userGroups)
       .map(([userId, userStories]) => {
         const profile = userStories[0].profiles
@@ -215,9 +210,9 @@ export default function Index() {
           name: profile?.name || "Unknown",
           username: profile?.username || "user",
           avatar: profile?.profile_image_url,
-          thumbnail: userStories[userStories.length - 1]?.image_url, // Latest story as thumb
+          thumbnail: userStories[userStories.length - 1]?.image_url,
           hasUnseenStory: true,
-          stories: userStories.sort(
+          stories: [...userStories].sort(
             (a, b) =>
               new Date(a.created_at).getTime() -
               new Date(b.created_at).getTime(),
@@ -239,7 +234,6 @@ export default function Index() {
   const currentUserStory = useMemo(() => {
     if (!user?.id) return undefined
     const self = usersWithStories.find(u => String(u.id) === String(user.id))
-    console.log("Current user story status:", !!self, "for ID:", user.id)
     return self
   }, [usersWithStories, user?.id])
 
@@ -289,8 +283,11 @@ export default function Index() {
       refreshPosts().catch(e =>
         console.error("Error refreshing posts on focus:", e),
       )
+      refreshStories().catch(e =>
+        console.error("Error refreshing stories on focus:", e),
+      )
     }
-  }, [isFocused, refreshPosts])
+  }, [isFocused, refreshPosts, refreshStories])
 
 
   const pickImage = async () => {
@@ -571,7 +568,7 @@ export default function Index() {
                 ? handleUserStoryPress(String(user?.id || ""))
                 : showImagePicker(true)
             }
-            onAddStoryPress={() => showImagePicker(true)}
+            onAddStoryPress={() => router.push("/story/new")}
           />
         }
         refreshControl={
@@ -600,19 +597,92 @@ export default function Index() {
         animationType="fade">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Preview Your {isStoryMode ? "Story" : "Post"}
-            </Text>
+            {/* HEADER */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 16,
+              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPreview(false)
+                  setPreviewImage(null)
+                  setPreviewVideo(null)
+                  setDescription("")
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}
+                style={{ marginRight: 12 }}>
+                <Ionicons
+                  name="close"
+                  size={24}
+                />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { flex: 1 }]}>
+                Đăng {isStoryMode ? "Story" : "Bài viết"}
+              </Text>
+              <TouchableOpacity
+                onPress={handlePost}
+                disabled={isUploading}
+                style={[
+                  styles.modalButton,
+                  styles.postButton,
+                  { minWidth: 80, paddingVertical: 8 },
+                ]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                activeOpacity={0.7}>
+                {isUploading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.postButtonText}>
+                    {isStoryMode ? "Đăng Story" : "Đăng"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+
+            {/* USER INFO */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 16,
+              }}>
+              <Image
+                source={{ uri: user?.avatar }}
+                style={[styles.avatar, { marginRight: 12 }]}
+              />
+              <View>
+                <Text style={styles.username}>{user?.name || "Bạn"}</Text>
+                <Text style={styles.privacy}>🌍 Công khai</Text>
+              </View>
+            </View>
+
+
+            {/* INPUT */}
+            <TextInput
+              placeholder="Bạn đang nghĩ gì?"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              style={styles.descriptionInput}
+            />
+
+
+            {/* MEDIA */}
             {(previewImage || previewVideo) && (
               <View style={styles.previewMediaContainer}>
-                {previewImage ? (
+                {previewImage && (
                   <Image
                     cachePolicy={"none"}
                     source={{ uri: previewImage }}
                     style={styles.previewImage}
                     contentFit="cover"
                   />
-                ) : (
+                )}
+                {previewVideo && (
                   <VideoView
                     player={previewPlayer}
                     nativeControls
@@ -620,51 +690,34 @@ export default function Index() {
                     style={styles.previewImage}
                   />
                 )}
-                {previewVideo && (
-                  <View style={styles.previewVideoOverlay}>
-                    <Ionicons
-                      name="videocam"
-                      size={40}
-                      color="#fff"
-                    />
-                  </View>
-                )}
               </View>
             )}
-            <TextInput
-              style={styles.descriptionInput}
-              placeholder="Add a description (optional)"
-              placeholderTextColor="#999"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              maxLength={500}
-              textAlignVertical="top"
-            />
-            <View style={styles.modalButtons}>
+
+
+            {/* BOTTOM ACTIONS */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-around",
+                marginTop: 16,
+              }}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowPreview(false)
-                  setPreviewImage(null)
-                  setDescription("")
-                }}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                onPress={pickImage}
+                style={{ alignItems: "center" }}>
+                <Ionicons
+                  name="image"
+                  size={22}
+                />
+                <Text style={{ fontSize: 12 }}>Thư viện</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.postButton]}
-                onPress={handlePost}
-                disabled={isUploading}>
-                {isUploading ? (
-                  <ActivityIndicator
-                    size={24}
-                    color="#fff"
-                  />
-                ) : (
-                  <Text style={styles.postButtonText}>
-                    {isStoryMode ? "Share Story" : "Post"}
-                  </Text>
-                )}
+                onPress={pickVideo}
+                style={{ alignItems: "center" }}>
+                <Ionicons
+                  name="film"
+                  size={22}
+                />
+                <Text style={{ fontSize: 12 }}>Video</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -766,6 +819,11 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  privacy: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 2,
   },
   content: {
     padding: 0,

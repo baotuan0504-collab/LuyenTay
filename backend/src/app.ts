@@ -17,6 +17,8 @@ const allowedOrigins = [
   // "http://127.0.0.1:5173", // vite web devs
   "http://192.168.38.103:5173", // vite web devs
   "http://192.168.38.103:8081", // expo mobile
+  "http://127.20.10.6:5201",
+  "http://10.10.33.245:5201",
   process.env.FRONTEND_URL!, // production
 ].filter(Boolean);
 

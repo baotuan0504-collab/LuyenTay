@@ -1,6 +1,6 @@
 
-// const BASE_URL = "http://127.0.0.1:5201/api";
-const BASE_URL = "http://172.20.10.6:5201/api"
+const BASE_URL = "http://127.0.0.1:5201/api";
+// const BASE_URL = "http://10.10.33.245:5201/api"
 
 export class ApiError extends Error {
   readonly status: number;
