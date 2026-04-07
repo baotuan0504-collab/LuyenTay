@@ -13,8 +13,8 @@ import userRoutes from "./routes/userRoutes";
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:8081", // expo mobile
-  "http://localhost:5173", // vite web devs
+  "http://10.10.33.245:8081", // expo mobile
+  "http://10.10.33.245:5173", // vite web devs
   process.env.FRONTEND_URL!, // production
 ].filter(Boolean);
 

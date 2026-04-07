@@ -10,16 +10,16 @@ import { VideoView, useVideoPlayer } from "expo-video"
 import * as VideoThumbnails from "expo-video-thumbnails"
 import { useState } from "react"
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native"
 
 
@@ -127,6 +127,7 @@ export default function NewPostScreen() {
 
 
   // ================= UI =================
+  // MARK: - UI
   return (
     <SafeAreaView style={styles.container}>
       {/* HEADER */}
@@ -234,7 +235,7 @@ export default function NewPostScreen() {
       </ScrollView>
 
 
-      {/* BOTTOM ACTION */}
+      {/* MARK: BOTTOM ACTION */}
       <View style={styles.bottomBar}>
         <BottomItem
           icon="image"
@@ -294,7 +295,6 @@ function BottomItem({ icon, label, onPress }: any) {
 
 
 // ================= STYLES =================
-
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },

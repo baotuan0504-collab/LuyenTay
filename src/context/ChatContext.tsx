@@ -6,7 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 // const SOCKET_URL = "http://192.168.38.103:5201";
 
-const SOCKET_URL = "http://localhost:5201";
+const SOCKET_URL = "http://10.10.33.245:5201";
 
 
 type ChatContextValue = {

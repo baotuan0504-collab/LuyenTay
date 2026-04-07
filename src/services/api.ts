@@ -1,5 +1,5 @@
 
-const BASE_URL = "http://localhost:5201/api";
+const BASE_URL = "http://10.10.33.245:5201/api";
 
 export class ApiError extends Error {
   readonly status: number;
