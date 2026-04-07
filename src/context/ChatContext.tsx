@@ -4,9 +4,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-// const SOCKET_URL = "http://192.168.38.103:5201";
+const SOCKET_URL = "http://192.168.38.103:5201";
 
-const SOCKET_URL = "http://10.10.33.245:5201";
+// const SOCKET_URL = "http://127.0.0.1:5201";
 
 
 type ChatContextValue = {
