@@ -6,12 +6,13 @@ import { initializeSocket } from "./src/utils/socket";
 
 const PORT = Number(process.env.PORT) || 3000;
 const httpServer = createServer(app);
-initializeSocket(httpServer);
+const io = initializeSocket(httpServer);
 
 connectDB()
   .then(() => {
     httpServer.listen(PORT,"0.0.0.0",() => {
       console.log("Server is running on PORT:", PORT);
+      console.log("Socket.IO is ready for connections");
     });
   })
   .catch((error) => {

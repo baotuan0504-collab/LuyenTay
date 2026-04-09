@@ -1,7 +1,7 @@
 import type { NextFunction, Response } from "express";
+import { Types } from "mongoose";
 import type { AuthRequest } from "../middleware/auth";
 import { Chat } from "../models/Chat";
-import { Types } from "mongoose";
 
 export async function getChats(req: AuthRequest, res: Response, next: NextFunction) {
   try {
@@ -34,7 +34,9 @@ export async function getChats(req: AuthRequest, res: Response, next: NextFuncti
 export async function getOrCreateChat(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const userId = req.userId;
-    const { participantId } = req.params;
+    const participantId = Array.isArray(req.params.participantId)
+      ? req.params.participantId[0]
+      : req.params.participantId;
 
     if (!participantId) {
       res.status(400).json({ message: "Participant ID is required" });

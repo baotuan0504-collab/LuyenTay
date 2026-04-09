@@ -4,9 +4,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-const SOCKET_URL = "http://192.168.38.103:5201";
+const SOCKET_URL = "http://127.0.0.1:5201";
 
-// const SOCKET_URL = "http://127.0.0.1:5201";
+// const SOCKET_URL = "http://192.168.38.103:5201";
 
 
 type ChatContextValue = {
@@ -33,6 +33,7 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
 
 
   const socketRef = useRef<Socket | null>(null);
+  const joinedChatIds = useRef<Set<string>>(new Set());
 
 
   useEffect(() => {
@@ -43,13 +44,16 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
         setSocket(null);
         setIsConnected(false);
       }
+      joinedChatIds.current.clear();
       return;
     }
 
 
     const newSocket = io(SOCKET_URL, {
       auth: { token: accessToken },
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
+      timeout: 20000,
+      reconnectionAttempts: 5,
     });
 
 
@@ -60,6 +64,18 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
     newSocket.on("connect", () => {
       setIsConnected(true);
       console.log("Socket connected");
+      joinedChatIds.current.forEach((chatId) => {
+        newSocket.emit("join-chat", chatId);
+      });
+    });
+
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connect error:", error);
+    });
+
+    newSocket.on("socket-error", (error: { message: string }) => {
+      console.warn("Socket error:", error.message);
     });
 
 
@@ -110,11 +126,13 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
 
   const joinChat = (chatId: string) => {
     socketRef.current?.emit("join-chat", chatId);
+    joinedChatIds.current.add(chatId);
   };
 
 
   const leaveChat = (chatId: string) => {
     socketRef.current?.emit("leave-chat", chatId);
+    joinedChatIds.current.delete(chatId);
   };
 
 

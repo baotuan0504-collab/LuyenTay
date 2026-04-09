@@ -8,15 +8,15 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -58,7 +58,11 @@ export default function ChatRoomScreen() {
 
 
     const handleNewMessage = (message: any) => {
-      if (message.chat === chatId) {
+      const messageChatId = typeof message.chat === "string"
+        ? message.chat
+        : message.chat?._id ?? String(message.chat);
+
+      if (messageChatId === chatId) {
         setMessages((prev) => {
             // Check if message already exists (to avoid duplicates if we also fetch)
             if (prev.find(m => m._id === message._id)) return prev;
