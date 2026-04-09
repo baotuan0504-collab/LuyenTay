@@ -5,6 +5,7 @@ import path from "path";
 import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/authRoutes";
 import chatRoutes from "./routes/chatRoutes";
+import commentRoutes from "./routes/commentRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import postRoutes from "./routes/postRoutes";
 import reactionRoutes from "./routes/reactionRoutes";
@@ -38,6 +39,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/comments", commentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);

@@ -25,7 +25,7 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 
 export function ChatProvider({ children }: PropsWithChildren<{}>) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, refreshAccessToken, signOut } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -34,6 +34,7 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
 
   const socketRef = useRef<Socket | null>(null);
   const joinedChatIds = useRef<Set<string>>(new Set());
+  const isRefreshingToken = useRef(false);
 
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
         setIsConnected(false);
       }
       joinedChatIds.current.clear();
+      isRefreshingToken.current = false;
       return;
     }
 
@@ -70,8 +72,23 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
     });
 
 
-    newSocket.on("connect_error", (error) => {
+    newSocket.on("connect_error", async (error) => {
       console.error("Socket connect error:", error);
+
+      // If JWT expired, try to refresh token and reconnect
+      if (error.message === "jwt expired" && !isRefreshingToken.current) {
+        console.log("JWT expired, attempting to refresh token...");
+        isRefreshingToken.current = true;
+        try {
+          await refreshAccessToken();
+          // The useEffect will trigger again with new accessToken
+        } catch (refreshError) {
+          console.error("Failed to refresh token:", refreshError);
+          await signOut();
+        } finally {
+          isRefreshingToken.current = false;
+        }
+      }
     });
 
     newSocket.on("socket-error", (error: { message: string }) => {

@@ -1,18 +1,19 @@
 import { Router } from "express"
 import CommentController from "../controllers/commentController"
+import { protectRoute } from "../middleware/auth"
 
 
 const router = Router()
 
 
 // Tạo comment cha
-router.post("/", /*authMiddleware,*/ CommentController.createComment)
+router.post("/", protectRoute, CommentController.createComment)
 // Reply comment
-router.post("/reply", /*authMiddleware,*/ CommentController.replyComment)
+router.post("/reply", protectRoute, CommentController.replyComment)
 // Update comment
-router.put("/:id", /*authMiddleware,*/ CommentController.updateComment)
+router.put("/:id", protectRoute, CommentController.updateComment)
 // Delete comment
-router.delete("/:id", /*authMiddleware,*/ CommentController.deleteComment)
+router.delete("/:id", protectRoute, CommentController.deleteComment)
 // Lấy danh sách comment cha (simple)
 router.get("/", CommentController.getParentComments)
 // Lấy reply comment cho 1 comment cha

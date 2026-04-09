@@ -24,4 +24,17 @@ export const register = async (email: string, password: string, name = "") => {
   } catch (error) {
     throw error;
   }
+};
+
+export const refreshToken = async (refreshToken: string) => {
+  try {
+    const data = await apiFetch("/auth/refresh", {
+      method: "POST",
+      body: JSON.stringify({ refreshToken }),
+    });
+    console.log("Token refresh successful:", data);
+    return data;
+  } catch (error) {
+    throw error;
+  }
 }

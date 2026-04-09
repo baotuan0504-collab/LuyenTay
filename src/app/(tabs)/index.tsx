@@ -240,6 +240,31 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         counts={reactionCounts}
         onShowReactors={() => onShowReactors(post)}
       />
+      {/* Nút xem chi tiết bài post */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          paddingHorizontal: 16,
+          paddingBottom: 8,
+        }}>
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginRight: 16,
+          }}
+          onPress={() => router.push(`/post/${post.id}` as any)}>
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={20}
+            color="#888"
+            style={{ marginRight: 4 }}
+          />
+          <Text style={{ color: "#888" }}>Bình luận</Text>
+        </TouchableOpacity>
+        {/* Có thể thêm các nút khác ở đây */}
+      </View>
     </View>
   )
 }
@@ -886,15 +911,24 @@ export default function Index() {
                         alignItems: "center",
                       }}>
                       <Text style={{ fontSize: 16, color: "#666" }}>
-                        {(reaction.user?.name || reaction.user?.username || "U")[0]?.toUpperCase()}
+                        {(reaction.user?.name ||
+                          reaction.user?.username ||
+                          "U")[0]?.toUpperCase()}
                       </Text>
                     </View>
                   )}
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: "500" }}>
-                      {reaction.user?.name || reaction.user?.username || "Unknown"}
+                      {reaction.user?.name ||
+                        reaction.user?.username ||
+                        "Unknown"}
                     </Text>
-                    <Text style={{ fontSize: 12, color: "#666", textTransform: "capitalize" }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: "#666",
+                        textTransform: "capitalize",
+                      }}>
                       {reaction.reactionType}
                     </Text>
                   </View>

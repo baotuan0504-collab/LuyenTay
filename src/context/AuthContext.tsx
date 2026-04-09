@@ -1,6 +1,6 @@
 'use client';
 
-import { login, register } from "@/services/auth.service";
+import { login, refreshToken as refreshTokenService, register } from "@/services/auth.service";
 import { updateProfile as updateProfileService } from "@/services/user.service";
 import * as SecureStore from "expo-secure-store";
 import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
@@ -24,6 +24,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (profileData: Record<string, unknown>) => Promise<void>;
+  refreshAccessToken: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -126,9 +127,26 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     await saveAuthState(updatedUser, accessToken, refreshToken);
   };
 
+  const refreshAccessToken = async () => {
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    try {
+      const data = await refreshTokenService(refreshToken);
+      setAccessToken(data.accessToken ?? null);
+      setRefreshToken(data.refreshToken ?? null);
+      await saveAuthState(user, data.accessToken ?? null, data.refreshToken ?? null);
+    } catch (error) {
+      // If refresh fails, sign out
+      await signOut();
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, refreshToken, signUp, signIn, signOut, updateUser }}
+      value={{ user, accessToken, refreshToken, signUp, signIn, signOut, updateUser, refreshAccessToken }}
     >
       {children}
     </AuthContext.Provider>
