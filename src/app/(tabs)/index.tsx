@@ -17,6 +17,7 @@ import {
 } from "react-native"
 
 
+import { ReactionBar } from "@/components/ReactionBar"
 import { StoryBar } from "@/components/StoryBar"
 import { StoryViewer } from "@/components/StoryViewer"
 import { useAuth } from "@/context/AuthContext"
@@ -30,6 +31,14 @@ import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
 
 
+import {
+  getMyReaction,
+  getReactionCounts,
+  removeReaction,
+  upsertReaction,
+} from "@/services/reaction.service"
+
+
 interface PostCardProps {
   post: Post
   currentUserId?: string
@@ -37,6 +46,7 @@ interface PostCardProps {
 
 
 const PostCard = ({ post, currentUserId }: PostCardProps) => {
+  const { accessToken } = useAuth()
   const postUser = post.profiles
   const isOwnPost = post.user_id === currentUserId
   const router = useRouter()
@@ -47,6 +57,66 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
     player.muted = false
     player.volume = 1
   })
+  // Thêm state cho reaction
+  const [myReaction, setMyReaction] = useState<string | undefined>(undefined)
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(
+    {},
+  )
+
+
+  useEffect(() => {
+    if (accessToken) {
+      // Lấy reaction của user
+      getMyReaction(post.id, "post", accessToken)
+        .then(data => setMyReaction(data?.reactionType))
+        .catch(() => setMyReaction(undefined))
+    }
+
+    // Lấy tổng reaction từng loại
+    getReactionCounts(post.id, "post")
+      .then(data => {
+        const counts: Record<string, number> = {}
+        data.forEach((r: any) => {
+          counts[r._id] = r.count
+        })
+        setReactionCounts(counts)
+      })
+      .catch(() => setReactionCounts({}))
+  }, [post.id, accessToken])
+
+
+  const handleReaction = async (type: string) => {
+    if (!accessToken) {
+      Alert.alert("Authentication required", "Please sign in to react to posts.")
+      return
+    }
+
+    try {
+      if (myReaction === type) {
+        // Bỏ reaction
+        await removeReaction(post.id, "post", accessToken)
+        setMyReaction(undefined)
+        setReactionCounts(c => ({
+          ...c,
+          [type]: Math.max((c[type] || 1) - 1, 0),
+        }))
+      } else {
+        // Thả hoặc đổi reaction
+        await upsertReaction(post.id, "post", type, accessToken)
+        setMyReaction(type)
+        setReactionCounts(c => ({
+          ...c,
+          [type]: (c[type] || 0) + 1,
+          ...(myReaction
+            ? { [myReaction]: Math.max((c[myReaction] || 1) - 1, 0) }
+            : {}),
+        }))
+      }
+    } catch (error) {
+      console.error("Reaction request failed:", error)
+      Alert.alert("Reaction failed", "Could not update your reaction. Please try again.")
+    }
+  }
 
 
   useEffect(() => {
@@ -154,6 +224,11 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
           </View>
         )}
       </TouchableOpacity>
+      <ReactionBar
+        selected={myReaction}
+        onSelect={handleReaction}
+        counts={reactionCounts}
+      />
     </View>
   )
 }
