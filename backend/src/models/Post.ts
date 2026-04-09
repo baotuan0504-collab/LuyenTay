@@ -8,6 +8,7 @@ export interface IPost extends Document {
   description?: string;
   expiresAt: Date;
   isActive: boolean;
+  commentsCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +40,10 @@ const PostSchema = new Schema<IPost>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    commentsCount: {
+      type: Number,
+      default: 0,
     },
   },
   {
