@@ -2,6 +2,7 @@ import express from "express";
 import {
     getMyReaction,
     getReactionCounts,
+    getReactionUsers,
     removeReaction,
     upsertReaction,
 } from "../controllers/reactionController";
@@ -21,5 +22,8 @@ router.get("/counts", getReactionCounts);
 
 //lay reaction cua user
 router.get("/my", protectRoute, getMyReaction);
+
+//lay danh sach user reaction theo type
+router.get("/users", getReactionUsers);
 
 export default router;

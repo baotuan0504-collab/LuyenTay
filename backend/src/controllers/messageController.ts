@@ -15,7 +15,7 @@ export async function getMessages(req: AuthRequest, res: Response, next: NextFun
 
     const chat = await Chat.findOne({
       _id: chatId,
-      participants: userId,
+      participants: new mongoose.Types.ObjectId(userId),
     });
 
     if (!chat) {

@@ -77,7 +77,11 @@ export interface ReactionBarProps {
   selected?: string
   onSelect: (type: string) => void
   counts?: Record<string, number>
-  onShowReactors?: () => void
+  onShowReactors?: (reactionType?: string) => void
+  reactionUsers?: Record<
+    string,
+    Array<{ _id: string; name: string; avatar?: string }>
+  >
 }
 
 
@@ -86,6 +90,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
   onSelect,
   counts,
   onShowReactors,
+  reactionUsers,
 }) => {
   const [pickerVisible, setPickerVisible] = useState(false)
   const selectedReaction =
@@ -94,9 +99,11 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
     (sum, value) => sum + value,
     0,
   )
-  // Xem danh sách người thả reaction
-  const handleShowReactors = () => {
-    onShowReactors && onShowReactors()
+
+
+  // Xem danh sách người thả reaction cho từng loại
+  const handleShowReactors = (reactionType?: string) => {
+    onShowReactors && onShowReactors(reactionType)
   }
 
 
@@ -117,7 +124,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
           </Text>
           <TouchableOpacity
             style={styles.mainCountBtn}
-            onPress={onShowReactors}>
+            onPress={() => handleShowReactors()}>
             <Text style={styles.mainCount}>{totalCount || 0}</Text>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -130,8 +137,19 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
                 onPress={() => {
                   setPickerVisible(false)
                   onSelect(reaction.type)
-                }}>
+                }}
+                onLongPress={() => handleShowReactors(reaction.type)}>
                 {reaction.icon(reaction.color)}
+                {reactionUsers && reactionUsers[reaction.type]?.length > 0 && (
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: "#888",
+                      textAlign: "center",
+                    }}>
+                    {reactionUsers[reaction.type].length}
+                  </Text>
+                )}
               </TouchableOpacity>
             ))}
           </View>

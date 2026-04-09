@@ -44,3 +44,10 @@ export const removeReaction = async (
     },
   });
 };
+
+export const getReactionUsers = async (
+  targetId: string,
+  targetType: string, 
+)=> {
+  return apiFetch(`/reactions/users?targetId=${targetId}&targetType=${targetType}`);
+}

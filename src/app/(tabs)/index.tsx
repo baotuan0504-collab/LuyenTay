@@ -34,6 +34,7 @@ import { useEffect, useMemo, useState } from "react"
 import {
   getMyReaction,
   getReactionCounts,
+  getReactionUsers,
   removeReaction,
   upsertReaction,
 } from "@/services/reaction.service"
@@ -42,7 +43,7 @@ import {
 interface PostCardProps {
   post: Post
   currentUserId?: string
-  onShowReactors: () => void
+  onShowReactors: (post: Post) => void
 }
 
 
@@ -237,7 +238,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         selected={myReaction}
         onSelect={handleReaction}
         counts={reactionCounts}
-        onShowReactors={onShowReactors}
+        onShowReactors={() => onShowReactors(post)}
       />
     </View>
   )
@@ -619,12 +620,16 @@ export default function Index() {
   }
 
 
-  const handleShowReactors = async () => {
+  const handleShowReactors = async (post: Post) => {
     // Gọi API lấy danh sách người đã thả reaction cho post
-    // Ví dụ:
-    // const data = await getReactors(post.id, "post")
-    // setReactors(data)
-    setShowReactors(true)
+    try {
+      const data = await getReactionUsers(post.id, "post")
+      setReactors(data)
+      setShowReactors(true)
+    } catch (error) {
+      console.error("Error fetching reactors:", error)
+      Alert.alert("Error", "Could not load reaction list")
+    }
   }
 
 
@@ -851,24 +856,48 @@ export default function Index() {
             {reactors.length === 0 ? (
               <Text style={{ color: "#888" }}>Chưa có ai thả cảm xúc</Text>
             ) : (
-              reactors.map((user, idx) => (
+              reactors.map((reaction, idx) => (
                 <View
-                  key={user._id || idx}
+                  key={reaction._id || idx}
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
                     marginBottom: 8,
                   }}>
-                  <Image
-                    source={{ uri: user.avatar }}
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 16,
-                      marginRight: 10,
-                    }}
-                  />
-                  <Text>{user.name || user.username}</Text>
+                  {reaction.user?.profile_image_url ? (
+                    <Image
+                      source={{ uri: reaction.user.profile_image_url }}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        marginRight: 10,
+                      }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 16,
+                        backgroundColor: "#ddd",
+                        marginRight: 10,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}>
+                      <Text style={{ fontSize: 16, color: "#666" }}>
+                        {(reaction.user?.name || reaction.user?.username || "U")[0]?.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "500" }}>
+                      {reaction.user?.name || reaction.user?.username || "Unknown"}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: "#666", textTransform: "capitalize" }}>
+                      {reaction.reactionType}
+                    </Text>
+                  </View>
                 </View>
               ))
             )}
