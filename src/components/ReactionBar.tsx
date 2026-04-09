@@ -1,7 +1,4 @@
-import {
-    Entypo,
-    FontAwesome5
-} from "@expo/vector-icons"
+import { Entypo, FontAwesome5 } from "@expo/vector-icons"
 import React, { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
@@ -80,6 +77,7 @@ export interface ReactionBarProps {
   selected?: string
   onSelect: (type: string) => void
   counts?: Record<string, number>
+  onShowReactors?: () => void
 }
 
 
@@ -87,15 +85,19 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
   selected,
   onSelect,
   counts,
+  onShowReactors,
 }) => {
   const [pickerVisible, setPickerVisible] = useState(false)
   const selectedReaction =
     REACTIONS.find(reaction => reaction.type === selected) ?? REACTIONS[0]
-  const selectedCount = selected ? (counts?.[selected] ?? 0) : 0
   const totalCount = Object.values(counts ?? {}).reduce(
     (sum, value) => sum + value,
     0,
   )
+  // Xem danh sách người thả reaction
+  const handleShowReactors = () => {
+    onShowReactors && onShowReactors()
+  }
 
 
   return (
@@ -113,9 +115,11 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
             ]}>
             {selected ? selectedReaction.type : ""}
           </Text>
-          <Text style={styles.mainCount}>
-            {selected ? selectedCount : totalCount || 0}
-          </Text>
+          <TouchableOpacity
+            style={styles.mainCountBtn}
+            onPress={onShowReactors}>
+            <Text style={styles.mainCount}>{totalCount || 0}</Text>
+          </TouchableOpacity>
         </TouchableOpacity>
         {pickerVisible && (
           <View style={styles.picker}>
@@ -177,6 +181,9 @@ const styles = StyleSheet.create({
   mainCount: {
     fontSize: 12,
     color: "#888",
+  },
+  mainCountBtn: {
+    marginHorizontal: 6,
   },
   picker: {
     flexDirection: "row",

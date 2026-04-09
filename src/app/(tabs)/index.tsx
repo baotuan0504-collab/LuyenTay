@@ -42,10 +42,11 @@ import {
 interface PostCardProps {
   post: Post
   currentUserId?: string
+  onShowReactors: () => void
 }
 
 
-const PostCard = ({ post, currentUserId }: PostCardProps) => {
+const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
   const { accessToken } = useAuth()
   const postUser = post.profiles
   const isOwnPost = post.user_id === currentUserId
@@ -72,6 +73,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         .catch(() => setMyReaction(undefined))
     }
 
+
     // Lấy tổng reaction từng loại
     getReactionCounts(post.id, "post")
       .then(data => {
@@ -87,9 +89,13 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
 
   const handleReaction = async (type: string) => {
     if (!accessToken) {
-      Alert.alert("Authentication required", "Please sign in to react to posts.")
+      Alert.alert(
+        "Authentication required",
+        "Please sign in to react to posts.",
+      )
       return
     }
+
 
     try {
       if (myReaction === type) {
@@ -114,7 +120,10 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
       }
     } catch (error) {
       console.error("Reaction request failed:", error)
-      Alert.alert("Reaction failed", "Could not update your reaction. Please try again.")
+      Alert.alert(
+        "Reaction failed",
+        "Could not update your reaction. Please try again.",
+      )
     }
   }
 
@@ -228,6 +237,7 @@ const PostCard = ({ post, currentUserId }: PostCardProps) => {
         selected={myReaction}
         onSelect={handleReaction}
         counts={reactionCounts}
+        onShowReactors={onShowReactors}
       />
     </View>
   )
@@ -267,6 +277,8 @@ export default function Index() {
   const [selectedUserStories, setSelectedUserStories] = useState<Story[]>([])
   const [isViewerVisible, setIsViewerVisible] = useState(false)
   const [isStoryMode, setIsStoryMode] = useState(false)
+  const [showReactors, setShowReactors] = useState(false)
+  const [reactors, setReactors] = useState<any[]>([])
 
 
   const usersWithStories = useMemo(() => {
@@ -607,10 +619,20 @@ export default function Index() {
   }
 
 
+  const handleShowReactors = async () => {
+    // Gọi API lấy danh sách người đã thả reaction cho post
+    // Ví dụ:
+    // const data = await getReactors(post.id, "post")
+    // setReactors(data)
+    setShowReactors(true)
+  }
+
+
   const renderPost = ({ item }: { item: Post }) => (
     <PostCard
       post={item}
       currentUserId={user?.id}
+      onShowReactors={handleShowReactors}
     />
   )
 
@@ -795,6 +817,66 @@ export default function Index() {
                 <Text style={{ fontSize: 12 }}>Video</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+
+      {/* Modal hiển thị danh sách người thả reaction */}
+      <Modal
+        visible={showReactors}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReactors(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.3)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}>
+          <View
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 12,
+              padding: 20,
+              minWidth: 280,
+              maxHeight: 400,
+            }}>
+            <Text
+              style={{ fontWeight: "bold", fontSize: 18, marginBottom: 12 }}>
+              Người đã thả cảm xúc
+            </Text>
+            {/* TODO: map danh sách người thả reaction */}
+            {reactors.length === 0 ? (
+              <Text style={{ color: "#888" }}>Chưa có ai thả cảm xúc</Text>
+            ) : (
+              reactors.map((user, idx) => (
+                <View
+                  key={user._id || idx}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}>
+                  <Image
+                    source={{ uri: user.avatar }}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      marginRight: 10,
+                    }}
+                  />
+                  <Text>{user.name || user.username}</Text>
+                </View>
+              ))
+            )}
+            <TouchableOpacity
+              onPress={() => setShowReactors(false)}
+              style={{ marginTop: 16, alignSelf: "center" }}>
+              <Text style={{ color: "#1877F2", fontWeight: "bold" }}>Đóng</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
