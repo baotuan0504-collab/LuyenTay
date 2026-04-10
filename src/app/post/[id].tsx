@@ -8,19 +8,22 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+
 import { CommentInput } from "../../components/CommentInput"
 import { ReactionBar } from "../../components/ReactionBar"
 import { useAuth } from "../../context/AuthContext"
+
 import {
   getCommentsByPost,
   getPostDetail,
   PostResponse,
 } from "../../services/post.service"
+
 import {
   getMyReaction,
   getReactionCounts,
@@ -29,260 +32,252 @@ import {
 } from "../../services/reaction.service"
 
 
+// FIX BUILD TREE
+const buildCommentTree = (comments: any[]) => {
+  const map: any = {}
+  const roots: any[] = []
+
+  comments.forEach((c) => {
+    map[c._id] = {
+      ...c,
+      children: [],
+    }
+  })
+
+  comments.forEach((c) => {
+    const parentId = c.parentId || c.parentComment
+
+    if (parentId && map[parentId]) {
+      map[parentId].children.push(map[c._id])
+    } else {
+      roots.push(map[c._id])
+    }
+  })
+
+  return flattenComments(roots)
+}
+
+const flattenComments = (comments: any[], level = 0): any[] => {
+  let result: any[] = []
+
+  comments.forEach((comment) => {
+    result.push({
+      ...comment,
+      level,
+    })
+
+    if (comment.children && comment.children.length > 0) {
+      result = result.concat(
+        flattenComments(comment.children, level + 1),
+      )
+    }
+  })
+
+  return result
+}
+
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams()
   const { accessToken } = useAuth()
+
   const [post, setPost] = useState<PostResponse | null>(null)
   const [comments, setComments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [myReaction, setMyReaction] = useState<string | undefined>(undefined)
-  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(
-    {},
-  )
 
+  const [replyTo, setReplyTo] = useState<any>(null)
+
+  const [myReaction, setMyReaction] = useState<string>()
+  const [reactionCounts, setReactionCounts] = useState<any>({})
+
+  const router = useRouter()
+
+  const loadComments = async () => {
+    const res = await getCommentsByPost(id as string)
+
+    const raw = Array.isArray(res?.comments) ? res.comments : []
+
+    console.log("RAW COMMENTS", raw)
+
+    const tree = buildCommentTree(raw)
+
+    console.log("TREE COMMENTS", tree)
+
+    setComments(tree)
+  }
 
   useEffect(() => {
     async function fetchData() {
-      setLoading(true)
       try {
-        if (!accessToken) return
-        const postRes = await getPostDetail(id as string, accessToken)
+        setLoading(true)
+
+        const postRes = await getPostDetail(id as string, accessToken!)
         setPost(postRes)
-        const commentsRes = await getCommentsByPost(id as string)
-        setComments(commentsRes)
-        // Lấy reaction
-        const myReact = await getMyReaction(id as string, "post", accessToken)
+
+        await loadComments()
+
+        const myReact = await getMyReaction(
+          id as string,
+          "post",
+          accessToken!,
+        )
+
         setMyReaction(myReact?.reactionType)
+
         const counts = await getReactionCounts(id as string, "post")
-        const countObj: Record<string, number> = {}
+
+        const obj: any = {}
         counts.forEach((r: any) => {
-          countObj[r._id] = r.count
+          obj[r._id] = r.count
         })
-        setReactionCounts(countObj)
-      } catch (error) {
-        console.error("Error loading post detail:", error)
-        Alert.alert("Lỗi", "Không thể tải chi tiết bài viết.")
+
+        setReactionCounts(obj)
+
+      } catch {
+        Alert.alert("Lỗi tải bài viết")
       } finally {
         setLoading(false)
       }
     }
-    if (id && accessToken) fetchData()
-  }, [id, accessToken])
 
+    fetchData()
+  }, [])
 
   const handleReaction = async (type: string) => {
-    if (!accessToken) return
-    try {
-      if (myReaction === type) {
-        await removeReaction(id as string, "post", accessToken)
-        setMyReaction(undefined)
-        setReactionCounts(c => ({
-          ...c,
-          [type]: Math.max((c[type] || 1) - 1, 0),
-        }))
-      } else {
-        await upsertReaction(id as string, "post", type, accessToken)
-        setMyReaction(type)
-        setReactionCounts(c => ({
-          ...c,
-          [type]: (c[type] || 0) + 1,
-          ...(myReaction
-            ? { [myReaction]: Math.max((c[myReaction] || 1) - 1, 0) }
-            : {}),
-        }))
-      }
-    } catch (error) {
-      Alert.alert("Lỗi", "Không thể cập nhật reaction.")
+    if (myReaction === type) {
+      await removeReaction(id as string, "post", accessToken!)
+      setMyReaction(undefined)
+    } else {
+      await upsertReaction(id as string, "post", type, accessToken!)
+      setMyReaction(type)
     }
   }
-
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    )
-  }
-
-
-  if (!post) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 16,
-        }}>
-        <Text style={{ fontSize: 16, color: "#333" }}>
-          Không tìm thấy bài viết.
-        </Text>
-      </View>
-    )
-  }
-
-
-  const renderPostHeader = () => (
-    <View
-      style={{
-        backgroundColor: "#fff",
-        padding: 16,
-        shadowColor: "#000",
-      }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 10,
-        }}>
-      </View>
-      <Text
-        style={{
-          fontSize: 16,
-          lineHeight: 24,
-          color: "#222",
-          marginBottom: 10,
-        }}>
-        {post.description}
-      </Text>
-      {post.imageUrl ? (
-        <Image
-          source={{ uri: post.imageUrl }}
-          style={{
-            width: "100%",
-            height: 260,
-            borderRadius: 14,
-            marginBottom: 14,
-            backgroundColor: "#f3f3f3",
-          }}
-          contentFit="cover"
-        />
-      ) : null}
-      {post.videoUrl ? (
-        <View
-          style={{
-            marginBottom: 14,
-            padding: 12,
-            borderWidth: 1,
-            borderColor: "#ddd",
-            borderRadius: 12,
-          }}>
-          <Text style={{ color: "#444" }}>Video: {post.videoUrl}</Text>
-        </View>
-      ) : null}
-
-      <ReactionBar
-        selected={myReaction}
-        onSelect={handleReaction}
-        counts={reactionCounts}
-        onCommentPress={() => {
-
-        }}
-      />
-    </View>
-  )
-
-
-  const router = useRouter()
-
 
   const renderHeader = () => (
     <View
       style={{
-        width: "100%",
-        paddingTop: 15,
-        paddingBottom: 14,
-        paddingHorizontal: 16,
-        backgroundColor: "#fff",
+        padding: 14,
         borderBottomWidth: 1,
         borderColor: "#eee",
-        flexDirection: "row",
+        backgroundColor: "#fff",
         alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <View style={{ position: "absolute", left: 16 }}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
-      <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+      }}>
+      <TouchableOpacity
+        style={{
+          position: "absolute",
+          left: 16,
+        }}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} />
+      </TouchableOpacity>
+
+      <Text style={{ fontWeight: "bold", fontSize: 18 }}>
         Chi tiết bài viết
       </Text>
     </View>
   )
 
+  const renderPostHeader = () => (
+    <View style={{ padding: 16, backgroundColor: "#fff" }}>
+      <Text>{post?.description}</Text>
+
+      {post?.imageUrl && (
+        <Image
+          source={{ uri: post.imageUrl }}
+          style={{
+            width: "100%",
+            height: 260,
+            borderRadius: 12,
+            marginTop: 10,
+          }}
+        />
+      )}
+
+      <ReactionBar
+        selected={myReaction}
+        onSelect={handleReaction}
+        counts={reactionCounts}
+      />
+    </View>
+  )
+
+  const renderComment = ({ item }: any) => (
+    <View
+      style={{
+        flexDirection: "row",
+        padding: 14,
+        paddingLeft: 14 + item.level * 20,
+        backgroundColor: "#fff",
+        borderBottomWidth: 1,
+        borderColor: "#eee",
+      }}
+    >
+      <Image
+        source={{ uri: item.user?.avatar }}
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          marginRight: 10,
+        }}
+      />
+
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: "bold" }}>
+          {item.user?.name}
+        </Text>
+
+        <Text>{item.content}</Text>
+
+        <TouchableOpacity
+          onPress={() => setReplyTo(item)}
+        >
+          <Text style={{ color: "#1877f2" }}>
+            Trả lời
+          </Text>
+        </TouchableOpacity>
+
+      </View>
+    </View>
+  )
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <ActivityIndicator />
+      </View>
+    )
+  }
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f3f3f3" }}>
+    <SafeAreaView style={{ flex: 1 }}>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 80}>
+      >
+
         {renderHeader()}
+
         <FlatList
           data={comments}
+          renderItem={renderComment}
           keyExtractor={item => item._id}
           ListHeaderComponent={renderPostHeader}
-          renderItem={({ item }) => (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "flex-start",
-                padding: 14,
-                backgroundColor: "#fff",
-                borderBottomWidth: 1,
-                borderColor: "#f3f3f3",
-              }}>
-              <Image
-                source={{ uri: item.user?.avatar }}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  marginRight: 10,
-                  backgroundColor: "#eee",
-                }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontWeight: "bold",
-                    color: "#222",
-                    marginBottom: 2,
-                  }}>
-                  {item.user?.name || "User"}
-                </Text>
-
-                <Text style={{ color: "#333", fontSize: 15 }}>
-                  {item.content}
-                </Text>
-              </View>
-            </View>
-          )}
-          contentContainerStyle={{
-            paddingBottom: 180,
-            backgroundColor: "#f3f3f3",
-          }}
-          keyboardShouldPersistTaps="handled"
         />
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "#fff",
-            paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          }}>
-          <CommentInput
-            postId={id as string}
-            onCommented={() => {
-              getCommentsByPost(id as string).then(setComments)
-            }}
-          />
-        </View>
+
+        <CommentInput
+          postId={id as string}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          onCommented={() => {
+            setReplyTo(null)
+            loadComments()
+          }}
+        />
+
       </KeyboardAvoidingView>
+
     </SafeAreaView>
   )
 }
