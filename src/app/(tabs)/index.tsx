@@ -28,7 +28,7 @@ import { events } from "@/lib/events"
 import { useIsFocused } from "@react-navigation/native"
 import { Image } from "expo-image"
 import { useRouter } from "expo-router"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 
 import {
@@ -392,8 +392,10 @@ export default function Index() {
 
 
   const isFocused = useIsFocused()
+  // Chỉ gọi refresh khi lần đầu vào hoặc khi isFocused chuyển từ false -> true
+  const prevFocusedRef = useRef(false)
   useEffect(() => {
-    if (isFocused) {
+    if (isFocused && !prevFocusedRef.current) {
       refreshPosts().catch(e =>
         console.error("Error refreshing posts on focus:", e),
       )
@@ -401,7 +403,8 @@ export default function Index() {
         console.error("Error refreshing stories on focus:", e),
       )
     }
-  }, [isFocused, refreshPosts, refreshStories])
+    prevFocusedRef.current = isFocused
+  }, [isFocused])
 
 
   const pickImage = async () => {
