@@ -286,6 +286,3 @@ export default function PostDetailScreen() {
     </SafeAreaView>
   )
 }
-
-
-
