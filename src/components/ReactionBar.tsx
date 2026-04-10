@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons } from "@expo/vector-icons"
+import { useRouter } from "expo-router"
 import React, { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
-import { useRouter } from "../../.expo/types/router"
 
 
 const REACTIONS = [
@@ -83,6 +83,8 @@ export interface ReactionBarProps {
     string,
     Array<{ _id: string; name: string; avatar?: string }>
   >
+  onCommentPress?: () => void // thêm prop này để xử lý sự kiện bình luận
+  commentLabel?: string // tuỳ chọn: label cho nút bình luận
 }
 
 
@@ -92,6 +94,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
   counts,
   onShowReactors,
   reactionUsers,
+  onCommentPress,
 }) => {
   const [pickerVisible, setPickerVisible] = useState(false)
   const selectedReaction =
@@ -107,7 +110,6 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
     onShowReactors && onShowReactors(reactionType)
   }
   const router = useRouter()
-  
 
 
   return (
@@ -164,14 +166,13 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
           alignItems: "center",
           marginRight: 16,
         }}
-        onPress={() => router.push(`/post/${post.id}` as any)}>
+        onPress={onCommentPress}>
         <Ionicons
           name="chatbubble-ellipses-outline"
           size={20}
           color="#888"
           style={{ marginRight: 4 }}
         />
-        <Text style={{ color: "#888" }}>Bình luận</Text>
       </TouchableOpacity>
     </View>
   )

@@ -239,6 +239,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         onSelect={handleReaction}
         counts={reactionCounts}
         onShowReactors={() => onShowReactors(post)}
+        onCommentPress={() => router.push(`/post/${post.id}` as any)}
       />
       {/* Nút xem chi tiết bài post */}
       <View
