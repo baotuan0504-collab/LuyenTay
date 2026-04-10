@@ -13,12 +13,10 @@ import {
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { deleteComment } from "../../services/comment.service"
-
-
 import { CommentInput } from "../../components/CommentInput"
 import { ReactionBar } from "../../components/ReactionBar"
 import { useAuth } from "../../context/AuthContext"
+import { deleteComment } from "../../services/comment.service"
 
 
 import {
@@ -48,8 +46,6 @@ const buildCommentTree = (comments: any[]) => {
       children: [],
     }
   })
-
-
   comments.forEach(c => {
     const parentId = c.parentId || c.parentComment
 
@@ -60,23 +56,16 @@ const buildCommentTree = (comments: any[]) => {
       roots.push(map[c._id])
     }
   })
-
-
   return flattenComments(roots)
 }
 
-
 const flattenComments = (comments: any[], level = 0): any[] => {
   let result: any[] = []
-
-
   comments.forEach(comment => {
     result.push({
       ...comment,
       level,
     })
-
-
     if (comment.children && comment.children.length > 0) {
       result = result.concat(flattenComments(comment.children, level + 1))
     }
@@ -95,31 +84,15 @@ export default function PostDetailScreen() {
   const [post, setPost] = useState<PostResponse | null>(null)
   const [comments, setComments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
-
   const [replyTo, setReplyTo] = useState<any>(null)
-
-
   const [myReaction, setMyReaction] = useState<string>()
   const [reactionCounts, setReactionCounts] = useState<any>({})
-
-
   const router = useRouter()
-
-
   const loadComments = async () => {
     const res = await getCommentsByPost(id as string)
-
-
     const raw = Array.isArray(res?.comments) ? res.comments : []
-
-
     console.log("RAW COMMENTS", raw)
-
-
     const tree = buildCommentTree(raw)
-
-
     console.log("TREE COMMENTS", tree)
 
 
@@ -131,30 +104,16 @@ export default function PostDetailScreen() {
     async function fetchData() {
       try {
         setLoading(true)
-
-
         const postRes = await getPostDetail(id as string, accessToken!)
         setPost(postRes)
-
-
         await loadComments()
-
-
         const myReact = await getMyReaction(id as string, "post", accessToken!)
-
-
         setMyReaction(myReact?.reactionType)
-
-
         const counts = await getReactionCounts(id as string, "post")
-
-
         const obj: any = {}
         counts.forEach((r: any) => {
           obj[r._id] = r.count
         })
-
-
         setReactionCounts(obj)
       } catch {
         Alert.alert("Lỗi tải bài viết")
@@ -162,8 +121,6 @@ export default function PostDetailScreen() {
         setLoading(false)
       }
     }
-
-
     fetchData()
   }, [])
 
@@ -197,22 +154,17 @@ export default function PostDetailScreen() {
         <Ionicons
           name="arrow-back"
           size={24}
+          style={{ marginTop: 15 }}
         />
       </TouchableOpacity>
-
-
       <Text style={{ fontWeight: "bold", fontSize: 18 }}>
         Chi tiết bài viết
       </Text>
     </View>
   )
-
-
   const renderPostHeader = () => (
     <View style={{ padding: 16, backgroundColor: "#fff" }}>
       <Text>{post?.description}</Text>
-
-
       {post?.imageUrl && (
         <Image
           source={{ uri: post.imageUrl }}
@@ -224,8 +176,6 @@ export default function PostDetailScreen() {
           }}
         />
       )}
-
-
       <ReactionBar
         selected={myReaction}
         onSelect={handleReaction}
@@ -233,8 +183,6 @@ export default function PostDetailScreen() {
       />
     </View>
   )
-
-
   const renderComment = ({ item }: any) => {
     // Kiểm tra quyền xoá: là chủ bình luận hoặc chủ bài post
     const canDelete =
