@@ -248,7 +248,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
           paddingHorizontal: 16,
           paddingBottom: 8,
         }}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -262,7 +262,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
             style={{ marginRight: 4 }}
           />
           <Text style={{ color: "#888" }}>Bình luận</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         {/* Có thể thêm các nút khác ở đây */}
       </View>
     </View>

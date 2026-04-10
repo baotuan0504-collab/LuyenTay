@@ -1,6 +1,7 @@
-import { Entypo, FontAwesome5 } from "@expo/vector-icons"
+import { FontAwesome5, Ionicons } from "@expo/vector-icons"
 import React, { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { useRouter } from "../../.expo/types/router"
 
 
 const REACTIONS = [
@@ -105,6 +106,8 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
   const handleShowReactors = (reactionType?: string) => {
     onShowReactors && onShowReactors(reactionType)
   }
+  const router = useRouter()
+  
 
 
   return (
@@ -155,12 +158,20 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
           </View>
         )}
       </View>
-      <TouchableOpacity style={styles.commentButton}>
-        <Entypo
-          name="chat"
-          size={26}
-          color="#444"
+      <TouchableOpacity
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginRight: 16,
+        }}
+        onPress={() => router.push(`/post/${post.id}` as any)}>
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={20}
+          color="#888"
+          style={{ marginRight: 4 }}
         />
+        <Text style={{ color: "#888" }}>Bình luận</Text>
       </TouchableOpacity>
     </View>
   )
