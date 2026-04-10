@@ -144,7 +144,7 @@ export default function PostDetailScreen() {
           color: "#222",
           marginBottom: 10,
         }}>
-        {post.description || "Bài viết không có nội dung mô tả."}
+        {post.description}
       </Text>
       {post.imageUrl ? (
         <Image

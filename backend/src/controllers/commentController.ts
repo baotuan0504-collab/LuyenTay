@@ -4,10 +4,10 @@ import CommentService from "../services/comment.service"
 
 
 export default class CommentController {
-  // Tạo comment cha
+  // Tạo comment cha hoặc reply
   static async createComment(req: AuthRequest, res: Response) {
     try {
-      const { targetId, targetType, content } = req.body
+      const { targetId, targetType, content, parentId } = req.body
       const user = req.userId || String(req.body.user || "")
       if (!user) {
         return res.status(400).json({ error: "User is required" })
@@ -17,6 +17,7 @@ export default class CommentController {
         targetId,
         targetType,
         content,
+        parentId,
       })
       res.status(201).json(comment)
     } catch (err: any) {
@@ -83,12 +84,31 @@ export default class CommentController {
   // Lấy danh sách comment cha (simple)
   static async getParentComments(req: Request, res: Response) {
     try {
-      const { targetId, targetType } = req.query
+      const { targetId, targetType, page = 1, limit = 20 } = req.query
+      const pageNum = parseInt(String(page), 10)
+      const limitNum = parseInt(String(limit), 10)
+      const skip = (pageNum - 1) * limitNum
+
       const comments = await CommentService.getParentComments({
         targetId: String(targetId),
         targetType: String(targetType),
+        skip,
+        limit: limitNum,
       })
-      res.json(comments)
+
+      // Đếm tổng số comment để tính hasMore
+      const totalComments = await CommentService.countParentComments({
+        targetId: String(targetId),
+        targetType: String(targetType),
+      })
+
+      res.json({
+        comments,
+        hasMore: skip + comments.length < totalComments,
+        total: totalComments,
+        page: pageNum,
+        limit: limitNum,
+      })
     } catch (err: any) {
       res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
     }

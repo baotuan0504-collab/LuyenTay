@@ -6,10 +6,14 @@ import { apiFetch } from "../services/api"
 
 export function CommentInput({
   postId,
+  replyTo,
   onCommented,
+  onCancelReply,
 }: {
   postId: string
+  replyTo?: any
   onCommented?: () => void
+  onCancelReply?: () => void
 }) {
   const { accessToken } = useAuth()
   const [content, setContent] = useState("")
@@ -26,7 +30,12 @@ export function CommentInput({
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ targetId: postId, targetType: "post", content }),
+        body: JSON.stringify({
+          targetId: postId,
+          targetType: "post",
+          content,
+          parentId: replyTo?._id
+        }),
       })
       setContent("")
       onCommented?.()

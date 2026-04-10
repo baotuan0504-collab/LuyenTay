@@ -4,24 +4,33 @@ import { Post } from "../models/Post"
 
 
 export default class CommentService {
-  // Tạo comment cha
+  // Tạo comment cha hoặc reply
   static async createComment({
     user,
     targetId,
     targetType,
     content,
+    parentId,
   }: {
     user: string
     targetId: string
     targetType: string
     content: string
+    parentId?: string
   }) {
-    const comment = await Comment.create({
+    const commentData: any = {
       user: new mongoose.Types.ObjectId(user),
       targetId: new mongoose.Types.ObjectId(targetId),
       targetType,
       content,
-    })
+    }
+    
+    // Thêm parentComment nếu là reply
+    if (parentId) {
+      commentData.parentComment = new mongoose.Types.ObjectId(parentId)
+    }
+    
+    const comment = await Comment.create(commentData)
     // Tăng commentCount cho post
     if (targetType === "post") {
       await Post.findByIdAndUpdate(targetId, { $inc: { commentCount: 1 } })
@@ -94,21 +103,40 @@ export default class CommentService {
   }
 
 
-  // Lấy danh sách comment cha (simple query)
+  // Lấy tất cả comment (cả parent lẫn reply) dành cho 1 post
   static async getParentComments({
+    targetId,
+    targetType,
+    skip = 0,
+    limit = 20,
+  }: {
+    targetId: string
+    targetType: string
+    skip?: number
+    limit?: number
+  }) {
+    return Comment.find({
+      targetId,
+      targetType,
+    })
+      .populate("user")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+  }
+
+  // Đếm tổng số comment cha
+  static async countParentComments({
     targetId,
     targetType,
   }: {
     targetId: string
     targetType: string
   }) {
-    return Comment.find({
+    return Comment.countDocuments({
       targetId,
       targetType,
-      parentComment: null,
     })
-      .populate("user")
-      .sort({ createdAt: -1 })
   }
 
 

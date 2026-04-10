@@ -67,8 +67,14 @@ export const getPostDetail = async (postId: string, token: string): Promise<Post
 }
 
 
-export const getCommentsByPost = async (postId: string) => {
-  const data = await apiFetch(`/comments?targetId=${postId}&targetType=post`, {
+export const getCommentsByPost = async (postId: string, page = 1, limit = 20) => {
+  const params = new URLSearchParams({
+    targetId: postId,
+    targetType: 'post',
+    page: String(page),
+    limit: String(limit),
+  })
+  const data = await apiFetch(`/comments?${params.toString()}`, {
     method: "GET",
   })
   return data
