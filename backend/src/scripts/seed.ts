@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import { User } from "../models/User";
-import { hashPassword } from "../utils/auth";
+import mongoose from "mongoose"
+import { User } from "../modules/user/model/user.model"
+import { hashPassword } from "../utils/auth"
 
 const SEED_USERS = [
   {
@@ -53,32 +53,33 @@ const SEED_USERS = [
     email: "ethan@example.com",
     avatar: "https://i.pravatar.cc/150?img=14",
   },
-];
+]
 
 async function seed() {
   try {
-    const mongoURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chat-app";
-    await mongoose.connect(mongoURI);
-    console.log("✅ Connected to MongoDB");
+    const mongoURI =
+      process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chat-app"
+    await mongoose.connect(mongoURI)
+    console.log("✅ Connected to MongoDB")
 
-    const usersToInsert = SEED_USERS.map((user) => ({
+    const usersToInsert = SEED_USERS.map(user => ({
       ...user,
       password: hashPassword("password123"),
-    }));
+    }))
 
-    const users = await User.insertMany(usersToInsert);
-    console.log(`🌱 Seeded ${users.length} users:`);
-    users.forEach((user) => {
-      console.log(`   - ${user.name} (${user.email})`);
-    });
+    const users = await User.insertMany(usersToInsert)
+    console.log(`🌱 Seeded ${users.length} users:`)
+    users.forEach(user => {
+      console.log(`   - ${user.name} (${user.email})`)
+    })
 
-    await mongoose.disconnect();
-    console.log("✅ Done!");
-    process.exit(0);
+    await mongoose.disconnect()
+    console.log("✅ Done!")
+    process.exit(0)
   } catch (error) {
-    console.error("❌ Seed error:", error);
-    process.exit(1);
+    console.error("❌ Seed error:", error)
+    process.exit(1)
   }
 }
 
-seed();
+seed()
