@@ -70,6 +70,6 @@ export async function getDefaultApiHeaders({
     "X-Signature": signature,
   }
   // Luôn gửi Authorization, nếu không có token thì để rỗng
-  headers["Authorization"] = token ? String(token) : ""
+  headers["Authorization"] = token ? String(token) : "none"
   return headers
 }

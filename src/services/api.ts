@@ -45,7 +45,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     headers[k.toLowerCase()] = v as string
   }
   // Luôn đảm bảo có Authorization (dù là rỗng)
-  if (!headers["authorization"]) headers["authorization"] = ""
+  if (!headers["authorization"]) headers["authorization"] = "none"
   console.log("[apiFetch] URL:", url)
   console.log("[apiFetch] Headers (lowercase):", headers)
   const response = await fetch(url, {
