@@ -39,6 +39,7 @@ export default function PublicProfileScreen() {
   const loadProfile = async () => {
     try {
       const data = await userService.getUserById(userId as string, accessToken!);
+      console.log("Loaded profile:", data);
       setProfile(data);
     } catch (error) {
       if (isUnauthorizedError(error)) {
@@ -119,13 +120,11 @@ export default function PublicProfileScreen() {
          
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.username}>@{profile.username}</Text>
-         
-         
+        
           <Text style={styles.joinedDate}>
             Joined {new Date(profile.createdAt).toLocaleDateString()}
           </Text>
         </View>
-
 
         {!isMe && (
           <TouchableOpacity
@@ -147,7 +146,6 @@ export default function PublicProfileScreen() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

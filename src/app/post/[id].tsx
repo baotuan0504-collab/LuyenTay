@@ -232,11 +232,7 @@ export default function PostDetailScreen() {
 
         <View style={{ flex: 1 }}>
           <Text style={{ fontWeight: "bold" }}>{item.user?.name}</Text>
-
-
           <Text>{item.content}</Text>
-
-
           <View style={{ flexDirection: "row", marginTop: 4 }}>
             <TouchableOpacity onPress={() => setReplyTo(item)}>
               <Text style={{ color: "#1877f2", marginRight: 16 }}>Trả lời</Text>
@@ -252,7 +248,6 @@ export default function PostDetailScreen() {
     )
   }
 
-
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -261,7 +256,6 @@ export default function PostDetailScreen() {
     )
   }
 
-
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -269,14 +263,12 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}>
         {renderHeader()}
 
-
         <FlatList
           data={comments}
           renderItem={renderComment}
           keyExtractor={item => item._id}
           ListHeaderComponent={renderPostHeader}
         />
-
 
         <CommentInput
           postId={id as string}
