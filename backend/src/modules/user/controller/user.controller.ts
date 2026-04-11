@@ -1,6 +1,31 @@
+// Search users by username or name
 import type { NextFunction, Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
 import { User } from "../model/user.model"
+export async function searchUsers(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { q } = req.query
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ message: "Missing search query" })
+    }
+    const users = await User.find({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
+      ],
+    })
+      .select("name email avatar username")
+      .limit(20)
+    res.json(users)
+  } catch (error) {
+    res.status(500)
+    next(error)
+  }
+}
 
 export async function getUsers(
   req: AuthRequest,
