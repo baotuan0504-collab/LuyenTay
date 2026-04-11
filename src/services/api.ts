@@ -1,3 +1,5 @@
+import { getDefaultApiHeaders } from "./apiHeaders";
+
 const BASE_URL = endpoint => {
   if (endpoint.startsWith("/auth")) {
     // Đổi sang đúng port của authserver, ví dụ 7001
@@ -23,8 +25,11 @@ export const isUnauthorizedError = (error: unknown): error is ApiError => {
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = BASE_URL(endpoint) + endpoint
+  const token =
+    (options.headers && (options.headers as any)["Authorization"]) || undefined
+  const defaultHeaders = await getDefaultApiHeaders(token)
   const headers = {
-    "Content-Type": "application/json",
+    ...defaultHeaders,
     ...options.headers,
   }
   console.log("[apiFetch] URL:", url)
