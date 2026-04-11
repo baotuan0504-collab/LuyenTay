@@ -23,7 +23,7 @@ export async function buildAuthServiceHeaders({
     token,
     body,
   })
-  return {
+  const headers = {
     "Content-Type": "application/json",
     Accept: "application/json",
     "X-Client-Type": req.headers["x-client-type"],
@@ -33,4 +33,6 @@ export async function buildAuthServiceHeaders({
     "x-timestamp": timestamp,
     "x-signature": signature,
   }
+  console.log("[buildAuthServiceHeaders] Generated headers:", headers)
+  return headers
 }
