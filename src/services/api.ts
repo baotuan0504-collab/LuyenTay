@@ -1,4 +1,4 @@
-import { getDefaultApiHeaders } from "./apiHeaders";
+import { getDefaultApiHeaders } from "./apiHeaders"
 
 const BASE_URL = endpoint => {
   if (endpoint.startsWith("/auth")) {
@@ -27,7 +27,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = BASE_URL(endpoint) + endpoint
   const token =
     (options.headers && (options.headers as any)["Authorization"]) || undefined
-  const defaultHeaders = await getDefaultApiHeaders(token)
+  const defaultHeaders = await getDefaultApiHeaders({ token })
   const headers = {
     ...defaultHeaders,
     ...options.headers,
