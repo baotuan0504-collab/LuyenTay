@@ -1,10 +1,8 @@
 import { Router } from "express"
-import CommentController from "../controllers/commentController"
 import { protectRoute } from "../middleware/auth"
-
+import CommentController from "../modules/comment/controller/comment.controller"
 
 const router = Router()
-
 
 // Tạo comment cha
 router.post("/", protectRoute, CommentController.createComment)
@@ -21,8 +19,4 @@ router.get("/replies", CommentController.getReplies)
 // Lấy danh sách comment dạng nested (aggregate)
 router.get("/nested", CommentController.getNestedComments)
 
-
 export default router
-
-
-

@@ -1,9 +1,9 @@
-import { Router } from "express";
-import { getMessages, sendMessage } from "../controllers/messageController";
-import { protectRoute } from "../middleware/auth";
+import { Router } from "express"
+import { protectRoute } from "../middleware/auth"
+import { MessageController } from "../modules/message/controller/message.controller"
 
-const router = Router();
+const router = Router()
 
-router.get("/chat/:chatId", protectRoute, getMessages);
-router.post("/chat/:chatId", protectRoute, sendMessage);
-export default router;
+router.get("/chat/:chatId", protectRoute, MessageController.getMessages)
+router.post("/chat/:chatId", protectRoute, MessageController.sendMessage)
+export default router
