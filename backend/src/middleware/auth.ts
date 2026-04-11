@@ -22,10 +22,18 @@ export async function protectRoute(
     }
 
     // Gọi sang authserver để xác thực token
-    const AUTHSERVER_URL = process.env.AUTHSERVER_URL
+    const AUTHSERVER_URL = process.env.AUTHSERVER_URL || "http://127.0.0.1:7001"
     const response = await axios.post(`${AUTHSERVER_URL}/api/auth/verify`, {
       token,
     })
+    // Log để debug service-to-service
+    console.log(
+      "[protectRoute] Call:",
+      `${AUTHSERVER_URL}/api/auth/verify`,
+      "token:",
+      token,
+    )
+    console.log("[protectRoute] Response:", response.data)
     if (!response.data || !response.data.userId) {
       return res.status(401).json({ message: "Unauthorized" })
     }
