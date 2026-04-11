@@ -35,7 +35,29 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     undefined
   if (isAuthNoToken) token = undefined
   if (!token && !isAuthNoToken) token = ""
-  const defaultHeaders = await getDefaultApiHeaders({ token })
+  // Lấy method, path, body đúng chuẩn để build signature
+  const method = (options.method || "GET").toUpperCase()
+  // path phải là endpoint đúng như backend nhận (KHÔNG có domain)
+  const path = endpoint
+  // body phải là string hoặc undefined
+  let body: string | undefined = undefined
+  if (options.body) {
+    if (typeof options.body === "string") {
+      body = options.body
+    } else {
+      try {
+        body = JSON.stringify(options.body)
+      } catch {
+        body = undefined
+      }
+    }
+  }
+  const defaultHeaders = await getDefaultApiHeaders({
+    token,
+    method,
+    path,
+    body,
+  })
   // Đảm bảo tất cả key header là lowercase
   const headers: Record<string, string> = {}
   for (const [k, v] of Object.entries({
