@@ -27,7 +27,10 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = BASE_URL(endpoint) + endpoint
   const token =
     (options.headers && (options.headers as any)["Authorization"]) || undefined
-  const defaultHeaders = await getDefaultApiHeaders({ token })
+  const method = options.method || 'GET';
+  const body = options.body;
+  // path là endpoint (bắt đầu bằng /)
+  const defaultHeaders = await getDefaultApiHeaders({ method, path: endpoint, body, token });
   const headers = {
     ...defaultHeaders,
     ...options.headers,
