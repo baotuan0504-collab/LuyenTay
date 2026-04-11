@@ -1,18 +1,16 @@
-import mongoose, { Schema, type Document } from "mongoose";
-
+import mongoose, { Schema, type Document } from "mongoose"
 
 export interface IPost extends Document {
-  user: mongoose.Types.ObjectId;
-  imageUrl: string;
-  videoUrl?: string;
-  description?: string;
-  expiresAt: Date;
-  isActive: boolean;
-  commentsCount?: number;
-  createdAt: Date;
-  updatedAt: Date;
+  user: mongoose.Types.ObjectId
+  imageUrl: string
+  videoUrl?: string
+  description?: string
+  expiresAt: Date
+  isActive: boolean
+  commentsCount?: number
+  createdAt: Date
+  updatedAt: Date
 }
-
 
 const PostSchema = new Schema<IPost>(
   {
@@ -48,15 +46,10 @@ const PostSchema = new Schema<IPost>(
   },
   {
     timestamps: true,
-  }
-);
-
+  },
+)
 
 // Index to automatically expire posts (optional, but good for performance)
 // PostSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-
-export const Post = mongoose.model<IPost>("Post", PostSchema);
-
-
-
+export const Post = mongoose.model<IPost>("Post", PostSchema)
