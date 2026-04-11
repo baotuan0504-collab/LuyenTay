@@ -62,3 +62,24 @@ export async function getPosts(
     next(error)
   }
 }
+
+export async function getPostById(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { id } = req.params
+    const post = await Post.findById(id).populate(
+      "user",
+      "name username avatar",
+    )
+    if (!post) {
+      res.status(404).json({ message: "Post not found" })
+      return
+    }
+    res.json(post)
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" })
+  }
+}
