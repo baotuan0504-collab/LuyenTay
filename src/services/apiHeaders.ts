@@ -46,7 +46,6 @@ export async function getDefaultApiHeaders({
   const deviceId = await getDeviceId()
   const timestamp = Math.floor(Date.now() / 1000).toString()
   const idempotencyKey = uuidv4()
-  // secret để ký là token (bỏ tiền tố Bearer nếu có)
   const secret = token
     ? String(token)
         .replace(/^Bearer\s+/i, "")
@@ -70,6 +69,7 @@ export async function getDefaultApiHeaders({
     "X-Timestamp": timestamp,
     "X-Signature": signature,
   }
+  // Chỉ thêm Authorization nếu có token (không thêm nếu undefined)
   if (token) headers["Authorization"] = String(token)
   return headers
 }
