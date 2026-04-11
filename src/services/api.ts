@@ -26,17 +26,21 @@ export const isUnauthorizedError = (error: unknown): error is ApiError => {
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = BASE_URL(endpoint) + endpoint
   const token =
-    (options.headers && (options.headers as any)["Authorization"]) || undefined
-  const method = options.method || 'GET';
-  const body = options.body;
-  // path là endpoint (bắt đầu bằng /)
-  const defaultHeaders = await getDefaultApiHeaders({ method, path: endpoint, body, token });
-  const headers = {
+    (options.headers &&
+      ((options.headers as any)["Authorization"] ||
+        (options.headers as any)["authorization"])) ||
+    undefined
+  const defaultHeaders = await getDefaultApiHeaders({ token })
+  // Đảm bảo tất cả key header là lowercase
+  const headers: Record<string, string> = {}
+  for (const [k, v] of Object.entries({
     ...defaultHeaders,
     ...options.headers,
+  })) {
+    headers[k.toLowerCase()] = v as string
   }
   console.log("[apiFetch] URL:", url)
-  console.log("[apiFetch] Headers:", headers)
+  console.log("[apiFetch] Headers (lowercase):", headers)
   const response = await fetch(url, {
     headers,
     ...options,
