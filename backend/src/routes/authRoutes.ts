@@ -21,7 +21,7 @@ router.post("/register", async (req, res) => {
   try {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/register`,
-      req.body
+      req.body,
     )
     res.status(response.status).json(response.data)
   } catch (error) {
@@ -34,7 +34,7 @@ router.post("/login", async (req, res) => {
   try {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/login`,
-      req.body
+      req.body,
     )
     res.status(response.status).json(response.data)
   } catch (error) {
@@ -47,7 +47,7 @@ router.post("/refresh", async (req, res) => {
   try {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/refresh`,
-      req.body
+      req.body,
     )
     res.status(response.status).json(response.data)
   } catch (error) {

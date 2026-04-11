@@ -1,37 +1,39 @@
-import type { NextFunction, Request, Response } from "express";
-import { User } from "../models/User";
-import { verifyToken } from "../utils/auth";
+import axios from "axios"
+import type { NextFunction, Request, Response } from "express"
 
 export type AuthRequest = Request & {
-  userId?: string;
-};
+  userId?: string
+}
 
-export async function protectRoute(req: AuthRequest, res: Response, next: NextFunction) {
+export async function protectRoute(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized" })
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.split(" ")[1]
     if (!token) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized" })
     }
 
-    const payload = verifyToken(token);
-    const userId = typeof payload.userId === "string" ? payload.userId : undefined;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // Gọi sang authserver để xác thực token
+    const AUTHSERVER_URL = process.env.AUTHSERVER_URL
+    const response = await axios.post(`${AUTHSERVER_URL}/api/auth/verify`, {
+      token,
+    })
+    if (!response.data || !response.data.userId) {
+      return res.status(401).json({ message: "Unauthorized" })
     }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    req.userId = user._id.toString();
-    next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
+    req.userId = response.data.userId
+    next()
+  } catch (error: any) {
+    res
+      .status(error.response?.status || 401)
+      .json(error.response?.data || { message: "Unauthorized" })
   }
 }
