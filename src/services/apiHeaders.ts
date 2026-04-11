@@ -11,7 +11,7 @@ export async function getDefaultApiHeaders(token?: string) {
     "Content-Type": "application/json",
     Accept: "application/json",
     "X-Client-Type": "mobile",
-    "X-Device-Id": deviceId || "unknown-device",
+    "X-Device-Id": deviceId,
     "Accept-Language": "vi",
     "Idempotency-Key": uuidv4(),
     ...(token ? { Authorization: token } : {}),
