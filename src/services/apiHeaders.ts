@@ -46,11 +46,15 @@ export async function getDefaultApiHeaders({
   const deviceId = await getDeviceId()
   const timestamp = Math.floor(Date.now() / 1000).toString()
   const idempotencyKey = uuidv4()
-  const secret = token
-    ? String(token)
-        .replace(/^Bearer\s+/i, "")
-        .trim()
-    : ""
+  // Nếu token là 'none' (login/register), dùng secret mặc định giống backend
+  let secret = ""
+  if (!token || token === "none") {
+    secret = "default_secret"
+  } else {
+    secret = String(token)
+      .replace(/^Bearer\s+/i, "")
+      .trim()
+  }
   const bodyString = body ? JSON.stringify(body) : ""
   const signature = buildSignature({
     method: method || "GET",
