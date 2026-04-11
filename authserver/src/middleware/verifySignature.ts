@@ -13,7 +13,9 @@ export async function verifySignature(
 ) {
   const signature = req.headers["x-signature"] as string
   const timestamp = req.headers["x-timestamp"] as string
-  const token = req.headers["authorization"] as string
+  let token = req.headers["authorization"] as string
+  // Nếu là login/register, FE sẽ gửi 'none', backend sẽ dùng secret mặc định
+  if (!token || token === "none") token = "default_secret"
   const clientType = req.headers["x-client-type"]
   const deviceId = req.headers["x-device-id"]
   const idempotencyKey = req.headers["idempotency-key"]
