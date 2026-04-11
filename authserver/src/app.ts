@@ -3,6 +3,7 @@ import express from "express"
 import path from "path"
 
 import { errorHandler } from "./middleware/errorHandler"
+import { verifySignature } from "./middleware/verifySignature"
 import authRoutes from "./routes/authRoutes"
 import userRoutes from "./routes/userRoutes"
 
@@ -31,8 +32,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" })
 })
 
-app.use("/api/auth", authRoutes)
-app.use("/api/users", userRoutes)
+app.use("/api/auth", verifySignature, authRoutes)
+app.use("/api/users", verifySignature, userRoutes)
 // error handlers must come after all the routes and other middlewares so they can catch errors passed with next(err) or thrown inside async handlers.
 app.use(errorHandler)
 
