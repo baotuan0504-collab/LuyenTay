@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Ensure AsyncStorage is imported
 import * as CryptoJS from "crypto-js"
-import DeviceInfo from "react-native-device-info"
+import * as Application from "expo-application"
 import { v4 as uuidv4 } from "uuid"
 
 // Hàm tạo signature đồng bộ backend
@@ -23,18 +23,23 @@ function buildSignature({
 
 // Hàm lấy deviceId thực từ thiết bị
 async function getDeviceId(): Promise<string> {
-  try {
-    const realDeviceId = DeviceInfo.getUniqueId()
-    return realDeviceId || "unknown-device"
-  } catch {
-    // fallback nếu lỗi
-    let deviceId = await AsyncStorage.getItem("deviceId")
-    if (!deviceId) {
-      deviceId = uuidv4()
-      await AsyncStorage.setItem("deviceId", deviceId)
-    }
-    return deviceId || "unknown-device"
+  // Android: dùng androidId
+  if (Application.androidId) return Application.androidId
+  // iOS: dùng getIosIdForVendorAsync nếu có
+  if (Application.getIosIdForVendorAsync) {
+    try {
+      const iosId = await Application.getIosIdForVendorAsync()
+      if (iosId) return iosId
+    } catch {}
   }
+  // Fallback: uuid lưu vào AsyncStorage
+  const key = "deviceId"
+  let deviceId = await AsyncStorage.getItem(key)
+  if (!deviceId) {
+    deviceId = uuidv4()
+    await AsyncStorage.setItem(key, deviceId)
+  }
+  return deviceId || "unknown-device"
 }
 
 // Hàm trả về headers đầy đủ cho mọi API
