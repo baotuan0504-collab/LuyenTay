@@ -23,11 +23,14 @@ export const isUnauthorizedError = (error: unknown): error is ApiError => {
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = BASE_URL(endpoint) + endpoint
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  }
+  console.log("[apiFetch] URL:", url)
+  console.log("[apiFetch] Headers:", headers)
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     ...options,
   })
 
