@@ -4,6 +4,17 @@ import { Post } from "../models/Post"
 
 
 export default class CommentService {
+  // Lấy comment theo id
+  static async getCommentById(commentId: string) {
+    return Comment.findById(commentId)
+  }
+
+
+  // Lấy post theo id
+  static async getPostById(postId: string) {
+    return Post.findById(postId)
+  }
+  // Lấy comment theo id
   // Tạo comment cha hoặc reply
   static async createComment({
     user,
@@ -24,12 +35,14 @@ export default class CommentService {
       targetType,
       content,
     }
-    
+
+
     // Thêm parentComment nếu là reply
     if (parentId) {
       commentData.parentComment = new mongoose.Types.ObjectId(parentId)
     }
-    
+
+
     const comment = await Comment.create(commentData)
     // Tăng commentCount cho post
     if (targetType === "post") {
@@ -79,8 +92,12 @@ export default class CommentService {
   }
 
 
+  // Lấy comment theo id
+
+
   // Delete comment + reply
   static async deleteComment(commentId: string) {
+    // (dòng này là dấu ngoặc thừa, cần xóa)
     // Lấy comment để biết targetId, targetType
     const comment = await Comment.findById(commentId)
     if (!comment) return null
@@ -124,6 +141,7 @@ export default class CommentService {
       .skip(skip)
       .limit(limit)
   }
+
 
   // Đếm tổng số comment cha
   static async countParentComments({

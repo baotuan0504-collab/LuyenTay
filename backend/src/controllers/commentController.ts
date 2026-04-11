@@ -21,7 +21,9 @@ export default class CommentController {
       })
       res.status(201).json(comment)
     } catch (err: any) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -43,7 +45,9 @@ export default class CommentController {
       })
       res.status(201).json(comment)
     } catch (err: any) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -72,11 +76,40 @@ export default class CommentController {
       if (!id) {
         return res.status(400).json({ error: "Comment id is required" })
       }
+      // Lấy comment để kiểm tra quyền
+      const comment = await CommentService.getCommentById(id)
+      if (!comment) {
+        return res.status(404).json({ error: "Comment not found" })
+      }
+      // Nếu là chủ bình luận hoặc chủ bài post mới được xóa
+      const userId = req.userId
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" })
+      }
+      // Nếu là chủ bình luận
+      const isCommentOwner = comment.user.toString() === userId
+      let isPostOwner = false
+      if (comment.targetType === "post") {
+        // Lấy post để kiểm tra chủ post
+        const post = await CommentService.getPostById(
+          comment.targetId.toString(),
+        )
+        if (post && post.user.toString() === userId) {
+          isPostOwner = true
+        }
+      }
+      if (!isCommentOwner && !isPostOwner) {
+        return res
+          .status(403)
+          .json({ error: "Bạn không có quyền xóa bình luận này" })
+      }
       const deleted = await CommentService.deleteComment(id)
       if (!deleted) return res.status(404).json({ error: "Comment not found" })
       res.json({ success: true })
     } catch (err: any) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -89,6 +122,7 @@ export default class CommentController {
       const limitNum = parseInt(String(limit), 10)
       const skip = (pageNum - 1) * limitNum
 
+
       const comments = await CommentService.getParentComments({
         targetId: String(targetId),
         targetType: String(targetType),
@@ -96,11 +130,13 @@ export default class CommentController {
         limit: limitNum,
       })
 
+
       // Đếm tổng số comment để tính hasMore
       const totalComments = await CommentService.countParentComments({
         targetId: String(targetId),
         targetType: String(targetType),
       })
+
 
       res.json({
         comments,
@@ -110,7 +146,9 @@ export default class CommentController {
         limit: limitNum,
       })
     } catch (err: any) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -138,7 +176,9 @@ export default class CommentController {
       })
       res.json(comments)
     } catch (err: any) {
-      res.status(500).json({ error: err instanceof Error ? err.message : String(err) })
+      res
+        .status(500)
+        .json({ error: err instanceof Error ? err.message : String(err) })
     }
   }
 }
