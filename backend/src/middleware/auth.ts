@@ -26,6 +26,10 @@ export async function protectRoute(
     const response = await axios.post(`${AUTHSERVER_URL}/api/auth/verify`, {
       token,
     })
+    console.log(
+      "[protectRoute] ĐÃ QUA XÁC THỰC, userId:",
+      response.data?.userId,
+    )
     // Log để debug service-to-service
     console.log(
       "[protectRoute] Call:",
@@ -40,6 +44,11 @@ export async function protectRoute(
     req.userId = response.data.userId
     next()
   } catch (error: any) {
+    console.error(
+      "[protectRoute] ERROR:",
+      error?.message,
+      error?.response?.data,
+    )
     res
       .status(error.response?.status || 401)
       .json(error.response?.data || { message: "Unauthorized" })
