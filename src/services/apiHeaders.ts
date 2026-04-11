@@ -69,7 +69,7 @@ export async function getDefaultApiHeaders({
     "X-Timestamp": timestamp,
     "X-Signature": signature,
   }
-  // Chỉ thêm Authorization nếu có token (không thêm nếu undefined)
-  if (token) headers["Authorization"] = String(token)
+  // Luôn gửi Authorization, nếu không có token thì để rỗng
+  headers["Authorization"] = token ? String(token) : ""
   return headers
 }
