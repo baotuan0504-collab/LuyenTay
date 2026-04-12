@@ -1,4 +1,5 @@
 import axios from "axios"
+import crypto from "crypto"
 import type { NextFunction, Request, Response } from "express"
 import { preRequestApi } from "../utils/preRequestApi"
 
@@ -43,7 +44,7 @@ export async function protectRoute(
         "x-timestamp": timestamp,
         "x-client-type": "backend",
         "x-device-id": "system",
-        "idempotency-key": require("uuid").v4(),
+        "idempotency-key": crypto.randomUUID(),
         "authorization": `Bearer ${token}`
       }
     })
