@@ -40,6 +40,14 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     refreshToken: "auth_refreshToken",
   };
 
+  const formatUser = (userData: any): AuthUser | null => {
+    if (!userData) return null;
+    return {
+      ...userData,
+      id: userData.id || userData._id, // Ưu tiên id, nếu không có thì dùng _id
+    };
+  };
+
   useEffect(() => {
     const restoreAuth = async () => {
       try {
@@ -50,7 +58,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         ]);
 
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          setUser(formatUser(JSON.parse(storedUser)));
         }
         if (storedAccessToken) {
           setAccessToken(storedAccessToken);
@@ -96,18 +104,20 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
 
   const signUp = async (email: string, password: string) => {
     const data = await register(email, password);
-    setUser(data.user);
+    const formattedUser = formatUser(data.user);
+    setUser(formattedUser);
     setAccessToken(data.accessToken ?? null);
     setRefreshToken(data.refreshToken ?? null);
-    await saveAuthState(data.user, data.accessToken ?? null, data.refreshToken ?? null);
+    await saveAuthState(formattedUser, data.accessToken ?? null, data.refreshToken ?? null);
   };
 
   const signIn = async (email: string, password: string) => {
     const data = await login(email, password);
-    setUser(data.user);
+    const formattedUser = formatUser(data.user);
+    setUser(formattedUser);
     setAccessToken(data.accessToken ?? null);
     setRefreshToken(data.refreshToken ?? null);
-    await saveAuthState(data.user, data.accessToken ?? null, data.refreshToken ?? null);
+    await saveAuthState(formattedUser, data.accessToken ?? null, data.refreshToken ?? null);
   };
 
   const signOut = async () => {
@@ -122,9 +132,10 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       throw new Error("No authenticated user");
     }
 
-    const updatedUser = await updateProfileService(profileData, accessToken);
-    setUser(updatedUser);
-    await saveAuthState(updatedUser, accessToken, refreshToken);
+    const updatedUserRaw = await updateProfileService(profileData, accessToken);
+    const formattedUser = formatUser(updatedUserRaw);
+    setUser(formattedUser);
+    await saveAuthState(formattedUser, accessToken, refreshToken);
   };
 
   const refreshAccessToken = async () => {
