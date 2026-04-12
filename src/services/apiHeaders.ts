@@ -58,7 +58,9 @@ export async function getDefaultApiHeaders({
   }
   // Đảm bảo không bị double-stringify nếu body đã là chuỗi
   const bodyString = typeof body === "string" ? body : (body ? JSON.stringify(body) : "")
-  const normalizedPath = "/" + (path || "").replace(/^\/+|\/+$/g, "")
+  // Loại bỏ query string và chuẩn hóa đường dẫn (luôn có / ở đầu, không có / ở cuối)
+  const pathOnly = (path || "").split("?")[0]
+  const normalizedPath = "/" + pathOnly.replace(/^\/+|\/+$/g, "")
   const signature = buildSignature({
     method: method || "GET",
     path: normalizedPath,
