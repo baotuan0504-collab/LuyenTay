@@ -95,6 +95,8 @@ export async function verifySignature(
         path,
         timestamp,
         method: req.method,
+        expected: expectedSignature,
+        received: signature,
       }
     })
   }

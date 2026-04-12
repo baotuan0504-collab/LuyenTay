@@ -12,8 +12,10 @@ export const getMyReaction = async (
   });
 };
 
-export const getReactionCounts = async (targetId: string, targetType: string) => {
-  return apiFetch(`/reactions/counts?targetId=${targetId}&targetType=${targetType}`);
+export const getReactionCounts = async (targetId: string, targetType: string, token?: string) => {
+  return apiFetch(`/reactions/counts?targetId=${targetId}&targetType=${targetType}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 };
 
 export const upsertReaction = async (

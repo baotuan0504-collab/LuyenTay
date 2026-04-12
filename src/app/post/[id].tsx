@@ -89,16 +89,14 @@ export default function PostDetailScreen() {
   const [reactionCounts, setReactionCounts] = useState<any>({})
   const router = useRouter()
   const loadComments = async () => {
-    const res = await getCommentsByPost(id as string)
+    const res = await getCommentsByPost(id as string, accessToken!)
     const raw = Array.isArray(res?.comments) ? res.comments : []
     console.log("RAW COMMENTS", raw)
     const tree = buildCommentTree(raw)
     console.log("TREE COMMENTS", tree)
 
-
     setComments(tree)
   }
-
 
   useEffect(() => {
     async function fetchData() {
@@ -109,7 +107,7 @@ export default function PostDetailScreen() {
         await loadComments()
         const myReact = await getMyReaction(id as string, "post", accessToken!)
         setMyReaction(myReact?.reactionType)
-        const counts = await getReactionCounts(id as string, "post")
+        const counts = await getReactionCounts(id as string, "post", accessToken!)
         const obj: any = {}
         counts.forEach((r: any) => {
           obj[r._id] = r.count

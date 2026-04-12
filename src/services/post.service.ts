@@ -1,11 +1,12 @@
 // Lấy comment dạng nested (cha + replies)
-export const getNestedCommentsByPost = async (postId: string) => {
+export const getNestedCommentsByPost = async (postId: string, token?: string) => {
   const params = new URLSearchParams({
     targetId: postId,
     targetType: "post",
   })
   const data = await apiFetch(`/comments/nested?${params.toString()}`, {
     method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   return data
 }
@@ -83,6 +84,7 @@ export const getPostDetail = async (
 
 export const getCommentsByPost = async (
   postId: string,
+  token?: string,
   page = 1,
   limit = 20,
 ) => {
@@ -94,6 +96,7 @@ export const getCommentsByPost = async (
   })
   const data = await apiFetch(`/comments?${params.toString()}`, {
     method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   return data
 }
