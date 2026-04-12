@@ -70,9 +70,13 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   if (!headers["authorization"]) headers["authorization"] = "none"
   console.log("[apiFetch] URL:", url)
   console.log("[apiFetch] Headers (lowercase):", headers)
+  
+  // Trích xuất các thuộc tính khác từ options, loại bỏ headers cũ để dùng headers mới đã gộp
+  const { headers: _oldHeaders, ...remainingOptions } = options
+  
   const response = await fetch(url, {
-    headers,
-    ...options,
+    ...remainingOptions,
+    headers, // Sử dụng headers đã được gộp và chuẩn hóa ở trên
   })
 
   const data = await response.json().catch(() => null)
