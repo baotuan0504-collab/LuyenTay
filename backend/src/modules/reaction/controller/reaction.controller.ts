@@ -31,22 +31,21 @@ export const getMyReaction = async (req: AuthRequest, res: Response) => {
 export const getReactionCounts = async (req: AuthRequest, res: Response) => {
   try {
     const { targetId, targetType } = req.query
-    if (!targetId || !targetType) {
-      return res
-        .status(400)
-        .json({ message: "targetId and targetType are required" })
-    }
+    console.log(`[DEBUG] getReactionCounts query:`, { targetId, targetType })
+    const mongoTargetId = mongoose.Types.ObjectId.isValid(String(targetId))
+      ? new mongoose.Types.ObjectId(String(targetId))
+      : targetId
+
     const counts = await Reaction.aggregate([
       { 
         $match: { 
-          targetId: mongoose.Types.ObjectId.isValid(String(targetId))
-            ? new mongoose.Types.ObjectId(String(targetId))
-            : targetId,
+          targetId: mongoTargetId,
           targetType 
         } 
       },
       { $group: { _id: "$reactionType", count: { $sum: 1 } } },
     ])
+    console.log(`[DEBUG] Aggregation result for ${targetId}:`, JSON.stringify(counts))
     res.json(counts)
   } catch (error) {
     res.status(500).json({ message: "Error fetching reaction counts" })
