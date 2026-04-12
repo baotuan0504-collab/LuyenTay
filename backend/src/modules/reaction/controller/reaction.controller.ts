@@ -37,7 +37,14 @@ export const getReactionCounts = async (req: AuthRequest, res: Response) => {
         .json({ message: "targetId and targetType are required" })
     }
     const counts = await Reaction.aggregate([
-      { $match: { targetId, targetType } },
+      { 
+        $match: { 
+          targetId: mongoose.Types.ObjectId.isValid(String(targetId))
+            ? new mongoose.Types.ObjectId(String(targetId))
+            : targetId,
+          targetType 
+        } 
+      },
       { $group: { _id: "$reactionType", count: { $sum: 1 } } },
     ])
     res.json(counts)

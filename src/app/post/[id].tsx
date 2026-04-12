@@ -90,7 +90,8 @@ export default function PostDetailScreen() {
   const router = useRouter()
   const loadComments = async () => {
     const res = await getCommentsByPost(id as string, accessToken!)
-    const raw = Array.isArray(res?.comments) ? res.comments : []
+    // Chấp nhận cả trường hợp res là mảng trực tiếp hoặc res.comments là mảng
+    const raw = Array.isArray(res) ? res : (Array.isArray(res?.comments) ? res.comments : [])
     console.log("RAW COMMENTS", raw)
     const tree = buildCommentTree(raw)
     console.log("TREE COMMENTS", tree)
@@ -107,13 +108,17 @@ export default function PostDetailScreen() {
         await loadComments()
         const myReact = await getMyReaction(id as string, "post", accessToken!)
         setMyReaction(myReact?.reactionType)
+        
         const counts = await getReactionCounts(id as string, "post", accessToken!)
         const obj: any = {}
-        counts.forEach((r: any) => {
-          obj[r._id] = r.count
-        })
+        if (Array.isArray(counts)) {
+          counts.forEach((r: any) => {
+            obj[r._id] = r.count
+          })
+        }
         setReactionCounts(obj)
-      } catch {
+      } catch (error) {
+        console.error("Error fetching post detail data:", error)
         Alert.alert("Lỗi tải bài viết")
       } finally {
         setLoading(false)
