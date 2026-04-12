@@ -62,7 +62,7 @@ export async function verifySignature(
   // Recompute signature
   // Frontend dùng endpoint (vd: /auth/login), Backend dùng originalUrl và bỏ tiền tố /api
   const fullPath = req.originalUrl.split("?")[0]
-  const path = fullPath.replace(/^\/api/, "").replace(/^\/+|\/+$/g, "")
+  const path = "/" + fullPath.replace(/^\/api/, "").replace(/^\/+|\/+$/g, "")
   
   // Quan trọng: Dùng chuỗi gốc chưa qua parse (rawBody) nếu có để đảm bảo khớp 100%
   const body = req.rawBody || ""
