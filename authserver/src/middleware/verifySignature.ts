@@ -20,16 +20,31 @@ export async function verifySignature(
   const deviceId = req.headers["x-device-id"]
   const idempotencyKey = req.headers["idempotency-key"]
 
+  // Skip signature verification for OPTIONS requests (CORS pre-flight)
+  if (req.method === "OPTIONS") {
+    return next()
+  }
+
   // Check required headers
-  if (
-    !signature ||
-    !timestamp ||
-    !token ||
-    !clientType ||
-    !deviceId ||
-    !idempotencyKey
-  ) {
-    return res.status(400).json({ message: "Missing required headers" })
+  const required = {
+    signature,
+    timestamp,
+    token,
+    clientType,
+    deviceId,
+    idempotencyKey,
+  }
+
+  const missing = Object.entries(required)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key)
+
+  if (missing.length > 0) {
+    console.log("[DEBUG] Missing headers:", missing)
+    return res.status(400).json({
+      message: "Missing required headers",
+      missing,
+    })
   }
 
   // Check timestamp (max 5 minutes drift)

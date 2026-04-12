@@ -30,7 +30,18 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true, // allow credentials from client (cookies, authorization headers, etc.)
+    credentials: true,
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Signature",
+      "X-Timestamp",
+      "X-Client-Type",
+      "X-Device-Id",
+      "Idempotency-Key",
+      "Accept",
+      "Accept-Language",
+    ],
   }),
 )
 
