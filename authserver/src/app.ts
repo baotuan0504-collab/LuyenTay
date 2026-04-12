@@ -26,7 +26,13 @@ app.use(
   }),
 )
 
-app.use(express.json()) // parses incoming JSON request bodies and makes them available as req.body in your route handlers
+app.use(
+  express.json({
+    verify: (req: any, res, buf) => {
+      req.rawBody = buf.toString()
+    },
+  }),
+) // parses incoming JSON request bodies and makes them available as req.body
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" })

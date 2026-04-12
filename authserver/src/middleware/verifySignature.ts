@@ -40,20 +40,44 @@ export async function verifySignature(
   }
 
   // Recompute signature
-  const method = req.method
-  const path = req.path
-  const body =
-    req.body && Object.keys(req.body).length > 0 ? JSON.stringify(req.body) : ""
+  // Frontend dùng endpoint (vd: /auth/login), Backend middleware thấy req.path relative.
+  // Chuẩn hóa dùng originalUrl và bỏ tiền tố /api
+  const fullPath = req.originalUrl.split("?")[0]
+  const path = fullPath.replace(/^\/api/, "")
+  
+  // Quan trọng: Dùng chuỗi gốc chưa qua parse (rawBody) nếu có để đảm bảo khớp 100%
+  const body = req.rawBody || ""
+
+  console.log("[DEBUG] verifySignature detail:", {
+    method: req.method,
+    originalUrl: req.originalUrl,
+    normalizedPath: path,
+    timestamp,
+    bodyPreview: body.substring(0, 50),
+    receivedSignature: signature,
+  })
+
   const { signature: expectedSignature } = await preRequestApi({
-    method,
+    method: req.method,
     path,
     token,
     body,
     timestamp,
   })
 
+  console.log("[DEBUG] expectedSignature:", expectedSignature)
+
   if (signature !== expectedSignature) {
-    return res.status(401).json({ message: "Invalid signature" })
+    return res.status(401).json({
+      message: "Invalid signature",
+      debug: {
+        path,
+        timestamp,
+        method: req.method,
+        expected: expectedSignature,
+        received: signature,
+      },
+    })
   }
 
   next()
