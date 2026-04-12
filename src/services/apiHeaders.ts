@@ -55,6 +55,8 @@ export async function getDefaultApiHeaders({
       .replace(/^Bearer\s+/i, "")
       .trim()
   }
+  // Đảm bảo không bị double-stringify nếu body đã là chuỗi
+  const bodyString = typeof body === "string" ? body : (body ? JSON.stringify(body) : "")
   const normalizedPath = "/" + (path || "").replace(/^\/+|\/+$/g, "")
   const signature = buildSignature({
     method: method || "GET",
