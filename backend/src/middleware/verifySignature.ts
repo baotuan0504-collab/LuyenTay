@@ -62,10 +62,16 @@ export async function verifySignature(
   // Recompute signature
   // Frontend dùng endpoint (vd: /auth/login), Backend dùng originalUrl và bỏ tiền tố /api
   const fullPath = req.originalUrl.split("?")[0]
-  const path = fullPath.replace(/^\/api/, "")
+  const path = fullPath.replace(/^\/api/, "").replace(/^\/+|\/+$/g, "")
   
   // Quan trọng: Dùng chuỗi gốc chưa qua parse (rawBody) nếu có để đảm bảo khớp 100%
   const body = req.rawBody || ""
+
+  // Log for POST debugging
+  if (req.method !== "GET") {
+    console.log(`[DEBUG] POST Body for signature: "${body}"`)
+    console.log(`[DEBUG] Normalized Path: "${path}"`)
+  }
 
   const { signature: expectedSignature } = await preRequestApi({
     method: req.method,
