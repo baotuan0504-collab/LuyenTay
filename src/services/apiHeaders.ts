@@ -17,6 +17,7 @@ function buildSignature({
   secret: string
 }): string {
   const rawData = [method, path, timestamp, body ?? ""].join("|")
+  console.log(`[DEBUG] Frontend RawData for ${path}: "${rawData}"`)
   return CryptoJS.HmacSHA256(rawData, secret).toString(CryptoJS.enc.Base64)
 }
 

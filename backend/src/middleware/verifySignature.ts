@@ -73,6 +73,9 @@ export async function verifySignature(
     console.log(`[DEBUG] Normalized Path: "${path}"`)
   }
 
+  const rawData = req.method + "|" + path + "|" + timestamp + "|" + (body ?? "")
+  console.log(`[DEBUG] Backend RawData for ${path}: "${rawData}"`)
+
   const { signature: expectedSignature } = await preRequestApi({
     method: req.method,
     path,
