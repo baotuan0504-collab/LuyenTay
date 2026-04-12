@@ -16,12 +16,34 @@ const handleAxiosError = (error: unknown, res: any) => {
   }
 }
 
+// Helper to get proxy headers
+const getProxyHeaders = (req: any) => {
+  const headers: any = {
+    "Content-Type": "application/json",
+  }
+  const headersToForward = [
+    "authorization",
+    "x-signature",
+    "x-timestamp",
+    "x-client-type",
+    "x-device-id",
+    "idempotency-key",
+  ]
+  headersToForward.forEach((h) => {
+    if (req.headers[h]) {
+      headers[h] = req.headers[h]
+    }
+  })
+  return headers
+}
+
 // Proxy register
 router.post("/register", async (req, res) => {
   try {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/register`,
       req.body,
+      { headers: getProxyHeaders(req) },
     )
     res.status(response.status).json(response.data)
   } catch (error) {
@@ -35,6 +57,7 @@ router.post("/login", async (req, res) => {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/login`,
       req.body,
+      { headers: getProxyHeaders(req) },
     )
     res.status(response.status).json(response.data)
   } catch (error) {
@@ -48,6 +71,7 @@ router.post("/refresh", async (req, res) => {
     const response = await axios.post(
       `${AUTHSERVER_URL}/api/auth/refresh`,
       req.body,
+      { headers: getProxyHeaders(req) },
     )
     res.status(response.status).json(response.data)
   } catch (error) {
@@ -59,9 +83,7 @@ router.post("/refresh", async (req, res) => {
 router.get("/me", async (req, res) => {
   try {
     const response = await axios.get(`${AUTHSERVER_URL}/api/auth/me`, {
-      headers: {
-        Authorization: req.headers.authorization,
-      },
+      headers: getProxyHeaders(req),
     })
     res.status(response.status).json(response.data)
   } catch (error) {

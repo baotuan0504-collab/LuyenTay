@@ -3,6 +3,7 @@ import express from "express"
 import path from "path"
 
 import { errorHandler } from "./middleware/errorHandler"
+import { verifySignature } from "./middleware/verifySignature"
 import authRoutes from "./routes/authRoutes"
 import chatRoutes from "./routes/chatRoutes"
 import commentRoutes from "./routes/commentRoutes"
@@ -13,6 +14,8 @@ import storyRoutes from "./routes/storyRoutes"
 import userRoutes from "./routes/userRoutes"
 
 const app = express()
+
+
 
 const allowedOrigins = [
   // "http://127.0.0.1:8081", // expo mobile
@@ -44,6 +47,8 @@ app.use(
     },
   }),
 ) // parses incoming JSON request bodies and makes them available as req.body
+
+app.use("/api", verifySignature)
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" })
