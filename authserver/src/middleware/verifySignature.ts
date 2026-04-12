@@ -49,6 +49,7 @@ export async function verifySignature(
     path,
     token,
     body,
+    timestamp,
   })
 
   if (signature !== expectedSignature) {
