@@ -11,16 +11,19 @@ export async function verifySignature(
   res: Response,
   next: NextFunction,
 ) {
-  const signature = req.headers["x-signature"] as string
-  const timestamp = req.headers["x-timestamp"] as string
-  let token = req.headers["authorization"] as string
+  const signature = (req.header("x-signature") || req.header("X-Signature")) as string
+  const timestamp = (req.header("x-timestamp") || req.header("X-Timestamp")) as string
+  let token = (req.header("authorization") || req.header("Authorization")) as string
   
   // Nếu là login/register, dùng secret mặc định
   if (!token || token === "none") token = "default_secret"
   
-  const clientType = req.headers["x-client-type"]
-  const deviceId = req.headers["x-device-id"]
-  const idempotencyKey = req.headers["idempotency-key"]
+  const clientType = req.header("x-client-type") || req.header("X-Client-Type")
+  const deviceId = req.header("x-device-id") || req.header("X-Device-Id")
+  const idempotencyKey = req.header("idempotency-key") || req.header("Idempotency-Key")
+
+  // Log all headers for debugging
+  console.log(`[DEBUG] Incoming headers for ${req.method} ${req.originalUrl}:`, JSON.stringify(req.headers, null, 2))
 
   // Skip signature verification for OPTIONS requests (CORS pre-flight)
   if (req.method === "OPTIONS") {
@@ -42,7 +45,7 @@ export async function verifySignature(
     .map(([key]) => key)
 
   if (missing.length > 0) {
-    console.log("[DEBUG] Missing headers:", missing)
+    console.log("[DEBUG] Missing headers detected:", missing)
     return res.status(400).json({
       message: "Missing required headers",
       missing,

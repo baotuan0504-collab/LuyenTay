@@ -31,17 +31,8 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Signature",
-      "X-Timestamp",
-      "X-Client-Type",
-      "X-Device-Id",
-      "Idempotency-Key",
-      "Accept",
-      "Accept-Language",
-    ],
+    allowedHeaders: "*",
+    exposedHeaders: "*",
   }),
 )
 
