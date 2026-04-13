@@ -1,4 +1,5 @@
 import { Request, Response } from "express"
+import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
   LoginRequestDto,
   RegisterRequestDto,
@@ -24,16 +25,29 @@ export const register = async (req: Request, res: Response) => {
     const { step } = req.body
     if (step === 1) {
       // Step 1: Save basic info to session or temp storage (simulate for now)
-      // In production, use Redis or DB, here just echo back
-      // Optionally, validate fields
       return res.json({ success: true, step: 1, data: req.body })
     } else if (step === 2) {
-      // Step 2: Save email/password, combine with previous info
-      // In production, merge with step 1 data from session/temp
-      return res.json({ success: true, step: 2, data: req.body })
+      // Step 2: Sinh OTP, gửi mail, lưu OTP tạm thời (ở đây chỉ trả về OTP cho FE demo, thực tế lưu DB/cache)
+      const { email } = req.body
+      if (!email) return res.status(400).json({ message: "Missing email" })
+      const otp = generateOtp(6)
+      try {
+        await sendOtpMail(email, otp)
+      } catch (e) {
+        return res
+          .status(500)
+          .json({ message: "Send mail failed", error: e.message })
+      }
+      // TODO: Lưu OTP vào DB/cache với email, demo trả về OTP cho FE
+      return res.json({
+        success: true,
+        step: 2,
+        message: "OTP sent to email",
+        otp,
+      })
     } else if (step === 3) {
-      // Step 3: Finalize registration, create user
-      // Combine all data, create user, send OTP, etc.
+      // Step 3: Finalize registration, kiểm tra OTP, tạo user
+      // TODO: Kiểm tra OTP với email, nếu đúng mới cho tạo user
       const dto = new RegisterRequestDto(req.body)
       const result = await service.register(dto)
       return res.json(result)
