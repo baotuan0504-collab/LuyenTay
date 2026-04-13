@@ -7,13 +7,21 @@ import {
 } from "react-native"
 import { validateOtp } from "./register/registerValidation"
 
+interface OtpFormProps {
+  otp: string
+  setOtp: (v: string) => void
+  isLoading: boolean
+  onRegister: () => void
+  onBack: () => void
+}
+
 export default function OtpForm({
   otp,
   setOtp,
   isLoading,
   onRegister,
   onBack,
-}) {
+}: OtpFormProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleRegister = () => {

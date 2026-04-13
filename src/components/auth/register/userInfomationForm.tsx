@@ -4,7 +4,24 @@ import { validateUserInfo } from "./registerValidation"
 
 const GENDERS = ["male", "female", "other"]
 
-export default function UserInformationForm({ values, onChange, onNext }) {
+export interface UserInfo {
+  firstName: string
+  lastName: string
+  birthDate: string
+  gender: string
+}
+
+interface UserInformationFormProps {
+  values: UserInfo
+  onChange: (v: UserInfo) => void
+  onNext: () => void
+}
+
+export default function UserInformationForm({
+  values,
+  onChange,
+  onNext,
+}: UserInformationFormProps) {
   const { firstName, lastName, birthDate, gender } = values
   const [error, setError] = useState<string | null>(null)
 

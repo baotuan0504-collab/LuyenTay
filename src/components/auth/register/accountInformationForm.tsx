@@ -2,12 +2,24 @@ import { useState } from "react"
 import { Text, TextInput, TouchableOpacity } from "react-native"
 import { validateAccountInfo } from "./registerValidation"
 
+export interface AccountInfo {
+  email: string
+  password: string
+}
+
+interface AccountInformationFormProps {
+  values: AccountInfo
+  onChange: (v: AccountInfo) => void
+  onNext: () => void
+  onBack: () => void
+}
+
 export default function AccountInformationForm({
   values,
   onChange,
   onNext,
   onBack,
-}) {
+}: AccountInformationFormProps) {
   const { email, password } = values
   const [error, setError] = useState<string | null>(null)
 
