@@ -67,7 +67,7 @@ export default function OtpForm({
           />
         ) : (
           <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
-            Register
+            Verify OTP
           </Text>
         )}
       </TouchableOpacity>
