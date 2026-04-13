@@ -1,6 +1,7 @@
 import LoginForm from "@/components/auth/login/LoginForm"
 import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
 import SignupLink from "@/components/auth/login/SignupLink"
+import TrustDeviceStep from "@/components/auth/login/TrustDeviceStep"
 import { useAuth } from "@/context/AuthContext"
 import { useRouter } from "expo-router"
 import { useState } from "react"
@@ -14,10 +15,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [step, setStep] = useState<"login" | "otp">("login")
+  const [step, setStep] = useState<"login" | "otp" | "trust">("login")
   const [otp, setOtp] = useState("")
-  const [requireOtp, setRequireOtp] = useState(false)
-  const [trustDevice, setTrustDevice] = useState(false)
 
   const handleLogin = async () => {
     setError("")
@@ -26,7 +25,6 @@ export default function LoginScreen() {
       // signIn should return { requireOtp: boolean }
       const result = await signIn(email, password)
       if (result && result.requireOtp) {
-        setRequireOtp(true)
         setStep("otp")
       } else {
         router.push("/(tabs)")
@@ -48,9 +46,9 @@ export default function LoginScreen() {
     setError("")
     setIsLoading(true)
     try {
-      // verifyLoginOtp should accept email, otp, trustDevice
-      await verifyLoginOtp(email, otp, trustDevice)
-      router.push("/(tabs)")
+      // Sau khi xác thực OTP thành công, chuyển sang màn trust device
+      await verifyLoginOtp(email, otp, false)
+      setStep("trust")
     } catch (err) {
       const message =
         err instanceof Error
@@ -62,6 +60,30 @@ export default function LoginScreen() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleTrustDevice = async () => {
+    setError("")
+    setIsLoading(true)
+    try {
+      // Gửi lại verifyLoginOtp với trustDevice=true để cập nhật requireOtp=false
+      await verifyLoginOtp(email, otp, true)
+      router.push("/(tabs)")
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Trust device failed."
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleSkipTrustDevice = () => {
+    router.push("/(tabs)")
   }
 
   const handleBackToLogin = () => {
@@ -77,7 +99,7 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign In to Continue</Text>
-        {step === "login" ? (
+        {step === "login" && (
           <>
             <LoginForm
               email={email}
@@ -90,13 +112,21 @@ export default function LoginScreen() {
             />
             <SignupLink onPress={() => router.push("/(auth)/signup")} />
           </>
-        ) : (
+        )}
+        {step === "otp" && (
           <LoginOtpStep
             otp={otp}
             setOtp={setOtp}
             isLoading={isLoading}
             onVerify={handleVerifyOtp}
             onBack={handleBackToLogin}
+          />
+        )}
+        {step === "trust" && (
+          <TrustDeviceStep
+            onTrust={handleTrustDevice}
+            onSkip={handleSkipTrustDevice}
+            isLoading={isLoading}
           />
         )}
       </View>
