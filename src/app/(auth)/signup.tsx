@@ -1,6 +1,7 @@
 import OtpForm from "@/components/auth/otpForm"
 import AccountInformationForm from "@/components/auth/register/accountInformationForm"
 import UserInformationForm from "@/components/auth/register/userInfomationForm"
+import { apiFetch } from "@/services/api"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
