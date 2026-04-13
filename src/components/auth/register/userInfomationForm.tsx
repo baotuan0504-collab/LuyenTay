@@ -61,7 +61,7 @@ export default function UserInformationForm({
         value={gender}
         onChange={v => onChange({ ...values, gender: v })}
       />
-      {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
+      {error && <Text style={{ color: "red", marginBottom: 8, textAlign: "center" }}>{error}</Text>}
       <TouchableOpacity
         style={{
           backgroundColor: "#000",
