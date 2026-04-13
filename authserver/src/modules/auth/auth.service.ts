@@ -24,6 +24,14 @@ export class AuthService {
     if (!user || !(await verifyPassword(dto.password, user.password))) {
       throw new Error("Invalid credentials")
     }
+    // Nếu requireOtp true, gửi OTP và trả về requireOtp:true
+    if (user.requireOtp) {
+      const { generateOtp, sendOtpMail } = await import("../../utils/mailer")
+      const otp = generateOtp(6)
+      await sendOtpMail(user.email, otp)
+      // TODO: Lưu OTP vào DB/cache
+      return { requireOtp: true, message: "OTP sent to email" }
+    }
     const tokens = await this.createTokenPair(user._id.toString())
     return new AuthResponseDto({ ...tokens, user })
   }
@@ -37,6 +45,7 @@ export class AuthService {
       name: fullName,
       email: dto.email,
       password: hashedPassword,
+      onboardingCompleted: true, // Đánh dấu đã hoàn thành onboarding sau khi xác minh OTP
       // Optionally store birthDate and gender in user schema if needed
     })
     const tokens = await this.createTokenPair(newUser._id.toString())

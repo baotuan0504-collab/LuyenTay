@@ -1,78 +1,95 @@
-'use client';
+"use client"
 
-import { login, refreshToken as refreshTokenService, register } from "@/services/auth.service";
-import { updateProfile as updateProfileService } from "@/services/user.service";
-import * as SecureStore from "expo-secure-store";
-import { createContext, useContext, useEffect, useState, type PropsWithChildren } from "react";
+import {
+  login,
+  refreshToken as refreshTokenService,
+  register,
+} from "@/services/auth.service"
+import { updateProfile as updateProfileService } from "@/services/user.service"
+import { verifyLoginOtp as verifyLoginOtpService } from "@/services/verifyLoginOtp"
+import * as SecureStore from "expo-secure-store"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type PropsWithChildren,
+} from "react"
 
 type AuthUser = {
-  id: string;
-  name: string;
-  username?: string;
-  email: string;
-  avatar?: string;
-  onboardingCompleted?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
+  id: string
+  name: string
+  username?: string
+  email: string
+  avatar?: string
+  onboardingCompleted?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
 
 type AuthContextValue = {
-  user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-  signUp: (email: string, password: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  updateUser: (profileData: Record<string, unknown>) => Promise<void>;
-  refreshAccessToken: () => Promise<void>;
-};
+  user: AuthUser | null
+  accessToken: string | null
+  refreshToken: string | null
+  signUp: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<any>
+  signOut: () => Promise<void>
+  updateUser: (profileData: Record<string, unknown>) => Promise<void>
+  refreshAccessToken: () => Promise<void>
+  verifyLoginOtp: (
+    email: string,
+    otp: string,
+    trustDevice?: boolean,
+  ) => Promise<any>
+}
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [refreshToken, setRefreshToken] = useState<string | null>(null)
 
   const STORAGE_KEYS = {
     user: "auth_user",
     accessToken: "auth_accessToken",
     refreshToken: "auth_refreshToken",
-  };
+  }
 
   const formatUser = (userData: any): AuthUser | null => {
-    if (!userData) return null;
+    if (!userData) return null
     return {
       ...userData,
       id: userData.id || userData._id, // Ưu tiên id, nếu không có thì dùng _id
-    };
-  };
+    }
+  }
 
   useEffect(() => {
     const restoreAuth = async () => {
       try {
-        const [storedUser, storedAccessToken, storedRefreshToken] = await Promise.all([
-          SecureStore.getItemAsync(STORAGE_KEYS.user),
-          SecureStore.getItemAsync(STORAGE_KEYS.accessToken),
-          SecureStore.getItemAsync(STORAGE_KEYS.refreshToken),
-        ]);
+        const [storedUser, storedAccessToken, storedRefreshToken] =
+          await Promise.all([
+            SecureStore.getItemAsync(STORAGE_KEYS.user),
+            SecureStore.getItemAsync(STORAGE_KEYS.accessToken),
+            SecureStore.getItemAsync(STORAGE_KEYS.refreshToken),
+          ])
 
         if (storedUser) {
-          setUser(formatUser(JSON.parse(storedUser)));
+          setUser(formatUser(JSON.parse(storedUser)))
         }
         if (storedAccessToken) {
-          setAccessToken(storedAccessToken);
+          setAccessToken(storedAccessToken)
         }
         if (storedRefreshToken) {
-          setRefreshToken(storedRefreshToken);
+          setRefreshToken(storedRefreshToken)
         }
       } catch (error) {
-        console.error("Error restoring auth state:", error);
+        console.error("Error restoring auth state:", error)
       }
-    };
+    }
 
-    restoreAuth();
-  }, []);
+    restoreAuth()
+  }, [])
 
   const saveAuthState = async (
     nextUser: AuthUser | null,
@@ -81,93 +98,146 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   ) => {
     try {
       if (nextUser) {
-        await SecureStore.setItemAsync(STORAGE_KEYS.user, JSON.stringify(nextUser));
+        await SecureStore.setItemAsync(
+          STORAGE_KEYS.user,
+          JSON.stringify(nextUser),
+        )
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.user);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.user)
       }
 
       if (nextAccessToken) {
-        await SecureStore.setItemAsync(STORAGE_KEYS.accessToken, nextAccessToken);
+        await SecureStore.setItemAsync(
+          STORAGE_KEYS.accessToken,
+          nextAccessToken,
+        )
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.accessToken);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.accessToken)
       }
 
       if (nextRefreshToken) {
-        await SecureStore.setItemAsync(STORAGE_KEYS.refreshToken, nextRefreshToken);
+        await SecureStore.setItemAsync(
+          STORAGE_KEYS.refreshToken,
+          nextRefreshToken,
+        )
       } else {
-        await SecureStore.deleteItemAsync(STORAGE_KEYS.refreshToken);
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.refreshToken)
       }
     } catch (error) {
-      console.error("Error saving auth state:", error);
+      console.error("Error saving auth state:", error)
     }
-  };
+  }
 
   const signUp = async (email: string, password: string) => {
-    const data = await register(email, password);
-    const formattedUser = formatUser(data.user);
-    setUser(formattedUser);
-    setAccessToken(data.accessToken ?? null);
-    setRefreshToken(data.refreshToken ?? null);
-    await saveAuthState(formattedUser, data.accessToken ?? null, data.refreshToken ?? null);
-  };
+    const data = await register(email, password)
+    const formattedUser = formatUser(data.user)
+    setUser(formattedUser)
+    setAccessToken(data.accessToken ?? null)
+    setRefreshToken(data.refreshToken ?? null)
+    await saveAuthState(
+      formattedUser,
+      data.accessToken ?? null,
+      data.refreshToken ?? null,
+    )
+  }
 
   const signIn = async (email: string, password: string) => {
-    const data = await login(email, password);
-    const formattedUser = formatUser(data.user);
-    setUser(formattedUser);
-    setAccessToken(data.accessToken ?? null);
-    setRefreshToken(data.refreshToken ?? null);
-    await saveAuthState(formattedUser, data.accessToken ?? null, data.refreshToken ?? null);
-  };
+    const data = await login(email, password)
+    // If requireOtp, do not set user/token yet, just return data
+    if (data && data.requireOtp) {
+      return data
+    }
+    const formattedUser = formatUser(data.user)
+    setUser(formattedUser)
+    setAccessToken(data.accessToken ?? null)
+    setRefreshToken(data.refreshToken ?? null)
+    await saveAuthState(
+      formattedUser,
+      data.accessToken ?? null,
+      data.refreshToken ?? null,
+    )
+    return data
+  }
+
+  const verifyLoginOtp = async (
+    email: string,
+    otp: string,
+    trustDevice: boolean = false,
+  ) => {
+    const data = await verifyLoginOtpService(email, otp, trustDevice)
+    const formattedUser = formatUser(data.user)
+    setUser(formattedUser)
+    setAccessToken(data.accessToken ?? null)
+    setRefreshToken(data.refreshToken ?? null)
+    await saveAuthState(
+      formattedUser,
+      data.accessToken ?? null,
+      data.refreshToken ?? null,
+    )
+    return data
+  }
 
   const signOut = async () => {
-    setUser(null);
-    setAccessToken(null);
-    setRefreshToken(null);
-    await saveAuthState(null, null, null);
-  };
+    setUser(null)
+    setAccessToken(null)
+    setRefreshToken(null)
+    await saveAuthState(null, null, null)
+  }
 
   const updateUser = async (profileData: Record<string, unknown>) => {
     if (!user || !accessToken) {
-      throw new Error("No authenticated user");
+      throw new Error("No authenticated user")
     }
 
-    const updatedUserRaw = await updateProfileService(profileData, accessToken);
-    const formattedUser = formatUser(updatedUserRaw);
-    setUser(formattedUser);
-    await saveAuthState(formattedUser, accessToken, refreshToken);
-  };
+    const updatedUserRaw = await updateProfileService(profileData, accessToken)
+    const formattedUser = formatUser(updatedUserRaw)
+    setUser(formattedUser)
+    await saveAuthState(formattedUser, accessToken, refreshToken)
+  }
 
   const refreshAccessToken = async () => {
     if (!refreshToken) {
-      throw new Error("No refresh token available");
+      throw new Error("No refresh token available")
     }
 
     try {
-      const data = await refreshTokenService(refreshToken);
-      setAccessToken(data.accessToken ?? null);
-      setRefreshToken(data.refreshToken ?? null);
-      await saveAuthState(user, data.accessToken ?? null, data.refreshToken ?? null);
+      const data = await refreshTokenService(refreshToken)
+      setAccessToken(data.accessToken ?? null)
+      setRefreshToken(data.refreshToken ?? null)
+      await saveAuthState(
+        user,
+        data.accessToken ?? null,
+        data.refreshToken ?? null,
+      )
     } catch (error) {
       // If refresh fails, sign out
-      await signOut();
-      throw error;
+      await signOut()
+      throw error
     }
-  };
+  }
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, refreshToken, signUp, signIn, signOut, updateUser, refreshAccessToken }}
-    >
+      value={{
+        user,
+        accessToken,
+        refreshToken,
+        signUp,
+        signIn,
+        signOut,
+        updateUser,
+        refreshAccessToken,
+        verifyLoginOtp,
+      }}>
       {children}
     </AuthContext.Provider>
-  );
+  )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = useContext(AuthContext)
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider")
   }
-  return context;
+  return context
 }

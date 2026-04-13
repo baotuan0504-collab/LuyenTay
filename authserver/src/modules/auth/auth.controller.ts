@@ -1,21 +1,34 @@
+// Xác thực OTP khi login
 import { Request, Response } from "express"
+import { User } from "../../models/User"
 import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
-  LoginRequestDto,
+  AuthResponseDto,
   RegisterRequestDto,
-  VerifyTokenRequestDto,
+  VerifyTokenRequestDto
 } from "./auth.dto"
 import { AuthService } from "./auth.service"
 
 const service = new AuthService()
 
-export const login = async (req: Request, res: Response) => {
+export const verifyLoginOtp = async (req: Request, res: Response) => {
   try {
-    const dto = new LoginRequestDto(req.body)
-    const result = await service.login(dto)
-    res.json(result)
+    const { email, otp, trustDevice } = req.body
+    // TODO: Kiểm tra OTP với email (DB/cache)
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ message: "User not found" })
+    // TODO: So sánh otp với otp đã lưu
+    // Nếu đúng, cập nhật requireOtp=false nếu trustDevice
+    if (trustDevice) {
+      user.requireOtp = false
+      await user.save()
+    }
+    // Trả về token như login thường
+    // Đổi createTokenPair thành public nếu cần
+    const tokens = await service["createTokenPair"](user._id.toString())
+    return res.json(new AuthResponseDto({ ...tokens, user }))
   } catch (err: any) {
-    res.status(401).json({ message: err.message })
+    res.status(400).json({ message: err.message })
   }
 }
 
@@ -31,7 +44,6 @@ export const register = async (req: Request, res: Response) => {
       const { email } = req.body
       if (!email) return res.status(400).json({ message: "Missing email" })
       // Kiểm tra email đã tồn tại chưa
-      const { User } = await import("../../models/User")
       const existingUser = await User.findOne({ email })
       if (existingUser) {
         return res
