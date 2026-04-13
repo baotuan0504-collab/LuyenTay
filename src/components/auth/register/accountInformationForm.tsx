@@ -1,3 +1,4 @@
+import { apiFetch } from "@/services/api"
 import { useState } from "react"
 import { Text, TextInput, TouchableOpacity } from "react-native"
 import { validateAccountInfo } from "./registerValidation"
@@ -22,15 +23,33 @@ export default function AccountInformationForm({
 }: AccountInformationFormProps) {
   const { email, password } = values
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const err = validateAccountInfo(values)
     if (err) {
       setError(err)
       return
     }
     setError(null)
-    onNext()
+    setIsLoading(true)
+    try {
+      // Gọi API tới authserver kiểm tra email và gửi OTP
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ step: 2, email }),
+      })
+      if (!res.success) {
+        setError(res.message || "Unknown error")
+        setIsLoading(false)
+        return
+      }
+      onNext()
+    } catch (e: any) {
+      setError(e?.message || "Server error")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -79,9 +98,10 @@ export default function AccountInformationForm({
           padding: 16,
           alignItems: "center",
         }}
-        onPress={handleNext}>
+        onPress={handleNext}
+        disabled={isLoading}>
         <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
-          Next
+          {isLoading ? "Checking..." : "Next"}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity

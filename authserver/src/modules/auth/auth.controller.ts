@@ -30,10 +30,18 @@ export const register = async (req: Request, res: Response) => {
       // Step 2: Sinh OTP, gửi mail, lưu OTP tạm thời (ở đây chỉ trả về OTP cho FE demo, thực tế lưu DB/cache)
       const { email } = req.body
       if (!email) return res.status(400).json({ message: "Missing email" })
+      // Kiểm tra email đã tồn tại chưa
+      const { User } = await import("../../models/User")
+      const existingUser = await User.findOne({ email })
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Tài khoản đã tồn tại!" })
+      }
       const otp = generateOtp(6)
       try {
         await sendOtpMail(email, otp)
-      } catch (e) {
+      } catch (e: any) {
         return res
           .status(500)
           .json({ message: "Send mail failed", error: e.message })
