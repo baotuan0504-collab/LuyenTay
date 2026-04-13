@@ -5,11 +5,22 @@ import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
   AuthResponseDto,
   RegisterRequestDto,
-  VerifyTokenRequestDto
+  VerifyTokenRequestDto,
 } from "./auth.dto"
 import { AuthService } from "./auth.service"
 
 const service = new AuthService()
+
+// Login controller for /login route
+export const login = async (req: Request, res: Response) => {
+  try {
+    const dto = req.body // Should match LoginRequestDto
+    const result = await service.login(dto)
+    return res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
 
 export const verifyLoginOtp = async (req: Request, res: Response) => {
   try {
