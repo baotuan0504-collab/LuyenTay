@@ -37,36 +37,39 @@ export default function UserInformationForm({
 
   return (
     <>
-      <TextInput
-        placeholder="First Name"
-        placeholderTextColor="#999"
-        value={firstName}
-        onChangeText={v => onChange({ ...values, firstName: v })}
-        style={{
-          backgroundColor: "#f5f5f5",
-          borderRadius: 12,
-          padding: 16,
-          fontSize: 16,
-          marginBottom: 16,
-          borderWidth: 1,
-          borderColor: "#e0e0e0",
-        }}
-      />
-      <TextInput
-        placeholder="Last Name"
-        placeholderTextColor="#999"
-        value={lastName}
-        onChangeText={v => onChange({ ...values, lastName: v })}
-        style={{
-          backgroundColor: "#f5f5f5",
-          borderRadius: 12,
-          padding: 16,
-          fontSize: 16,
-          marginBottom: 16,
-          borderWidth: 1,
-          borderColor: "#e0e0e0",
-        }}
-      />
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <TextInput
+          placeholder="First Name"
+          placeholderTextColor="#999"
+          value={firstName}
+          onChangeText={v => onChange({ ...values, firstName: v })}
+          style={{
+            flex: 1,
+            backgroundColor: "#f5f5f5",
+            borderRadius: 12,
+            padding: 16,
+            fontSize: 16,
+            borderWidth: 1,
+            borderColor: "#e0e0e0",
+          }}
+        />
+
+        <TextInput
+          placeholder="Last Name"
+          placeholderTextColor="#999"
+          value={lastName}
+          onChangeText={v => onChange({ ...values, lastName: v })}
+          style={{
+            flex: 1,
+            backgroundColor: "#f5f5f5",
+            borderRadius: 12,
+            padding: 16,
+            fontSize: 16,
+            borderWidth: 1,
+            borderColor: "#e0e0e0",
+          }}
+        />
+      </View>
       <TextInput
         placeholder="Birth Date (YYYY-MM-DD)"
         placeholderTextColor="#999"
@@ -99,7 +102,7 @@ export default function UserInformationForm({
           </TouchableOpacity>
         ))}
       </View>
-      {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
+      {error && <Text style={{ color: "red", marginBottom: 8, textAlign: "center" }}>{error}</Text>}
       <TouchableOpacity
         style={{
           backgroundColor: "#000",
