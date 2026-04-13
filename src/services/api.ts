@@ -1,6 +1,6 @@
 import { getDefaultApiHeaders } from "./apiHeaders"
 
-const BASE_URL = endpoint => {
+const BASE_URL = (endpoint: string): string => {
   if (endpoint.startsWith("/auth")) {
     // Đổi sang đúng port của authserver, ví dụ 7001
     return "http://127.0.0.1:7001/api"
@@ -70,10 +70,10 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   if (!headers["authorization"]) headers["authorization"] = "none"
   console.log("[apiFetch] URL:", url)
   console.log("[apiFetch] Headers (lowercase):", headers)
-  
+
   // Trích xuất các thuộc tính khác từ options, loại bỏ headers cũ để dùng headers mới đã gộp
   const { headers: _oldHeaders, ...remainingOptions } = options
-  
+
   const response = await fetch(url, {
     ...remainingOptions,
     headers, // Sử dụng headers đã được gộp và chuẩn hóa ở trên
