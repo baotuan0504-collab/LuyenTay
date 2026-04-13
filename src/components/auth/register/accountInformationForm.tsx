@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { Text, TextInput, TouchableOpacity } from "react-native"
+import { validateAccountInfo } from "./registerValidation"
 
 export default function AccountInformationForm({
   values,
@@ -7,6 +9,18 @@ export default function AccountInformationForm({
   onBack,
 }) {
   const { email, password } = values
+  const [error, setError] = useState<string | null>(null)
+
+  const handleNext = () => {
+    const err = validateAccountInfo(values)
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
+    onNext()
+  }
+
   return (
     <>
       <TextInput
@@ -45,6 +59,7 @@ export default function AccountInformationForm({
           borderColor: "#e0e0e0",
         }}
       />
+      {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
       <TouchableOpacity
         style={{
           backgroundColor: "#000",
@@ -52,7 +67,7 @@ export default function AccountInformationForm({
           padding: 16,
           alignItems: "center",
         }}
-        onPress={onNext}>
+        onPress={handleNext}>
         <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
           Next
         </Text>

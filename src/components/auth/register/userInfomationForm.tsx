@@ -1,9 +1,23 @@
+import { useState } from "react"
 import { Text, TextInput, TouchableOpacity, View } from "react-native"
+import { validateUserInfo } from "./registerValidation"
 
 const GENDERS = ["male", "female", "other"]
 
 export default function UserInformationForm({ values, onChange, onNext }) {
   const { firstName, lastName, birthDate, gender } = values
+  const [error, setError] = useState<string | null>(null)
+
+  const handleNext = () => {
+    const err = validateUserInfo(values)
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
+    onNext()
+  }
+
   return (
     <>
       <TextInput
@@ -68,6 +82,7 @@ export default function UserInformationForm({ values, onChange, onNext }) {
           </TouchableOpacity>
         ))}
       </View>
+      {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
       <TouchableOpacity
         style={{
           backgroundColor: "#000",
@@ -75,7 +90,7 @@ export default function UserInformationForm({ values, onChange, onNext }) {
           padding: 16,
           alignItems: "center",
         }}
-        onPress={onNext}>
+        onPress={handleNext}>
         <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
           Next
         </Text>

@@ -1,9 +1,11 @@
+import { useState } from "react"
 import {
   ActivityIndicator,
   Text,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
 } from "react-native"
+import { validateOtp } from "./register/registerValidation"
 
 export default function OtpForm({
   otp,
@@ -12,6 +14,18 @@ export default function OtpForm({
   onRegister,
   onBack,
 }) {
+  const [error, setError] = useState<string | null>(null)
+
+  const handleRegister = () => {
+    const err = validateOtp(otp)
+    if (err) {
+      setError(err)
+      return
+    }
+    setError(null)
+    onRegister()
+  }
+
   return (
     <>
       <TextInput
@@ -29,6 +43,7 @@ export default function OtpForm({
           borderColor: "#e0e0e0",
         }}
       />
+      {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
       <TouchableOpacity
         style={{
           backgroundColor: "#000",
@@ -36,7 +51,7 @@ export default function OtpForm({
           padding: 16,
           alignItems: "center",
         }}
-        onPress={onRegister}>
+        onPress={handleRegister}>
         {isLoading ? (
           <ActivityIndicator
             size={24}
