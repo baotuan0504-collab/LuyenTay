@@ -9,17 +9,57 @@ export class LoginRequestDto {
   }
 }
 
-export class RegisterRequestDto {
-  name?: string
+// Step 1: Basic info
+export class RegisterStep1Dto {
+  firstName: string
+  lastName: string
+  birthDate: string // ISO format
+  gender: string
+  constructor(data: any) {
+    this.firstName = data.firstName
+    this.lastName = data.lastName
+    this.birthDate = data.birthDate
+    this.gender = data.gender
+  }
+}
+
+// Step 2: Email and password
+export class RegisterStep2Dto {
   email: string
   password: string
   constructor(data: any) {
-    this.name = data.name
     this.email = data.email
     this.password = data.password
   }
 }
 
+// Step 3: OTP
+export class RegisterStep3Dto {
+  email: string
+  otp: string
+  constructor(data: any) {
+    this.email = data.email
+    this.otp = data.otp
+  }
+}
+
+// For backward compatibility, you may keep this or remove later
+export class RegisterRequestDto {
+  firstName: string
+  lastName: string
+  birthDate: string
+  gender: string
+  email: string
+  password: string
+  constructor(data: any) {
+    this.firstName = data.firstName
+    this.lastName = data.lastName
+    this.birthDate = data.birthDate
+    this.gender = data.gender
+    this.email = data.email
+    this.password = data.password
+  }
+}
 export class AuthResponseDto {
   accessToken: string
   refreshToken: string

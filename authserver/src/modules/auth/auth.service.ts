@@ -6,7 +6,7 @@ import {
   hashRefreshToken,
   signToken,
   verifyPassword,
-  verifyToken
+  verifyToken,
 } from "../../utils/auth"
 import {
   AuthResponseDto,
@@ -32,10 +32,12 @@ export class AuthService {
     const existingUser = await User.findOne({ email: dto.email })
     if (existingUser) throw new Error("Email already in use")
     const hashedPassword = await hashPassword(dto.password)
+    const fullName = `${dto.firstName} ${dto.lastName}`.trim()
     const newUser = await User.create({
-      name: dto.name || "",
+      name: fullName,
       email: dto.email,
       password: hashedPassword,
+      // Optionally store birthDate and gender in user schema if needed
     })
     const tokens = await this.createTokenPair(newUser._id.toString())
     return new AuthResponseDto({ ...tokens, user: newUser })

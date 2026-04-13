@@ -1,86 +1,85 @@
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import OtpForm from "@/components/auth/otpForm"
+import AccountInformationForm from "@/components/auth/register/accountInformationForm"
+import UserInformationForm from "@/components/auth/register/userInfomationForm"
+import { useRouter } from "expo-router"
+import { useState } from "react"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function SignUpScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1)
+  const [userInfo, setUserInfo] = useState({
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    gender: "",
+  })
+  const [accountInfo, setAccountInfo] = useState({
+    email: "",
+    password: "",
+  })
+  const [otp, setOtp] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
-  const router = useRouter();
-  const { signUp } = useAuth();
-
-  const handleSignUp = async () => {
-    if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email");
-      return;
-    }
-
-    if (password.length < 3) {
-      Alert.alert("Error", "Password must be at least 3 characters");
-      return;
-    }
-
-    setIsLoading(true);
+  // Step 3: Submit all data
+  const handleRegister = async () => {
+    setIsLoading(true)
     try {
-      await signUp(email, password);
-      router.push("/(auth)/onboarding");
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          step: 3,
+          ...userInfo,
+          ...accountInfo,
+          otp,
+        }),
+      })
+      // Success: go to login or onboarding
+      alert("Registration complete!")
+      router.push("/(auth)/login")
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to sign up. Please try again.");
+      alert("Failed to register. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+    <SafeAreaView
+      edges={["top", "bottom"]}
+      style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Create Account</Text>
         <Text style={styles.subtitle}>Sign Up to Get Started</Text>
         <View style={styles.form}>
-          <TextInput
-            placeholder="Email..."
-            placeholderTextColor={"#999"}
-            keyboardType="email-address"
-            autoComplete="email"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Password..."
-            placeholderTextColor={"#999"}
-            autoComplete="password"
-            secureTextEntry
-            autoCapitalize="none"
-            value={password}
-            onChangeText={setPassword}
-            style={styles.input}
-          />
-          <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-            {isLoading ? (
-              <ActivityIndicator size={24} color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
-            )}
-          </TouchableOpacity>
-
+          {step === 1 && (
+            <UserInformationForm
+              values={userInfo}
+              onChange={setUserInfo}
+              onNext={() => setStep(2)}
+            />
+          )}
+          {step === 2 && (
+            <AccountInformationForm
+              values={accountInfo}
+              onChange={setAccountInfo}
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
+            />
+          )}
+          {step === 3 && (
+            <OtpForm
+              otp={otp}
+              setOtp={setOtp}
+              isLoading={isLoading}
+              onRegister={handleRegister}
+              onBack={() => setStep(2)}
+            />
+          )}
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => router.push("/(auth)/login")}
-          >
+            onPress={() => router.push("/(auth)/login")}>
             <Text style={styles.linkButtonText}>
               Already have an account?{" "}
               <Text style={styles.linkButtonTextBold}>Sign In</Text>
@@ -89,7 +88,7 @@ export default function SignUpScreen() {
         </View>
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -146,4 +145,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
   },
-});
+})
