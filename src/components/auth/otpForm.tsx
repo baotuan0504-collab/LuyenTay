@@ -1,10 +1,6 @@
 import { useState } from "react"
-import {
-  ActivityIndicator,
-  Text,
-  TextInput,
-  TouchableOpacity,
-} from "react-native"
+import { ActivityIndicator, Text, TouchableOpacity } from "react-native"
+import OtpInput from "./OtpInput"
 import { validateOtp } from "./register/registerValidation"
 
 interface OtpFormProps {
@@ -36,20 +32,10 @@ export default function OtpForm({
 
   return (
     <>
-      <TextInput
-        placeholder="Enter OTP"
-        placeholderTextColor="#999"
+      <OtpInput
         value={otp}
-        onChangeText={setOtp}
-        style={{
-          backgroundColor: "#f5f5f5",
-          borderRadius: 12,
-          padding: 16,
-          fontSize: 16,
-          marginBottom: 16,
-          borderWidth: 1,
-          borderColor: "#e0e0e0",
-        }}
+        onChange={setOtp}
+        length={6}
       />
       {error && <Text style={{ color: "red", marginBottom: 8 }}>{error}</Text>}
       <TouchableOpacity
