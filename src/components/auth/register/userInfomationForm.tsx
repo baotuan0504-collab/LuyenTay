@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Text, TouchableOpacity } from "react-native"
+import { Text, TouchableOpacity, View } from "react-native"
 import BirthDateInput from "./BirthDateInput"
 import FirstNameInput from "./FirstNameInput"
 import GenderPicker from "./GenderPicker"
@@ -39,14 +39,20 @@ export default function UserInformationForm({
 
   return (
     <>
-      <FirstNameInput
-        value={firstName}
-        onChange={v => onChange({ ...values, firstName: v })}
-      />
-      <LastNameInput
-        value={lastName}
-        onChange={v => onChange({ ...values, lastName: v })}
-      />
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <View style={{ flex: 1 }}>
+          <FirstNameInput
+            value={firstName}
+            onChange={v => onChange({ ...values, firstName: v })}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <LastNameInput
+            value={lastName}
+            onChange={v => onChange({ ...values, lastName: v })}
+          />
+        </View>
+      </View>
       <BirthDateInput
         value={birthDate}
         onChange={v => onChange({ ...values, birthDate: v })}
