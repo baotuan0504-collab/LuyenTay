@@ -1,6 +1,6 @@
 // Xác thực OTP khi login
 import { Request, Response } from "express"
-import { User } from "../../models/User"
+import { IUser, User } from "../../models/User"
 import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
   AuthResponseDto,
@@ -26,7 +26,7 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
   try {
     const { email, otp, trustDevice } = req.body
     // TODO: Kiểm tra OTP với email (DB/cache)
-    const user = await User.findOne({ email })
+    const user = (await User.findOne({ email })) as IUser | null
     if (!user) return res.status(400).json({ message: "User not found" })
     // TODO: So sánh otp với otp đã lưu
     // Nếu đúng, cập nhật requireOtp=false nếu trustDevice
@@ -55,7 +55,7 @@ export const register = async (req: Request, res: Response) => {
       const { email } = req.body
       if (!email) return res.status(400).json({ message: "Missing email" })
       // Kiểm tra email đã tồn tại chưa
-      const existingUser = await User.findOne({ email })
+      const existingUser = (await User.findOne({ email })) as IUser | null
       if (existingUser) {
         return res
           .status(400)
@@ -81,6 +81,7 @@ export const register = async (req: Request, res: Response) => {
       // TODO: Kiểm tra OTP với email, nếu đúng mới cho tạo user
       const dto = new RegisterRequestDto(req.body)
       const result = await service.register(dto)
+      // Nếu cần truy cập newUser._id, ép kiểu trong service.register tương tự
       return res.json(result)
     } else {
       return res.status(400).json({ message: "Invalid registration step" })

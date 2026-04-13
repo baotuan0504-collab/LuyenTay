@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Document } from "mongoose"
+import mongoose, { Document, Schema } from "mongoose"
 
 export interface IUser extends Document {
   name: string
@@ -7,8 +7,11 @@ export interface IUser extends Document {
   password: string
   avatar: string
   onboardingCompleted?: boolean
+  requireOtp?: boolean
   createdAt: Date
   updatedAt: Date
+  _id: mongoose.Types.ObjectId
+  save: () => Promise<IUser>
 }
 
 const UserSchema = new Schema<IUser>(
