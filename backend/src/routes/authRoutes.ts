@@ -91,4 +91,18 @@ router.get("/me", async (req, res) => {
   }
 })
 
+// Proxy verify-login-otp (OTP + Trust Device)
+router.post("/verify-login-otp", async (req, res) => {
+  try {
+    const response = await axios.post(
+      `${AUTHSERVER_URL}/api/auth/verify-login-otp`,
+      req.body,
+      { headers: getProxyHeaders(req) },
+    )
+    res.status(response.status).json(response.data)
+  } catch (error) {
+    handleAxiosError(error, res)
+  }
+})
+
 export default router

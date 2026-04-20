@@ -25,8 +25,17 @@ export async function preRequestApi({
 }> {
   const timestamp = providedTimestamp || Math.floor(Date.now() / 1000).toString()
   const rawData = method + "|" + path + "|" + timestamp + "|" + (body ?? "")
+
+  // Đồng bộ với authserver và frontend:
+  // - token rỗng hoặc "none" → dùng "default_secret" (login, register)
+  // - token có Bearer → bỏ prefix rồi dùng
+  const secret =
+    !token || token === "none"
+      ? "default_secret"
+      : token.replace(/^Bearer\s+/i, "").trim()
+
   const signature = crypto
-    .createHmac("sha256", token.replace(/^Bearer\s+/i, "").trim())
+    .createHmac("sha256", secret)
     .update(rawData)
     .digest("base64")
   return {

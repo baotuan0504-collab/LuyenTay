@@ -1,28 +1,69 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as CryptoJS from "crypto-js"
+import { Platform } from "react-native"
 import { v4 as uuidv4 } from "uuid"
+
+const DEVICE_ID_KEY = "@app_device_id"
+
+/**
+ * Lấy hardware ID thực của thiết bị qua expo-application.
+ * Dùng dynamic require (KHÔNG phải static import) để tránh crash trên Expo Go.
+ *
+ * - Android: getAndroidId() → chuỗi hex 16 ký tự, vd: "9774d56d682e549c"
+ * - iOS:     getIosIdForVendorAsync() → UUID từ hardware, vd: "68753A44-4D6F-..."
+ * - Expo Go / Web: trả về null, sẽ dùng UUID persistent thay thế
+ */
+async function getNativeHardwareId(): Promise<string | null> {
+  if (Platform.OS !== "android" && Platform.OS !== "ios") return null
+  try {
+    // Dynamic require – chỉ chạy khi hàm được gọi, KHÔNG crash khi import file
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Application = require("expo-application")
+    if (Platform.OS === "android") {
+      if (typeof Application.getAndroidId === "function") {
+        const id: string | null = await Application.getAndroidId()
+        if (id && id.length > 0) return id
+      }
+    } else {
+      if (typeof Application.getIosIdForVendorAsync === "function") {
+        const id: string | null = await Application.getIosIdForVendorAsync()
+        if (id && id.length > 0) return id
+      }
+    }
+  } catch {
+    // Native module không tồn tại (Expo Go) – tiếp tục với fallback
+  }
+  return null
+}
 
 /**
  * Lấy deviceId ổn định cho thiết bị.
- * - Lần đầu: tạo UUID mới → lưu vào AsyncStorage
- * - Các lần sau: đọc từ AsyncStorage
  *
- * NOTE: expo-application (getAndroidId / getIosIdForVendorAsync) là native module,
- * không hoạt động trên Expo Go. Dùng UUID persistent là phương án đúng và an toàn.
+ * Ưu tiên:
+ *   1. Đã lưu trong AsyncStorage → dùng luôn (không gọi lại hardware)
+ *   2. Chưa có → thử lấy từ hardware (expo-application)
+ *   3. Không lấy được hardware → tạo UUID mới, lưu vĩnh viễn vào AsyncStorage
+ *
+ * Kết quả:
+ *   - Build native (expo run:android/ios): ID thật của máy
+ *   - Expo Go / Web: UUID persistent (stable qua các lần mở app)
  */
 async function getDeviceId(): Promise<string> {
-  const STORAGE_KEY = "@app_device_id"
   try {
-    let deviceId = await AsyncStorage.getItem(STORAGE_KEY)
-    if (!deviceId) {
-      deviceId = uuidv4()
-      await AsyncStorage.setItem(STORAGE_KEY, deviceId)
-      console.log("[getDeviceId] Generated new deviceId:", deviceId)
-    }
+    // Bước 1: Đọc từ cache
+    const cached = await AsyncStorage.getItem(DEVICE_ID_KEY)
+    if (cached) return cached
+
+    // Bước 2: Thử lấy hardware ID
+    const hardwareId = await getNativeHardwareId()
+    const deviceId = hardwareId || uuidv4()
+
+    // Bước 3: Lưu để dùng lại
+    await AsyncStorage.setItem(DEVICE_ID_KEY, deviceId)
+    console.log(`[Device] ID stored: ${deviceId} (source: ${hardwareId ? "hardware" : "uuid-fallback"})`)
     return deviceId
   } catch (e) {
-    console.warn("[getDeviceId] AsyncStorage error:", e)
-    // Fallback: trả về UUID ngắn hạn (không persistent) để không block app
+    console.warn("[Device] AsyncStorage error, using ephemeral ID:", e)
     return uuidv4()
   }
 }
@@ -45,19 +86,20 @@ function buildSignature({
   secret: string
 }): string {
   const rawData = [method, path, timestamp, body].join("|")
-  console.log(`[buildSignature] rawData: "${rawData}"`)
+  console.log(`[Signature] rawData: "${rawData}"`)
   return CryptoJS.HmacSHA256(rawData, secret).toString(CryptoJS.enc.Base64)
 }
 
 /**
  * Xây dựng đầy đủ headers bảo mật cho mọi API request.
  *
- * - X-Device-Id    : UUID ổn định của thiết bị (persistent)
- * - Idempotency-Key: UUID mới mỗi request (chống duplicate)
- * - X-Timestamp    : Thời gian hiện tại (seconds)
- * - X-Signature    : HMAC-SHA256(method|path|timestamp|body, token)
- * - X-Client-Type  : "mobile"
- * - Authorization  : Bearer <token> hoặc "none"
+ * Headers gửi đi:
+ *   X-Device-Id     → deviceId ổn định của máy (hardware hoặc UUID persistent)
+ *   Idempotency-Key → UUID MỚI mỗi request (chống duplicate, KHÔNG phải deviceId)
+ *   X-Timestamp     → Unix timestamp (giây)
+ *   X-Signature     → HMAC-SHA256(method|path|timestamp|body, secret)
+ *   X-Client-Type   → "mobile"
+ *   Authorization   → Bearer <token> hoặc "none"
  */
 export async function getDefaultApiHeaders({
   method = "GET",
@@ -70,31 +112,30 @@ export async function getDefaultApiHeaders({
   body?: string
   token?: string
 }): Promise<Record<string, string>> {
-  // 1. Lấy deviceId ổn định (UUID persistent trong AsyncStorage)
+  // 1. deviceId: stable theo thiết bị
   const deviceId = await getDeviceId()
 
   // 2. Timestamp tính bằng giây
   const timestamp = Math.floor(Date.now() / 1000).toString()
 
-  // 3. Idempotency-Key: UUID MỚI mỗi request (TÁCH BIỆT với deviceId)
+  // 3. Idempotency-Key: UUID MỚI mỗi request (KHÁC với deviceId)
   const idempotencyKey = uuidv4()
 
-  // 4. Xác định secret để ký
-  //    - Login/register (token rỗng hoặc "none") → dùng "default_secret"
-  //    - Các request khác → dùng token (bỏ prefix "Bearer ")
+  // 4. Secret để ký HMAC
   let secret: string
   if (!token || token === "none") {
-    secret = "default_secret"
+    secret = "default_secret" // login / register
   } else {
     secret = String(token).replace(/^Bearer\s+/i, "").trim()
   }
 
-  // 5. Chuẩn hóa body (luôn là string, không double-stringify)
-  const bodyString = typeof body === "string" ? body : (body ? JSON.stringify(body) : "")
+  // 5. Body: không double-stringify
+  const bodyString =
+    typeof body === "string" ? body : body ? JSON.stringify(body) : ""
 
-  // 6. Chuẩn hóa path: bỏ query string, đảm bảo có / đầu, không có / cuối
-  const pathOnly = (path || "").split("?")[0]
-  const normalizedPath = "/" + pathOnly.replace(/^\/+|\/+$/g, "")
+  // 6. Chuẩn hóa path: bỏ query string, đảm bảo dẫn đầu /
+  const normalizedPath =
+    "/" + (path || "").split("?")[0].replace(/^\/+|\/+$/g, "")
 
   // 7. Tạo signature
   const signature = buildSignature({
@@ -105,14 +146,13 @@ export async function getDefaultApiHeaders({
     secret,
   })
 
-  // 8. Trả về headers hoàn chỉnh
   return {
     "Content-Type": "application/json",
     "Accept": "application/json",
     "X-Client-Type": "mobile",
-    "X-Device-Id": deviceId,      // deviceId ổn định
+    "X-Device-Id": deviceId,
     "Accept-Language": "vi",
-    "Idempotency-Key": idempotencyKey, // UUID mới mỗi request
+    "Idempotency-Key": idempotencyKey,
     "X-Timestamp": timestamp,
     "X-Signature": signature,
     "Authorization": token ? String(token) : "none",

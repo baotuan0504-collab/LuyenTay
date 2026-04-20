@@ -8,6 +8,7 @@ module.exports = ({ config }) => ({
   plugins: [
     "expo-video",
     "expo-secure-store",
+    "expo-application",
     "@react-native-community/datetimepicker"
   ],
   extra: {
