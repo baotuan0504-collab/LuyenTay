@@ -8,6 +8,7 @@ export interface IUser extends Document {
   avatar: string
   onboardingCompleted?: boolean
   requireOtp?: boolean
+  trustedDevices: string[]
   createdAt: Date
   updatedAt: Date
   _id: mongoose.Types.ObjectId
@@ -50,6 +51,10 @@ const UserSchema = new Schema<IUser>(
     requireOtp: {
       type: Boolean,
       default: true,
+    },
+    trustedDevices: {
+      type: [String],
+      default: [],
     },
   },
   {

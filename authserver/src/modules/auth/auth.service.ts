@@ -24,8 +24,11 @@ export class AuthService {
     if (!user || !(await verifyPassword(dto.password, user.password))) {
       throw new Error("Invalid credentials")
     }
-    // Nếu requireOtp true, gửi OTP và trả về requireOtp:true
-    if (user.requireOtp) {
+    // Kiểm tra nếu thiết bị hiện tại đã được trust thì không cần OTP
+    const isTrusted = dto.deviceId && user.trustedDevices?.includes(dto.deviceId)
+
+    // Nếu requireOtp true VÀ thiết bị chưa được trust, gửi OTP và trả về requireOtp:true
+    if (user.requireOtp && !isTrusted) {
       const { generateOtp, sendOtpMail } = await import("../../utils/mailer")
       const otp = generateOtp(6)
       await sendOtpMail(user.email, otp)

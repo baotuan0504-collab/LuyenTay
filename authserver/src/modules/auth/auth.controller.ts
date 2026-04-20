@@ -14,7 +14,8 @@ const service = new AuthService()
 // Login controller for /login route
 export const login = async (req: Request, res: Response) => {
   try {
-    const dto = req.body // Should match LoginRequestDto
+    const deviceId = req.headers["x-device-id"] as string
+    const dto = { ...req.body, deviceId }
     const result = await service.login(dto)
     return res.json(result)
   } catch (err: any) {
@@ -31,8 +32,11 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
     // TODO: So sánh otp với otp đã lưu
     // Nếu đúng, cập nhật requireOtp=false nếu trustDevice
     if (trustDevice) {
-      user.requireOtp = false
-      await user.save()
+      const deviceId = req.headers["x-device-id"] as string
+      if (deviceId && !user.trustedDevices.includes(deviceId)) {
+        user.trustedDevices.push(deviceId)
+        await user.save()
+      }
     }
     // Trả về token như login thường
     // Đổi createTokenPair thành public nếu cần

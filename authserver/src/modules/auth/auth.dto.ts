@@ -3,9 +3,11 @@
 export class LoginRequestDto {
   email: string
   password: string
+  deviceId?: string
   constructor(data: any) {
     this.email = data.email
     this.password = data.password
+    this.deviceId = data.deviceId
   }
 }
 
