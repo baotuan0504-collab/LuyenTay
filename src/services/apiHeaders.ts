@@ -1,5 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Ensure AsyncStorage is imported
+import * as Application from "expo-application"
+import AsyncStorage from "@react-native-async-storage/async-storage" // Ensure AsyncStorage is imported
 import * as CryptoJS from "crypto-js"
+import { Platform } from "react-native"
 import { v4 as uuidv4 } from "uuid"
 
 // Hàm tạo signature đồng bộ backend
@@ -25,8 +27,22 @@ function buildSignature({
 async function getDeviceId(): Promise<string> {
   const key = "deviceId"
   let deviceId = await AsyncStorage.getItem(key)
+
   if (!deviceId) {
-    deviceId = uuidv4()
+    try {
+      if (Platform.OS === "android") {
+        deviceId = (await Application.getAndroidId()) || ""
+      } else if (Platform.OS === "ios") {
+        deviceId = (await Application.getIosIdForVendorAsync()) || ""
+      }
+    } catch (error) {
+      console.error("[getDeviceId] Error getting native device ID:", error)
+    }
+
+    if (!deviceId) {
+      deviceId = uuidv4()
+    }
+
     await AsyncStorage.setItem(key, deviceId)
   }
   return deviceId || "unknown-device"
