@@ -1,8 +1,37 @@
-import * as Application from "expo-application"
 import AsyncStorage from "@react-native-async-storage/async-storage" // Ensure AsyncStorage is imported
 import * as CryptoJS from "crypto-js"
 import { Platform } from "react-native"
 import { v4 as uuidv4 } from "uuid"
+
+// Lazy import to avoid crash if native module is missing
+const getApplicationModule = () => {
+  try {
+    return require("expo-application")
+  } catch (e) {
+    return null
+  }
+}
+
+// Helper to get native ID safely
+async function getNativeDeviceId(): Promise<string | null> {
+  try {
+    const Application = getApplicationModule()
+    if (!Application) return null
+
+    if (Platform.OS === "android") {
+      return typeof Application.getAndroidId === "function" 
+        ? await Application.getAndroidId() 
+        : null
+    } else if (Platform.OS === "ios") {
+      return typeof Application.getIosIdForVendorAsync === "function" 
+        ? await Application.getIosIdForVendorAsync() 
+        : null
+    }
+  } catch (e) {
+    console.warn("[getDeviceId] Native module check failed:", e)
+  }
+  return null
+}
 
 // Hàm tạo signature đồng bộ backend
 function buildSignature({
@@ -29,15 +58,7 @@ async function getDeviceId(): Promise<string> {
   let deviceId = await AsyncStorage.getItem(key)
 
   if (!deviceId) {
-    try {
-      if (Platform.OS === "android") {
-        deviceId = (await Application.getAndroidId()) || ""
-      } else if (Platform.OS === "ios") {
-        deviceId = (await Application.getIosIdForVendorAsync()) || ""
-      }
-    } catch (error) {
-      console.error("[getDeviceId] Error getting native device ID:", error)
-    }
+    deviceId = await getNativeDeviceId()
 
     if (!deviceId) {
       deviceId = uuidv4()
