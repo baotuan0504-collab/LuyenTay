@@ -1,21 +1,29 @@
-import 'dotenv/config';
-import { createServer } from "http";
-import app from "./src/app";
-import { connectDB } from "./src/config/database";
-import { initializeSocket } from "./src/utils/socket";
+import "dotenv/config"
+import { createServer } from "http"
+import app from "./src/app"
+import { connectDB } from "./src/config/database"
+import redis from "./src/config/redis"
+import { initializeSocket } from "./src/utils/socket"
 
-const PORT = Number(process.env.PORT) || 3000;
-const httpServer = createServer(app);
-const io = initializeSocket(httpServer);
+const PORT = Number(process.env.PORT) || 3000
+const httpServer = createServer(app)
+const io = initializeSocket(httpServer)
 
 connectDB()
-  .then(() => {
-    httpServer.listen(PORT,"0.0.0.0",() => {
-      console.log("Server is running on PORT:", PORT);
-      console.log("Socket.IO is ready for connections");
-    });
+  .then(async () => {
+    // Kiểm tra kết nối Redis
+    try {
+      await redis.ping()
+      console.log("Redis connected successfully")
+    } catch (err) {
+      console.error("Redis connection failed:", err)
+    }
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      console.log("Server is running on PORT:", PORT)
+      console.log("Socket.IO is ready for connections")
+    })
   })
-  .catch((error) => {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  });
+  .catch(error => {
+    console.error("Failed to start server:", error)
+    process.exit(1)
+  })
