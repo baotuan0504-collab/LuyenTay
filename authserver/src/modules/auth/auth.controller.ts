@@ -35,10 +35,15 @@ export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
 
 // Xác nhận đổi mật khẩu (sau khi OTP đã được xác thực thành công)
 export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
+  console.log("[DEBUG] forgotPasswordVerifyOtp body:", req.body)
   try {
     const { email, newPassword } = req.body
-    if (!email || !newPassword)
-      return res.status(400).json({ message: "Missing fields" })
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        message: "Missing fields: email and newPassword are required",
+        received: { email: !!email, newPassword: !!newPassword },
+      })
+    }
 
     if (!validatePassword(newPassword)) {
       return res.status(400).json({
