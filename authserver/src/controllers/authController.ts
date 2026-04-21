@@ -1,13 +1,12 @@
 import type { NextFunction, Response } from "express"
+import redis from "../config/redis"
 import type { AuthRequest } from "../middleware/auth"
-import { RefreshToken } from "../models/RefreshToken"
 import { User } from "../models/User"
 import {
   generateRefreshToken,
   hashPassword,
   signToken,
   verifyPassword,
-  verifyRefreshToken
 } from "../utils/auth"
 
 const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000
@@ -54,7 +53,6 @@ async function createTokenPair(userId: string) {
 
   // Lưu refreshToken vào Redis
   const refreshSecret = generateRefreshToken()
-  const redis = (await import("../config/redis")).default
   const refreshTokenKey = `refresh:${userId}`
   await redis.set(refreshTokenKey, refreshSecret, "EX", 30 * 24 * 60 * 60) // 30 ngày
   return {
@@ -139,31 +137,25 @@ export async function refreshToken(
       return
     }
 
-    const [tokenId, tokenSecret] = String(refreshToken).split(":")
-    if (!tokenId || !tokenSecret) {
-      res.status(400).json({ message: "Refresh token is invalid" })
+    // Tìm userId tương ứng với refreshToken trong Redis
+    // redis đã import đầu file
+    let userIdFound = null
+    // Duyệt tất cả user để tìm refreshToken khớp
+    const users = await User.find({}, "_id")
+    for (const user of users) {
+      const redisToken = await redis.get(`refresh:${user._id}`)
+      if (redisToken === refreshToken) {
+        userIdFound = user._id
+        break
+      }
+    }
+    if (!userIdFound) {
+      res.status(401).json({ message: "Refresh token is invalid" })
       return
     }
-
-    const refreshTokenDoc = await RefreshToken.findById(tokenId)
-    if (!refreshTokenDoc || refreshTokenDoc.expiresAt < new Date()) {
-      res.status(401).json({ message: "Refresh token expired or invalid" })
-      return
-    }
-
-    const isValid = await verifyRefreshToken(
-      tokenSecret,
-      refreshTokenDoc.tokenHash,
-    )
-    if (!isValid) {
-      res.status(401).json({ message: "Refresh token expired or invalid" })
-      return
-    }
-
-    const userId = refreshTokenDoc.user.toString()
-    await refreshTokenDoc.deleteOne()
-
-    const tokens = await createTokenPair(userId)
+    // Có thể xoá refresh token cũ nếu muốn (bảo mật hơn)
+    // await redis.del(`refresh:${userIdFound}`)
+    const tokens = await createTokenPair(userIdFound.toString())
     res.status(200).json(tokens)
   } catch (error) {
     res.status(500).json({ message: "Internal server error" })
