@@ -7,9 +7,11 @@ import NetInfo from "@react-native-community/netinfo"
 export async function isNetworkAvailable(): Promise<boolean> {
   try {
     const state = await NetInfo.fetch()
-    // Sử dụng isConnected làm chỉ số chính. 
-    // isInternetReachable đôi khi trả về null ở lần gọi đầu tiên gây lỗi logic.
-    return !!state.isConnected
+    // Logic mới: 
+    // 1. Phải có kết nối vật lý (isConnected)
+    // 2. isInternetReachable chỉ chặn nếu nó trả về đúng giá trị 'false' (đã kiểm tra xong và hỏng).
+    // Nếu nó trả về 'null', tức là đang kiểm tra, ta vẫn cho qua để tránh lỗi click 2 lần.
+    return !!state.isConnected && state.isInternetReachable !== false
   } catch {
     return false
   }
