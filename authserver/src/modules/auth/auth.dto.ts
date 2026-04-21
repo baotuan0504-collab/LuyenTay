@@ -53,6 +53,7 @@ export class RegisterRequestDto {
   gender: string
   email: string
   password: string
+  otp?: string
   constructor(data: any) {
     this.firstName = data.firstName
     this.lastName = data.lastName
@@ -60,6 +61,7 @@ export class RegisterRequestDto {
     this.gender = data.gender
     this.email = data.email
     this.password = data.password
+    this.otp = data.otp
   }
 }
 export class AuthResponseDto {

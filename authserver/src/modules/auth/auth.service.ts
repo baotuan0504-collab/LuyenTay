@@ -1,13 +1,13 @@
-import { RefreshToken } from "../../models/RefreshToken"
+import redis from "../../config/redis"
 import { User } from "../../models/User"
 import {
   generateRefreshToken,
   hashPassword,
-  hashRefreshToken,
   signToken,
   verifyPassword,
   verifyToken,
 } from "../../utils/auth"
+import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
   AuthResponseDto,
   LoginRequestDto,
@@ -16,8 +16,6 @@ import {
   VerifyTokenResponseDto,
 } from "./auth.dto"
 
-const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000
-
 export class AuthService {
   async login(dto: LoginRequestDto) {
     const user = await User.findOne({ email: dto.email })
@@ -25,14 +23,14 @@ export class AuthService {
       throw new Error("Invalid credentials")
     }
     // Kiểm tra nếu thiết bị hiện tại đã được trust thì không cần OTP
-    const isTrusted = dto.deviceId && user.trustedDevices?.includes(dto.deviceId)
+    const isTrusted =
+      dto.deviceId && user.trustedDevices?.includes(dto.deviceId)
 
     // Nếu requireOtp true VÀ thiết bị chưa được trust, gửi OTP và trả về requireOtp:true
     if (user.requireOtp && !isTrusted) {
-      const { generateOtp, sendOtpMail } = await import("../../utils/mailer")
       const otp = generateOtp(6)
       await sendOtpMail(user.email, otp)
-      // TODO: Lưu OTP vào DB/cache
+      await redis.set(`otp:${user.email}`, otp, "EX", 150)
       return { requireOtp: true, message: "OTP sent to email" }
     }
     const tokens = await this.createTokenPair(user._id.toString())
@@ -42,6 +40,13 @@ export class AuthService {
   async register(dto: RegisterRequestDto) {
     const existingUser = await User.findOne({ email: dto.email })
     if (existingUser) throw new Error("Email already in use")
+    // Kiểm tra OTP trong Redis
+    const otpInRedis = await redis.get(`otp:${dto.email}`)
+    if (!otpInRedis || otpInRedis !== dto.otp) {
+      throw new Error("OTP không hợp lệ hoặc đã hết hạn")
+    }
+    // Xoá OTP sau khi dùng
+    await redis.del(`otp:${dto.email}`)
     const hashedPassword = await hashPassword(dto.password)
     const fullName = `${dto.firstName} ${dto.lastName}`.trim()
     const newUser = await User.create({
@@ -63,17 +68,17 @@ export class AuthService {
 
   private async createTokenPair(userId: string) {
     const accessToken = signToken({ userId })
-    const refreshSecret = generateRefreshToken()
-    const refreshTokenHash = await hashRefreshToken(refreshSecret)
-    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE_MS)
-    const refreshTokenDoc = await RefreshToken.create({
-      user: userId,
-      tokenHash: refreshTokenHash,
-      expiresAt,
+    // Lưu accessToken vào database (User model)
+    await User.findByIdAndUpdate(userId, {
+      $set: { lastAccessToken: accessToken },
     })
+
+    // Lưu refreshToken vào Redis
+    const refreshSecret = generateRefreshToken()
+    await redis.set(`refresh:${userId}`, refreshSecret, "EX", 30 * 24 * 60 * 60)
     return {
       accessToken,
-      refreshToken: `${refreshTokenDoc._id.toString()}:${refreshSecret}`,
+      refreshToken: refreshSecret,
     }
   }
 }

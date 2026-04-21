@@ -1,5 +1,6 @@
 // Xác thực OTP khi login
 import { Request, Response } from "express"
+import redis from "../../config/redis"
 import { IUser, User } from "../../models/User"
 import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
@@ -27,9 +28,16 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
   try {
     const { email, otp, trustDevice } = req.body
     // TODO: Kiểm tra OTP với email (DB/cache)
+    const otpInRedis = await redis.get(`otp:${email}`)
+    if (!otpInRedis || otpInRedis !== otp) {
+      return res
+        .status(400)
+        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
+    }
+    // Xoá OTP sau khi dùng
+    await redis.del(`otp:${email}`)
     const user = (await User.findOne({ email })) as IUser | null
     if (!user) return res.status(400).json({ message: "User not found" })
-    // TODO: So sánh otp với otp đã lưu
     // Nếu đúng, cập nhật requireOtp=false nếu trustDevice
     if (trustDevice) {
       const deviceId = req.headers["x-device-id"] as string
@@ -39,7 +47,6 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
       }
     }
     // Trả về token như login thường
-    // Đổi createTokenPair thành public nếu cần
     const tokens = await service["createTokenPair"](user._id.toString())
     return res.json(new AuthResponseDto({ ...tokens, user }))
   } catch (err: any) {
@@ -68,17 +75,17 @@ export const register = async (req: Request, res: Response) => {
       const otp = generateOtp(6)
       try {
         await sendOtpMail(email, otp)
+        await redis.set(`otp:${email}`, otp, "EX", 150)
       } catch (e: any) {
         return res
           .status(500)
           .json({ message: "Send mail failed", error: e.message })
       }
-      // TODO: Lưu OTP vào DB/cache với email, demo trả về OTP cho FE
+      // Không trả về OTP cho FE
       return res.json({
         success: true,
         step: 2,
         message: "OTP sent to email",
-        otp,
       })
     } else if (step === 3) {
       // Step 3: Finalize registration, kiểm tra OTP, tạo user

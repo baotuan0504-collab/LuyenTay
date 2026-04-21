@@ -5,10 +5,9 @@ import { User } from "../models/User"
 import {
   generateRefreshToken,
   hashPassword,
-  hashRefreshToken,
   signToken,
   verifyPassword,
-  verifyRefreshToken,
+  verifyRefreshToken
 } from "../utils/auth"
 
 const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000
@@ -48,19 +47,19 @@ export async function getMe(
 
 async function createTokenPair(userId: string) {
   const accessToken = signToken({ userId })
-  const refreshSecret = generateRefreshToken()
-  const refreshTokenHash = await hashRefreshToken(refreshSecret)
-  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE_MS)
-
-  const refreshTokenDoc = await RefreshToken.create({
-    user: userId,
-    tokenHash: refreshTokenHash,
-    expiresAt,
+  // Lưu accessToken vào database (User model)
+  await User.findByIdAndUpdate(userId, {
+    $set: { lastAccessToken: accessToken },
   })
 
+  // Lưu refreshToken vào Redis
+  const refreshSecret = generateRefreshToken()
+  const redis = (await import("../config/redis")).default
+  const refreshTokenKey = `refresh:${userId}`
+  await redis.set(refreshTokenKey, refreshSecret, "EX", 30 * 24 * 60 * 60) // 30 ngày
   return {
     accessToken,
-    refreshToken: `${refreshTokenDoc._id.toString()}:${refreshSecret}`,
+    refreshToken: refreshSecret,
   }
 }
 
