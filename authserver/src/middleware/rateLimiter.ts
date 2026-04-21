@@ -23,7 +23,7 @@ export async function globalRateLimiter(
 
     // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (30) để load trang Home dễ dàng
     // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 10 để bảo mật
-    const limit = method === "GET" ? 30 : 10
+    const limit = method === "GET" ? 50 : 10
 
     if (current > limit) {
       return res.status(429).json({
