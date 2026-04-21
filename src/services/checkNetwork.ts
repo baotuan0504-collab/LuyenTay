@@ -6,11 +6,21 @@ import NetInfo from "@react-native-community/netinfo"
  */
 export async function isNetworkAvailable(): Promise<boolean> {
   try {
-    const state = await NetInfo.fetch()
-    // Logic mới: 
-    // 1. Phải có kết nối vật lý (isConnected)
-    // 2. isInternetReachable chỉ chặn nếu nó trả về đúng giá trị 'false' (đã kiểm tra xong và hỏng).
-    // Nếu nó trả về 'null', tức là đang kiểm tra, ta vẫn cho qua để tránh lỗi click 2 lần.
+    let state = await NetInfo.fetch()
+
+    // 1. Nếu không có kết nối vật lý (tắt Wifi/4G), báo lỗi ngay
+    if (!state.isConnected) return false
+
+    // 2. Nếu có kết nối nhưng báo không có Internet (isInternetReachable = false)
+    // Trường hợp này hay xảy ra khi vừa bật mạng lại, thư viện chưa kịp cập nhật trạng thái "Reachable"
+    if (state.isInternetReachable === false) {
+      // Đợi 1.5 giây để thư viện thực hiện ping kiểm tra internet thực tế
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      state = await NetInfo.fetch()
+    }
+
+    // 3. Sau khi đợi, nếu vẫn báo false thì mới thực sự là không có internet.
+    // Nếu là null (đang check) hoặc true thì đều cho qua.
     return !!state.isConnected && state.isInternetReachable !== false
   } catch {
     return false
