@@ -19,6 +19,7 @@
   "dependencies": {
     "@types/express": "^5.0.6",
     "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "cors": "2.8.5",
     "dotenv": "^17.3.1",
     "express": "5.2.1",
