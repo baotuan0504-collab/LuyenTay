@@ -69,9 +69,12 @@ export default function LoginScreen() {
     setIsLoading(true)
     try {
       // Gửi lại verifyLoginOtp với trustDevice=true để cập nhật requireOtp=false
-      await verifyLoginOtp(email, lastOtp, true)
+      console.log("[TrustDevice] Gửi API:", { email, lastOtp })
+      const res = await verifyLoginOtp(email, lastOtp, true)
+      console.log("[TrustDevice] API response:", res)
       router.push("/(tabs)")
     } catch (err) {
+      console.log("[TrustDevice] API error:", err)
       const message =
         err instanceof Error
           ? err.message
