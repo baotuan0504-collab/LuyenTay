@@ -20,7 +20,7 @@ export async function globalRateLimiter(
       await redis.expire(key, 30) // Window 30 giây
     }
 
-    if (current > 30) {
+    if (current > 5) {
       return res.status(429).json({
         message: "Bạn thao tác nhanh quá, vui lòng bình tĩnh lại!",
         success: false,

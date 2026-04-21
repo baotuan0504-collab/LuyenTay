@@ -1,3 +1,4 @@
+import { Alert } from "react-native"
 import { getDefaultApiHeaders } from "./apiHeaders"
 
 const BASE_URL = (endpoint: string): string => {
@@ -83,6 +84,12 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 
   if (!response.ok) {
     const message = data?.message || response.statusText || "Request failed"
+
+    // Nếu là lỗi Rate Limit (429), hiển thị thông báo cho người dùng thay vì để lỗi đỏ
+    if (response.status === 429) {
+      Alert.alert("Thông báo", message)
+    }
+
     throw new ApiError(message, response.status)
   }
 
