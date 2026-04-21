@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs"
+import { validatePassword } from "../utils/validatePassword"
 // Gửi OTP quên mật khẩu
 import { Request, Response } from "express"
 import redis from "../../config/redis"
@@ -38,6 +39,14 @@ export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
     const { email, otp, newPassword } = req.body
     if (!email || !otp || !newPassword)
       return res.status(400).json({ message: "Missing fields" })
+    if (!validatePassword(newPassword)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
+        })
+    }
     const otpInRedis = await redis.get(`forgot_otp:${email}`)
     if (!otpInRedis || otpInRedis !== otp) {
       return res
