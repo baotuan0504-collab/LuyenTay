@@ -74,13 +74,19 @@ export default function LoginScreen() {
       console.log("[TrustDevice] API response:", res)
       router.push("/(tabs)")
     } catch (err) {
-      console.log("[TrustDevice] API error:", err)
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === "string"
-            ? err
-            : "Trust device failed."
+      console.log("[TrustDevice] API error (full):", err)
+      let message = "Trust device failed."
+      if (err && typeof err === "object") {
+        if (err instanceof Error && (err as any).status && err.message) {
+          message = `[${(err as any).status}] ${err.message}`
+        } else if ((err as any).message) {
+          message = (err as any).message
+        } else {
+          message = JSON.stringify(err)
+        }
+      } else if (typeof err === "string") {
+        message = err
+      }
       setError(message)
     } finally {
       setIsLoading(false)
