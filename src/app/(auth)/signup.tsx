@@ -2,6 +2,7 @@ import OtpForm from "@/components/auth/otpForm"
 import AccountInformationForm from "@/components/auth/register/accountInformationForm"
 import UserInformationForm from "@/components/auth/register/userInfomationForm"
 import { apiFetch } from "@/services/api"
+import { requireNetworkOrThrow } from "@/services/checkNetwork"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
@@ -27,6 +28,7 @@ export default function SignUpScreen() {
   const handleRegister = async () => {
     setIsLoading(true)
     try {
+      await requireNetworkOrThrow()
       const res = await apiFetch("/auth/register", {
         method: "POST",
         body: JSON.stringify({
@@ -40,7 +42,14 @@ export default function SignUpScreen() {
       alert("Registration complete!")
       router.push("/(auth)/login")
     } catch (error) {
-      alert("Failed to register. Please try again.")
+      if (
+        error instanceof Error &&
+        error.message === "Vui lòng kiểm tra kết nối internet"
+      ) {
+        alert(error.message)
+      } else {
+        alert("Failed to register. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }

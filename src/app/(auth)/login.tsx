@@ -3,6 +3,7 @@ import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
 import SignupLink from "@/components/auth/login/SignupLink"
 import TrustDeviceStep from "@/components/auth/login/TrustDeviceStep"
 import { useAuth } from "@/context/AuthContext"
+import { requireNetworkOrThrow } from "@/services/checkNetwork"
 import { trustDevice } from "@/services/trustDevice"
 import { useRouter } from "expo-router"
 import { useState } from "react"
@@ -23,6 +24,7 @@ export default function LoginScreen() {
     setError("")
     setIsLoading(true)
     try {
+      await requireNetworkOrThrow()
       // signIn should return { requireOtp: boolean }
       const result = await signIn(email, password)
       if (result && result.requireOtp) {
@@ -47,9 +49,9 @@ export default function LoginScreen() {
     setError("")
     setIsLoading(true)
     try {
+      await requireNetworkOrThrow()
       // Sau khi xác thực OTP thành công, chuyển sang màn trust device
       await verifyLoginOtp(email, otp, false)
-      // Không cần lưu lại otp nữa
       setStep("trust")
     } catch (err) {
       const message =
