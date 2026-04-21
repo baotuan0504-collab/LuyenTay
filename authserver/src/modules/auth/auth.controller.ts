@@ -82,7 +82,7 @@ export const register = async (req: Request, res: Response) => {
       // Step 1: Save basic info to session or temp storage (simulate for now)
       return res.json({ success: true, step: 1, data: req.body })
     } else if (step === 2) {
-      // Step 2: Sinh OTP, gửi mail, lưu OTP tạm thời (ở đây chỉ trả về OTP cho FE demo, thực tế lưu DB/cache)
+      // Step 2: Sinh OTP, gửi mail, lưu OTP vào Redis nếu chưa có, không ghi đè OTP đang sống
       const { email } = req.body
       if (!email) return res.status(400).json({ message: "Missing email" })
       // Kiểm tra email đã tồn tại chưa
@@ -92,10 +92,19 @@ export const register = async (req: Request, res: Response) => {
           .status(400)
           .json({ success: false, message: "Tài khoản đã tồn tại!" })
       }
-      const otp = generateOtp(6)
+      let otp = await redis.get(`otp:${email}`)
+      if (!otp) {
+        otp = generateOtp(6)
+        try {
+          await redis.set(`otp:${email}`, otp, "EX", 150)
+        } catch (e: any) {
+          return res
+            .status(500)
+            .json({ message: "Redis set OTP failed", error: e.message })
+        }
+      }
       try {
         await sendOtpMail(email, otp)
-        await redis.set(`otp:${email}`, otp, "EX", 150)
       } catch (e: any) {
         return res
           .status(500)
