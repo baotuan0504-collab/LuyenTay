@@ -1,3 +1,4 @@
+import { verifyForgotPasswordOtp } from "@/services/forgotPassword"
 import { validatePassword } from "@/utils/validatePassword"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
@@ -11,13 +12,17 @@ import {
 
 export default function NewPasswordScreen() {
   const { email } = useLocalSearchParams<{ email: string }>()
+  const [otp, setOtp] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const handleNext = () => {
+  const handleResetPassword = async () => {
     setError("")
+    setSuccess("")
     if (!validatePassword(newPassword)) {
       setError(
         "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
@@ -28,16 +33,35 @@ export default function NewPasswordScreen() {
       setError("Mật khẩu nhập lại không khớp.")
       return
     }
-    // Chuyển sang màn xác thực OTP, truyền email và newPassword
-    router.push({
-      pathname: "/(auth)/ResetPasswordScreen",
-      params: { email, newPassword },
-    })
+    if (!otp || otp.length !== 6) {
+      setError("Vui lòng nhập mã OTP hợp lệ.")
+      return
+    }
+    setIsLoading(true)
+    try {
+      await verifyForgotPasswordOtp(email, otp, newPassword)
+      setSuccess("Đổi mật khẩu thành công! Đang chuyển về đăng nhập...")
+      setTimeout(() => {
+        router.replace("/(auth)/login")
+      }, 1200)
+    } catch (err: any) {
+      setError(err?.message || "Đổi mật khẩu thất bại")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Nhập mật khẩu mới</Text>
+      <Text style={styles.title}>Đặt mật khẩu mới</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Mã OTP"
+        value={otp}
+        onChangeText={setOtp}
+        keyboardType="number-pad"
+        maxLength={6}
+      />
       <TextInput
         style={styles.input}
         placeholder="Mật khẩu mới"
@@ -53,16 +77,19 @@ export default function NewPasswordScreen() {
         secureTextEntry
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {success ? <Text style={styles.success}>{success}</Text> : null}
       <TouchableOpacity
         style={styles.button}
-        onPress={handleNext}
-        disabled={!newPassword || !confirmPassword}>
-        <Text style={styles.buttonText}>Tiếp tục</Text>
+        onPress={handleResetPassword}
+        disabled={isLoading || !otp || !newPassword || !confirmPassword}>
+        <Text style={styles.buttonText}>
+          {isLoading ? "Đang đổi..." : "Đổi mật khẩu"}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.secondaryButton}
         onPress={() => router.back()}
-        disabled={false}>
+        disabled={isLoading}>
         <Text style={styles.secondaryButtonText}>Quay lại</Text>
       </TouchableOpacity>
     </View>
@@ -102,4 +129,5 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: { color: "#111", fontWeight: "bold" },
   error: { color: "red", marginBottom: 8, textAlign: "center" },
+  success: { color: "green", marginBottom: 8, textAlign: "center" },
 })

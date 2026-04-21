@@ -26,7 +26,7 @@ export default function ForgotPasswordScreen() {
       setSuccess("Đã gửi mã OTP về email. Vui lòng kiểm tra hộp thư!")
       setTimeout(() => {
         router.push({
-          pathname: "/(auth)/NewPasswordScreen",
+          pathname: "/(auth)/ForgotPasswordOtpScreen",
           params: { email },
         })
       }, 1200)
