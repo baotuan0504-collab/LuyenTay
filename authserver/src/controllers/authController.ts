@@ -51,10 +51,10 @@ async function createTokenPair(userId: string) {
     $set: { lastAccessToken: accessToken },
   })
 
-  // Lưu refreshToken vào Redis
+  // Lưu refreshToken vào Redis: Key là token secret để O(1) lookup
   const refreshSecret = generateRefreshToken()
-  const refreshTokenKey = `refresh:${userId}`
-  await redis.set(refreshTokenKey, refreshSecret, "EX", 30 * 24 * 60 * 60) // 30 ngày
+  const refreshTokenKey = `refresh_token:${refreshSecret}`
+  await redis.set(refreshTokenKey, userId, "EX", 30 * 24 * 60 * 60) // 30 ngày
   return {
     accessToken,
     refreshToken: refreshSecret,
@@ -137,24 +137,15 @@ export async function refreshToken(
       return
     }
 
-    // Tìm userId tương ứng với refreshToken trong Redis
-    // redis đã import đầu file
-    let userIdFound = null
-    // Duyệt tất cả user để tìm refreshToken khớp
-    const users = await User.find({}, "_id")
-    for (const user of users) {
-      const redisToken = await redis.get(`refresh:${user._id}`)
-      if (redisToken === refreshToken) {
-        userIdFound = user._id
-        break
-      }
-    }
+    // Tìm userId tương ứng với refreshToken trong Redis - O(1) lookup
+    const userIdFound = await redis.get(`refresh_token:${refreshToken}`)
+
     if (!userIdFound) {
-      res.status(401).json({ message: "Refresh token is invalid" })
+      res.status(401).json({ message: "Refresh token is invalid or expired" })
       return
     }
-    // Có thể xoá refresh token cũ nếu muốn (bảo mật hơn)
-    // await redis.del(`refresh:${userIdFound}`)
+    // Xoá refresh token cũ để bảo mật (Refresh Token Rotation)
+    await redis.del(`refresh_token:${refreshToken}`)
     const tokens = await createTokenPair(userIdFound.toString())
     res.status(200).json(tokens)
   } catch (error) {

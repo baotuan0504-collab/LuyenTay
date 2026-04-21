@@ -16,12 +16,21 @@ import {
   VerifyTokenResponseDto,
 } from "./auth.dto"
 
+import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
+
 export class AuthService {
   async login(dto: LoginRequestDto) {
     const user = await User.findOne({ email: dto.email })
     if (!user || !(await verifyPassword(dto.password, user.password))) {
       throw new Error("Invalid credentials")
     }
+
+    // Kiểm tra khóa OTP
+    const { isLocked, remaining } = await checkOtpLock(dto.email)
+    if (isLocked) {
+      throw new Error(`Chức năng OTP đang bị khóa. Thử lại sau ${Math.ceil(remaining / 60)} phút.`)
+    }
+
     // Kiểm tra nếu thiết bị hiện tại đã được trust thì không cần OTP
     const isTrusted =
       dto.deviceId && user.trustedDevices?.includes(dto.deviceId)
@@ -41,12 +50,23 @@ export class AuthService {
     const existingUser = await User.findOne({ email: dto.email })
     if (existingUser) throw new Error("Email already in use")
     // Kiểm tra OTP trong Redis
+    const { isLocked, remaining } = await checkOtpLock(dto.email)
+    if (isLocked) {
+      throw new Error(`Chức năng OTP đang bị khóa. Thử lại sau ${Math.ceil(remaining / 60)} phút.`)
+    }
+
     const otpInRedis = await redis.get(`otp:${dto.email}`)
     if (!otpInRedis || otpInRedis !== dto.otp) {
-      throw new Error("OTP không hợp lệ hoặc đã hết hạn")
+      const { fails, isLocked: nowLocked } = await handleOtpFailure(dto.email)
+      if (nowLocked) {
+        await redis.del(`otp:${dto.email}`)
+        throw new Error("Bạn đã nhập sai quá 3 lần. Chức năng OTP đã bị khóa trong 1 giờ.")
+      }
+      throw new Error(`OTP không hợp lệ. Bạn còn ${3 - fails} lần thử.`)
     }
-    // Xoá OTP sau khi dùng
+    // Xoá OTP và bộ đếm sai sau khi dùng
     await redis.del(`otp:${dto.email}`)
+    await redis.del(`otp_fails:${dto.email}`)
     const hashedPassword = await hashPassword(dto.password)
     const fullName = `${dto.firstName} ${dto.lastName}`.trim()
     const newUser = await User.create({
@@ -73,9 +93,10 @@ export class AuthService {
       $set: { lastAccessToken: accessToken },
     })
 
-    // Lưu refreshToken vào Redis
+    // Lưu refreshToken vào Redis: Key là token secret để O(1) lookup
     const refreshSecret = generateRefreshToken()
-    await redis.set(`refresh:${userId}`, refreshSecret, "EX", 30 * 24 * 60 * 60)
+    const refreshTokenKey = `refresh_token:${refreshSecret}`
+    await redis.set(refreshTokenKey, userId, "EX", 30 * 24 * 60 * 60)
     return {
       accessToken,
       refreshToken: refreshSecret,

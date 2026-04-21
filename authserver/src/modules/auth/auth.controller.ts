@@ -11,6 +11,7 @@ import {
   VerifyTokenRequestDto,
 } from "./auth.dto"
 import { AuthService } from "./auth.service"
+import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
 
 const service = new AuthService()
 
@@ -19,6 +20,15 @@ export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
   try {
     const { email } = req.body
     if (!email) return res.status(400).json({ message: "Missing email" })
+
+    // Kiểm tra xem Email có đang bị khóa không
+    const { isLocked, remaining } = await checkOtpLock(email)
+    if (isLocked) {
+      return res.status(429).json({
+        message: `Tài khoản của bạn đã bị khóa chức năng OTP do nhập sai quá nhiều lần. Vui lòng thử lại sau ${Math.ceil(remaining / 60)} phút.`,
+      })
+    }
+
     const user = await User.findOne({ email })
     if (!user) return res.status(400).json({ message: "User not found" })
     let otp = await redis.get(`forgot_otp:${email}`)
@@ -43,22 +53,15 @@ export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
     try {
       req.body = JSON.parse((req as any).rawBody)
     } catch (e) {
-      console.error("[ERROR] Parse rawBody failed:", e)
+      // Không nên log body ở đây nữa vì chứa mật khẩu
     }
   }
-
-  console.log("[DEBUG] forgotPasswordVerifyOtp body:", req.body)
 
   try {
     const { email, newPassword } = req.body
     if (!email || !newPassword) {
       return res.status(400).json({
         message: "Missing fields: email and newPassword are required",
-        received: {
-          email: !!email,
-          newPassword: !!newPassword,
-          bodyType: typeof req.body,
-        },
       })
     }
 
@@ -232,15 +235,35 @@ export const forgotPasswordVerifyOtpOnly = async (
   if (!email || !otp) {
     return res.status(400).json({ message: "Missing email or otp" })
   }
+
+  // Kiểm tra khóa OTP
+  const { isLocked, remaining } = await checkOtpLock(email)
+  if (isLocked) {
+    return res.status(429).json({
+      message: `Tài khoản đang bị khóa. Vui lòng quay lại sau ${Math.ceil(remaining / 60)} phút.`,
+    })
+  }
+
   try {
     const otpInRedis = await redis.get(`forgot_otp:${email}`)
     if (!otpInRedis || otpInRedis !== otp) {
-      return res
-        .status(400)
-        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
+      // Xử lý khi nhập sai: Tăng bộ đếm, khóa nếu quá 3 lần
+      const { fails, isLocked: nowLocked } = await handleOtpFailure(email)
+
+      if (nowLocked) {
+        await redis.del(`forgot_otp:${email}`)
+        return res.status(429).json({
+          message: "Bạn đã nhập sai quá 3 lần. Chức năng OTP đã bị khóa trong 1 giờ.",
+        })
+      }
+
+      return res.status(400).json({
+        message: `Mã OTP không chính xác. Bạn còn ${3 - fails} lần thử.`,
+      })
     }
-    // Xoá OTP ngay lập tức sau khi check thành công
+    // Xoá OTP và bộ đếm sai ngay lập tức sau khi check thành công
     await redis.del(`forgot_otp:${email}`)
+    await redis.del(`otp_fails:${email}`)
 
     // Đặt 1 key tạm thời để cho phép đổi mật khẩu trong vòng 5 phút
     await redis.set(`forgot_verified:${email}`, "true", "EX", 300)

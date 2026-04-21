@@ -3,6 +3,7 @@ import express from "express"
 import path from "path"
 
 import { errorHandler } from "./middleware/errorHandler"
+import { globalRateLimiter } from "./middleware/rateLimiter"
 import { verifySignature } from "./middleware/verifySignature"
 import authRoutes from "./routes/authRoutes"
 import userRoutes from "./routes/userRoutes"
@@ -10,19 +11,17 @@ import userRoutes from "./routes/userRoutes"
 const app = express()
 
 const allowedOrigins = [
-  // "http://127.0.0.1:8081", // expo mobile
-  // "http://127.0.0.1:5173", // vite web devs
-  "http://192.168.38.103:5173", // vite web devs
-  "http://192.168.38.103:8081", // expo mobile
+  "http://192.168.38.103:5173",
+  "http://192.168.38.103:8081",
   "http://127.20.10.6:5000",
   "http://10.10.33.245:5000",
-  process.env.FRONTEND_URL!, // production
+  process.env.FRONTEND_URL!,
 ].filter(Boolean)
 
 app.use(
   cors({
     origin: allowedOrigins,
-    credentials: true, // allow credentials from client (cookies, authorization headers, etc.)
+    credentials: true,
   }),
 )
 
@@ -38,6 +37,8 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" })
 })
 
+// Áp dụng Rate Limit và Signature cho toàn bộ API
+app.use("/api", globalRateLimiter)
 app.use("/api/auth", verifySignature, authRoutes)
 app.use("/api/users", verifySignature, userRoutes)
 // error handlers must come after all the routes and other middlewares so they can catch errors passed with next(err) or thrown inside async handlers.
