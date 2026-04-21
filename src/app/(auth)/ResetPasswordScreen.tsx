@@ -70,6 +70,12 @@ export default function ResetPasswordScreen() {
           {isLoading ? "Đang đổi..." : "Đổi mật khẩu"}
         </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.secondaryButton}
+        onPress={() => router.back()}
+        disabled={isLoading}>
+        <Text style={styles.secondaryButtonText}>Quay lại</Text>
+      </TouchableOpacity>
     </View>
   )
 }
@@ -90,12 +96,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#111",
     borderRadius: 8,
     padding: 14,
     alignItems: "center",
+    marginBottom: 12,
   },
   buttonText: { color: "#fff", fontWeight: "bold" },
+  secondaryButton: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 14,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#111",
+  },
+  secondaryButtonText: { color: "#111", fontWeight: "bold" },
   error: { color: "red", marginBottom: 8, textAlign: "center" },
   success: { color: "green", marginBottom: 8, textAlign: "center" },
 })
