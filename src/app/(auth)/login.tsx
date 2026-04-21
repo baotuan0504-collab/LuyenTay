@@ -132,7 +132,7 @@ export default function LoginScreen() {
                 textDecorationLine: "underline",
               }}
               onPress={() => router.push("/(auth)/ForgotPasswordScreen")}>
-              Quên mật khẩu?
+              Forgot Password?
             </Text>
           </>
         )}

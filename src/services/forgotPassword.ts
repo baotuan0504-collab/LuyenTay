@@ -19,11 +19,10 @@ export const sendForgotPasswordOtp = async (email: string) => {
 
 export const verifyForgotPasswordOtp = async (
   email: string,
-  otp: string,
   newPassword: string,
 ) => {
   return apiFetch("/auth/forgot-password/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ email, otp, newPassword }),
+    body: JSON.stringify({ email, newPassword }),
   })
 }

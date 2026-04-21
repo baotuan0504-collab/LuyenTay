@@ -3,16 +3,17 @@ import { validatePassword } from "@/utils/validatePassword"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function NewPasswordScreen() {
   const { email } = useLocalSearchParams<{ email: string }>()
-  const [otp, setOtp] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
@@ -23,6 +24,12 @@ export default function NewPasswordScreen() {
   const handleResetPassword = async () => {
     setError("")
     setSuccess("")
+    
+    if (!newPassword || !confirmPassword) {
+      setError("Vui lòng điền đầy đủ thông tin")
+      return
+    }
+
     if (!validatePassword(newPassword)) {
       setError(
         "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
@@ -33,13 +40,10 @@ export default function NewPasswordScreen() {
       setError("Mật khẩu nhập lại không khớp.")
       return
     }
-    if (!otp || otp.length !== 6) {
-      setError("Vui lòng nhập mã OTP hợp lệ.")
-      return
-    }
+    
     setIsLoading(true)
     try {
-      await verifyForgotPasswordOtp(email, otp, newPassword)
+      await verifyForgotPasswordOtp(email, newPassword)
       setSuccess("Đổi mật khẩu thành công! Đang chuyển về đăng nhập...")
       setTimeout(() => {
         router.replace("/(auth)/login")
@@ -52,82 +56,117 @@ export default function NewPasswordScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Đặt mật khẩu mới</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Mã OTP"
-        value={otp}
-        onChangeText={setOtp}
-        keyboardType="number-pad"
-        maxLength={6}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Mật khẩu mới"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Nhập lại mật khẩu"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {success ? <Text style={styles.success}>{success}</Text> : null}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleResetPassword}
-        disabled={isLoading || !otp || !newPassword || !confirmPassword}>
-        <Text style={styles.buttonText}>
-          {isLoading ? "Đang đổi..." : "Đổi mật khẩu"}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-        disabled={isLoading}>
-        <Text style={styles.secondaryButtonText}>Quay lại</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Đặt mật khẩu mới</Text>
+        <Text style={styles.subtitle}>Thiết lập mật khẩu bảo mật mới cho tài khoản của bạn</Text>
+        
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Mật khẩu mới"
+            placeholderTextColor="#999"
+            value={newPassword}
+            onChangeText={v => {
+              setNewPassword(v)
+              setError("")
+            }}
+            secureTextEntry
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Nhập lại mật khẩu"
+            placeholderTextColor="#999"
+            value={confirmPassword}
+            onChangeText={v => {
+              setConfirmPassword(v)
+              setError("")
+            }}
+            secureTextEntry
+          />
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {success ? <Text style={styles.successText}>{success}</Text> : null}
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleResetPassword}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Đổi mật khẩu</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => router.back()}>
+            <Text style={styles.linkButtonText}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  content: { flex: 1, justifyContent: "center", padding: 24 },
   title: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 24,
-    textAlign: "center",
+    marginBottom: 8,
+    color: "#000",
+  },
+  subtitle: {
+    fontSize: 16,
+    marginBottom: 32,
+    color: "#666",
+  },
+  form: {
+    width: "100%",
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    color: "#000",
   },
   button: {
-    backgroundColor: "#111",
-    borderRadius: 8,
-    padding: 14,
+    backgroundColor: "#000",
+    borderRadius: 12,
+    padding: 16,
     alignItems: "center",
-    marginBottom: 12,
+    marginTop: 8,
   },
-  buttonText: { color: "#fff", fontWeight: "bold" },
-  secondaryButton: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  linkButton: {
+    marginTop: 24,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#111",
   },
-  secondaryButtonText: { color: "#111", fontWeight: "bold" },
-  error: { color: "red", marginBottom: 8, textAlign: "center" },
-  success: { color: "green", marginBottom: 8, textAlign: "center" },
+  linkButtonText: {
+    color: "#666",
+    fontSize: 14,
+  },
+  errorText: {
+    color: "#FF3B30",
+    marginBottom: 16,
+    textAlign: "center",
+    fontSize: 14,
+  },
+  successText: {
+    color: "#34C759",
+    marginBottom: 16,
+    textAlign: "center",
+    fontSize: 14,
+  },
 })

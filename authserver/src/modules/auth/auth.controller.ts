@@ -33,29 +33,36 @@ export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
   }
 }
 
-// Xác nhận OTP và đổi mật khẩu
+// Xác nhận đổi mật khẩu (sau khi OTP đã được xác thực thành công)
 export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
   try {
-    const { email, otp, newPassword } = req.body
-    if (!email || !otp || !newPassword)
+    const { email, newPassword } = req.body
+    if (!email || !newPassword)
       return res.status(400).json({ message: "Missing fields" })
+
     if (!validatePassword(newPassword)) {
       return res.status(400).json({
         message:
           "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
       })
     }
-    const otpInRedis = await redis.get(`forgot_otp:${email}`)
-    if (!otpInRedis || otpInRedis !== otp) {
-      return res
-        .status(400)
-        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
+
+    // Kiểm tra xem user đã pass bước verify OTP chưa (thông qua lock trong redis hoặc tương tự)
+    // Để đơn giản theo yêu cầu 'xoá ngay khỏi redis', ta có thể dùng 1 key khác để đánh dấu đã verify
+    const isVerified = await redis.get(`forgot_verified:${email}`)
+    if (!isVerified) {
+      return res.status(400).json({ message: "Vui lòng xác thực OTP trước" })
     }
-    await redis.del(`forgot_otp:${email}`)
+
     const user = await User.findOne({ email })
     if (!user) return res.status(400).json({ message: "User not found" })
+
     user.password = await bcrypt.hash(newPassword, 10)
     await user.save()
+
+    // Xoá dấu verify sau khi đổi pass thành công
+    await redis.del(`forgot_verified:${email}`)
+
     return res.json({ success: true, message: "Password changed successfully" })
   } catch (err: any) {
     res.status(400).json({ message: err.message })
@@ -210,8 +217,13 @@ export const forgotPasswordVerifyOtpOnly = async (
         .status(400)
         .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
     }
-    // Không đổi mật khẩu, chỉ xác thực OTP
-    return res.status(200).json({ message: "OTP hợp lệ" })
+    // Xoá OTP ngay lập tức sau khi check thành công
+    await redis.del(`forgot_otp:${email}`)
+
+    // Đặt 1 key tạm thời để cho phép đổi mật khẩu trong vòng 5 phút
+    await redis.set(`forgot_verified:${email}`, "true", "EX", 300)
+
+    return res.status(200).json({ message: "OTP hợp lệ", success: true })
   } catch (err) {
     return res.status(500).json({ message: "Lỗi server" })
   }
