@@ -1,14 +1,28 @@
+import * as SecureStore from "expo-secure-store"
 import { Alert } from "react-native"
 import { getDefaultApiHeaders } from "./apiHeaders"
 
 const BASE_URL = (endpoint: string): string => {
   if (endpoint.startsWith("/auth")) {
-    // Đổi sang đúng port của authserver, ví dụ 7001
     return "http://127.0.0.1:7001/api"
   }
   return "http://127.0.0.1:5201/api"
 }
-// const BASE_URL = "http://10.10.33.245:5201/api"
+
+// Quản lý trạng thái refresh token
+let isRefreshing = false
+let failedQueue: any[] = []
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -25,77 +39,119 @@ export const isUnauthorizedError = (error: unknown): error is ApiError => {
   return error instanceof ApiError && error.status === 401
 }
 
-export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+export const apiFetch = async (
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<any> => {
   const url = BASE_URL(endpoint) + endpoint
-  // Xác định đây có phải là login/register không
+  
   const isAuthNoToken =
-    endpoint === "/auth/login" || endpoint === "/auth/register"
-  let token =
-    (options.headers &&
-      ((options.headers as any)["Authorization"] ||
-        (options.headers as any)["authorization"])) ||
-    undefined
-  if (isAuthNoToken) token = undefined
-  if (!token && !isAuthNoToken) token = ""
-  // Lấy method, path, body đúng chuẩn để build signature
-  const method = (options.method || "GET").toUpperCase()
-  // path phải là endpoint đúng như backend nhận (KHÔNG có domain)
-  const path = endpoint
-  // body phải là string hoặc undefined
-  let body: string | undefined = undefined
-  if (options.body) {
-    if (typeof options.body === "string") {
-      body = options.body
-    } else {
-      try {
-        body = JSON.stringify(options.body)
-      } catch {
-        body = undefined
+    endpoint === "/auth/login" ||
+    endpoint === "/auth/register" ||
+    endpoint === "/auth/refresh"
+
+  const getHeaders = async (customToken?: string) => {
+    let token = customToken
+    if (!token) {
+      token = (options.headers as any)?.["Authorization"] || (options.headers as any)?.["authorization"]
+      if (token && token.startsWith("Bearer ")) {
+        token = token.replace(/^Bearer\s+/i, "")
       }
     }
-  }
-  const defaultHeaders = await getDefaultApiHeaders({
-    token,
-    method,
-    path,
-    body,
-  })
-  // Đảm bảo tất cả key header là lowercase
-  const headers: Record<string, string> = {}
-  for (const [k, v] of Object.entries({
-    ...defaultHeaders,
-    ...options.headers,
-  })) {
-    headers[k.toLowerCase()] = v as string
-  }
-  // Luôn đảm bảo có Authorization (dù là rỗng)
-  if (!headers["authorization"]) headers["authorization"] = "none"
-  console.log("[apiFetch] URL:", url)
-  console.log("[apiFetch] Headers (lowercase):", headers)
 
-  // Trích xuất các thuộc tính khác từ options, loại bỏ headers cũ để dùng headers mới đã gộp
-  const { headers: _oldHeaders, ...remainingOptions } = options
-
-  const response = await fetch(url, {
-    ...remainingOptions,
-    headers, // Sử dụng headers đã được gộp và chuẩn hóa ở trên
-  })
-
-  const data = await response.json().catch(() => null)
-
-  if (!response.ok) {
-    const message = data?.message || response.statusText || "Request failed"
-
-    // Nếu là lỗi Rate Limit (429), hiển thị thông báo và đánh dấu đã xử lý
-    if (response.status === 429) {
-      Alert.alert("Thông báo", message)
-      const error = new ApiError(message, response.status)
-      error.handled = true
-      throw error
+    if (isAuthNoToken && !customToken) token = undefined
+    if (!token && !isAuthNoToken) {
+      token = (await SecureStore.getItemAsync("auth_accessToken")) || ""
     }
 
-    throw new ApiError(message, response.status)
+    const method = (options.method || "GET").toUpperCase()
+    const path = endpoint
+    const body = options.body ? (typeof options.body === "string" ? options.body : JSON.stringify(options.body)) : undefined
+
+    const defaultHeaders = await getDefaultApiHeaders({ token, method, path, body })
+
+    const headers: Record<string, string> = {}
+    for (const [k, v] of Object.entries({ ...defaultHeaders, ...options.headers })) {
+      headers[k.toLowerCase()] = v as string
+    }
+    if (!headers["authorization"]) headers["authorization"] = "none"
+    return headers
   }
 
-  return data
+  const executeRequest = async (token?: string) => {
+    const headers = await getHeaders(token)
+    const { headers: _obs, ...remainingOptions } = options
+    const response = await fetch(url, { ...remainingOptions, headers })
+    const data = await response.json().catch(() => null)
+    return { response, data }
+  }
+
+  try {
+    let { response, data } = await executeRequest()
+
+    // PHẦN XỬ LÝ HÀNG ĐỢI (QUEUE) KHI TOKEN HẾT HẠN
+    if (response.status === 401 && !isAuthNoToken) {
+      if (isRefreshing) {
+        // Đã có request đang refresh, ta xếp hàng đợi (Push vào Queue)
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: async (token: string) => {
+              const retry = await executeRequest(token)
+              resolve(retry.data)
+            },
+            reject: (err: any) => reject(err),
+          })
+        })
+      }
+
+      // Chưa có ai refresh, ta nhận nhiệm vụ refresh (Khóa isRefreshing)
+      isRefreshing = true
+
+      try {
+        const storedRefreshToken = await SecureStore.getItemAsync("auth_refreshToken")
+        if (!storedRefreshToken) throw new Error("No Refresh Token")
+
+        const refreshRes = await fetch(BASE_URL("/auth/refresh") + "/auth/refresh", {
+          method: "POST",
+          headers: await getHeaders(storedRefreshToken),
+          body: JSON.stringify({ refreshToken: storedRefreshToken }),
+        })
+
+        if (!refreshRes.ok) throw new Error("Refresh Failed")
+
+        const refreshData = await refreshRes.json()
+        const newToken = refreshData.accessToken
+        
+        await SecureStore.setItemAsync("auth_accessToken", newToken)
+        await SecureStore.setItemAsync("auth_refreshToken", refreshData.refreshToken)
+
+        // Phục hồi tất cả các request đang đợi trong Queue
+        processQueue(null, newToken)
+        isRefreshing = false
+
+        // Thử lại chính request hiện tại
+        const retry = await executeRequest(newToken)
+        return retry.data
+      } catch (err) {
+        processQueue(err, null)
+        isRefreshing = false
+        throw new ApiError("Session Expired", 401)
+      }
+    }
+
+    if (!response.ok) {
+      const message = data?.message || response.statusText || "Request failed"
+      if (response.status === 429) {
+        Alert.alert("Thông báo", message)
+        const error = new ApiError(message, response.status)
+        error.handled = true
+        throw error
+      }
+      throw new ApiError(message, response.status)
+    }
+
+    return data
+  } catch (error) {
+    throw error
+  }
 }

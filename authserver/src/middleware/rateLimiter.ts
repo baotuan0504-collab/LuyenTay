@@ -12,7 +12,8 @@ export async function globalRateLimiter(
 ) {
   const ip = req.ip || req.headers["x-forwarded-for"] || "unknown"
   const path = req.path
-  const key = `ratelimit:global:${ip}:${path}`
+  const method = req.method.toUpperCase()
+  const key = `ratelimit:global:${ip}:${method}:${path}`
 
   try {
     const current = await redis.incr(key)
@@ -20,7 +21,11 @@ export async function globalRateLimiter(
       await redis.expire(key, 30) // Window 30 giây
     }
 
-    if (current > 10) {
+    // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (30) để load trang Home dễ dàng
+    // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 10 để bảo mật
+    const limit = method === "GET" ? 30 : 10
+
+    if (current > limit) {
       return res.status(429).json({
         message: "Bạn thao tác nhanh quá, vui lòng bình tĩnh lại!",
         success: false,

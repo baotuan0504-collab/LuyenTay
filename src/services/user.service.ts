@@ -15,8 +15,10 @@ export const updateProfile = async (
         });
         console.log("Profile updated successfully:", data);
         return data;
-    } catch (error) {
-        console.error("Error updating profile:", error);
+    } catch (error: any) {
+        if (!error?.handled) {
+            console.warn("Error updating profile:", error);
+        }
         throw error;
     }
 };
@@ -30,8 +32,10 @@ export const checkUsername = async (username: string, token: string) => {
             },
         });
         return data as { available: boolean };
-    } catch (error) {
-        console.error("Error checking username:", error);
+    } catch (error: any) {
+        if (!error?.handled) {
+            console.warn("Error checking username:", error);
+        }
         throw error;
     }
 };
@@ -45,8 +49,10 @@ export const getUserById = async (userId: string, token: string) => {
             },
         });
         return data;
-    } catch (error) {
-        console.error("Error fetching user by ID:", error);
+    } catch (error: any) {
+        if (!error?.handled) {
+            console.warn("Error fetching user by ID:", error);
+        }
         throw error;
     }
 };
@@ -60,8 +66,10 @@ export const getUsers = async (token: string) => {
             },
         });
         return data as Array<{ _id: string; name: string; username?: string; avatar?: string; email?: string }>;
-    } catch (error) {
-        console.error("Error fetching users:", error);
+    } catch (error: any) {
+        if (!error?.handled) {
+            console.warn("Error fetching users:", error);
+        }
         throw error;
     }
 };
@@ -79,8 +87,10 @@ export const searchUsers = async (q: string, token: string, friendsOnly: boolean
         });
         return data as Array<{ _id: string; name: string; username?: string; avatar?: string;}>;
         
-    } catch (error) {
-        console.error("Error searching users:", error);
+    } catch (error: any) {
+        if (!error?.handled) {
+            console.warn("Error searching users:", error);
+        }
         throw error;
     }
 }
