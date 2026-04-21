@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState<"login" | "otp" | "trust">("login")
   const [otp, setOtp] = useState("")
+  const [lastOtp, setLastOtp] = useState("")
 
   const handleLogin = async () => {
     setError("")
@@ -48,6 +49,7 @@ export default function LoginScreen() {
     try {
       // Sau khi xác thực OTP thành công, chuyển sang màn trust device
       await verifyLoginOtp(email, otp, false)
+      setLastOtp(otp) // Lưu lại otp vừa nhập
       setStep("trust")
     } catch (err) {
       const message =
@@ -67,7 +69,7 @@ export default function LoginScreen() {
     setIsLoading(true)
     try {
       // Gửi lại verifyLoginOtp với trustDevice=true để cập nhật requireOtp=false
-      await verifyLoginOtp(email, otp, true)
+      await verifyLoginOtp(email, lastOtp, true)
       router.push("/(tabs)")
     } catch (err) {
       const message =
