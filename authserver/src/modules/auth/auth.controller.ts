@@ -35,13 +35,30 @@ export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
 
 // Xác nhận đổi mật khẩu (sau khi OTP đã được xác thực thành công)
 export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
+  // Nếu req.body trống (có thể do xung đột middleware), thử lấy từ rawBody
+  if (
+    (!req.body || Object.keys(req.body).length === 0) &&
+    (req as any).rawBody
+  ) {
+    try {
+      req.body = JSON.parse((req as any).rawBody)
+    } catch (e) {
+      console.error("[ERROR] Parse rawBody failed:", e)
+    }
+  }
+
   console.log("[DEBUG] forgotPasswordVerifyOtp body:", req.body)
+
   try {
     const { email, newPassword } = req.body
     if (!email || !newPassword) {
       return res.status(400).json({
         message: "Missing fields: email and newPassword are required",
-        received: { email: !!email, newPassword: !!newPassword },
+        received: {
+          email: !!email,
+          newPassword: !!newPassword,
+          bodyType: typeof req.body,
+        },
       })
     }
 
