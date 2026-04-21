@@ -24,18 +24,11 @@ export const login = async (req: Request, res: Response) => {
   }
 }
 
+// OTP verification endpoint: only checks OTP, returns tokens, does NOT handle trust device
 export const verifyLoginOtp = async (req: Request, res: Response) => {
   try {
-    const { email, otp, trustDevice } = req.body
-    console.log(
-      "[verifyLoginOtp] email:",
-      email,
-      "otp:",
-      otp,
-      "trustDevice:",
-      trustDevice,
-    )
-    // TODO: Kiểm tra OTP với email (DB/cache)
+    const { email, otp } = req.body
+    console.log("[verifyLoginOtp] email:", email, "otp:", otp)
     const otpInRedis = await redis.get(`otp:${email}`)
     console.log("[verifyLoginOtp] otpInRedis:", otpInRedis)
     if (!otpInRedis || otpInRedis !== otp) {
@@ -49,27 +42,39 @@ export const verifyLoginOtp = async (req: Request, res: Response) => {
     const user = (await User.findOne({ email })) as IUser | null
     console.log("[verifyLoginOtp] user:", user)
     if (!user) return res.status(400).json({ message: "User not found" })
-    // Nếu đúng, cập nhật requireOtp=false nếu trustDevice
-    if (trustDevice) {
-      const deviceId = req.headers["x-device-id"] as string
-      console.log("[verifyLoginOtp] trustDevice true, deviceId:", deviceId)
-      if (deviceId && !user.trustedDevices.includes(deviceId)) {
-        user.trustedDevices.push(deviceId)
-        await user.save()
-        console.log(
-          "[verifyLoginOtp] Đã thêm deviceId vào trustedDevices:",
-          user.trustedDevices,
-        )
-      } else {
-        console.log("[verifyLoginOtp] deviceId đã tồn tại hoặc không hợp lệ")
-      }
-    }
     // Trả về token như login thường
     const tokens = await service["createTokenPair"](user._id.toString())
     console.log("[verifyLoginOtp] Trả về tokens:", tokens)
     return res.json(new AuthResponseDto({ ...tokens, user }))
   } catch (err: any) {
     console.log("[verifyLoginOtp] ERROR:", err)
+    res.status(400).json({ message: err.message })
+  }
+}
+
+// Trust device endpoint: FE calls this after OTP is verified, only needs email + deviceId
+export const trustDevice = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+    const deviceId = req.headers["x-device-id"] as string
+    if (!email || !deviceId) {
+      return res.status(400).json({ message: "Missing email or deviceId" })
+    }
+    const user = (await User.findOne({ email })) as IUser | null
+    if (!user) return res.status(400).json({ message: "User not found" })
+    if (!user.trustedDevices.includes(deviceId)) {
+      user.trustedDevices.push(deviceId)
+      await user.save()
+      console.log(
+        "[trustDevice] Đã thêm deviceId vào trustedDevices:",
+        user.trustedDevices,
+      )
+    } else {
+      console.log("[trustDevice] deviceId đã tồn tại hoặc không hợp lệ")
+    }
+    return res.json({ success: true, trustedDevices: user.trustedDevices })
+  } catch (err: any) {
+    console.log("[trustDevice] ERROR:", err)
     res.status(400).json({ message: err.message })
   }
 }

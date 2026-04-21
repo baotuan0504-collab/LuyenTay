@@ -3,6 +3,7 @@ import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
 import SignupLink from "@/components/auth/login/SignupLink"
 import TrustDeviceStep from "@/components/auth/login/TrustDeviceStep"
 import { useAuth } from "@/context/AuthContext"
+import { trustDevice } from "@/services/trustDevice"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
@@ -17,7 +18,6 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState<"login" | "otp" | "trust">("login")
   const [otp, setOtp] = useState("")
-  const [lastOtp, setLastOtp] = useState("")
 
   const handleLogin = async () => {
     setError("")
@@ -49,7 +49,7 @@ export default function LoginScreen() {
     try {
       // Sau khi xác thực OTP thành công, chuyển sang màn trust device
       await verifyLoginOtp(email, otp, false)
-      setLastOtp(otp) // Lưu lại otp vừa nhập
+      // Không cần lưu lại otp nữa
       setStep("trust")
     } catch (err) {
       const message =
@@ -68,9 +68,9 @@ export default function LoginScreen() {
     setError("")
     setIsLoading(true)
     try {
-      // Gửi lại verifyLoginOtp với trustDevice=true để cập nhật requireOtp=false
-      console.log("[TrustDevice] Gửi API:", { email, lastOtp })
-      const res = await verifyLoginOtp(email, lastOtp, true)
+      // Gọi API trustDevice chỉ với email (deviceId sẽ tự động gửi qua header)
+      console.log("[TrustDevice] Gửi API:", { email })
+      const res = await trustDevice(email)
       console.log("[TrustDevice] API response:", res)
       router.push("/(tabs)")
     } catch (err) {
