@@ -20,7 +20,7 @@ export async function globalRateLimiter(
       await redis.expire(key, 30) // Window 30 giây
     }
 
-    if (current > 5) {
+    if (current > 10) {
       return res.status(429).json({
         message: "Bạn thao tác nhanh quá, vui lòng bình tĩnh lại!",
         success: false,
@@ -51,7 +51,7 @@ export async function checkOtpLock(email: string): Promise<{ isLocked: boolean; 
 export async function handleOtpFailure(email: string): Promise<{ fails: number; isLocked: boolean }> {
   const failKey = `otp_fails:${email}`
   const lockKey = `otp_blocked:${email}`
-  
+
   const fails = await redis.incr(failKey)
   // Mỗi lần sai sẽ reset thời gian chờ của bộ đếm về 150s (khớp với thời gian sống của OTP)
   await redis.expire(failKey, 150)

@@ -7,14 +7,14 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import React, { useCallback, useState } from "react"
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native"
 
 export default function SearchPage() {
@@ -43,11 +43,15 @@ export default function SearchPage() {
         accessToken
       )
 
-      console.log("✅ doSearch received:", users)
+      console.log("doSearch received:", users)
 
       setResults(users || [])
-    } catch (error) {
-      console.error("❌ Search failed", error)
+    } catch (error: any) {
+      if (error?.handled) {
+        console.log("Request handled:", error.message)
+      } else {
+        console.error("Search failed", error)
+      }
     } finally {
       setLoading(false)
     }

@@ -12,6 +12,7 @@ const BASE_URL = (endpoint: string): string => {
 
 export class ApiError extends Error {
   readonly status: number
+  handled: boolean = false
 
   constructor(message: string, status: number) {
     super(message)
@@ -85,9 +86,12 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   if (!response.ok) {
     const message = data?.message || response.statusText || "Request failed"
 
-    // Nếu là lỗi Rate Limit (429), hiển thị thông báo cho người dùng thay vì để lỗi đỏ
+    // Nếu là lỗi Rate Limit (429), hiển thị thông báo và đánh dấu đã xử lý
     if (response.status === 429) {
       Alert.alert("Thông báo", message)
+      const error = new ApiError(message, response.status)
+      error.handled = true
+      throw error
     }
 
     throw new ApiError(message, response.status)
