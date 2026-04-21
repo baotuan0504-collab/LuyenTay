@@ -1,33 +1,23 @@
+import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
 import { verifyForgotPasswordOtp } from "@/services/forgotPassword"
-import { validatePassword } from "@/utils/validatePassword"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 export default function ResetPasswordScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>()
+  const { email, newPassword } = useLocalSearchParams<{
+    email: string
+    newPassword: string
+  }>()
   const [otp, setOtp] = useState("")
-  const [newPassword, setNewPassword] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
-  const handleResetPassword = async () => {
+  const handleVerifyOtp = async () => {
     setError("")
     setSuccess("")
-    if (!validatePassword(newPassword)) {
-      setError(
-        "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
-      )
-      return
-    }
     setIsLoading(true)
     try {
       await verifyForgotPasswordOtp(email, otp, newPassword)
@@ -44,38 +34,16 @@ export default function ResetPasswordScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Đổi mật khẩu mới</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Mã OTP"
-        value={otp}
-        onChangeText={setOtp}
-        keyboardType="number-pad"
-        maxLength={6}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Mật khẩu mới"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
+      <Text style={styles.title}>Xác thực OTP</Text>
+      <LoginOtpStep
+        otp={otp}
+        setOtp={setOtp}
+        isLoading={isLoading}
+        onVerify={handleVerifyOtp}
+        onBack={() => router.back()}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {success ? <Text style={styles.success}>{success}</Text> : null}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleResetPassword}
-        disabled={isLoading || !otp || !newPassword}>
-        <Text style={styles.buttonText}>
-          {isLoading ? "Đang đổi..." : "Đổi mật khẩu"}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-        disabled={isLoading}>
-        <Text style={styles.secondaryButtonText}>Quay lại</Text>
-      </TouchableOpacity>
     </View>
   )
 }

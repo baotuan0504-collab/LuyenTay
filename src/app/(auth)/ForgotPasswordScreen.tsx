@@ -26,7 +26,7 @@ export default function ForgotPasswordScreen() {
       setSuccess("Đã gửi mã OTP về email. Vui lòng kiểm tra hộp thư!")
       setTimeout(() => {
         router.push({
-          pathname: "/(auth)/ResetPasswordScreen",
+          pathname: "/(auth)/NewPasswordScreen",
           params: { email },
         })
       }, 1200)
@@ -42,16 +42,6 @@ export default function ForgotPasswordScreen() {
       <TouchableOpacity
         style={styles.backIcon}
         onPress={() => router.back()}>
-        <MaterialCommunityIcons
-          name="arrow-left"
-          size={32}
-          color="#111"
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.backIcon}
-        onPress={() => router.back()}
-        activeOpacity={0.7}>
         <MaterialCommunityIcons
           name="arrow-left"
           size={32}
