@@ -124,6 +124,16 @@ export default function LoginScreen() {
               onLogin={handleLogin}
             />
             <SignupLink onPress={() => router.push("/(auth)/signup")} />
+            <Text
+              style={{
+                color: "#007AFF",
+                marginTop: 16,
+                textAlign: "center",
+                textDecorationLine: "underline",
+              }}
+              onPress={() => router.push("/(auth)/ForgotPasswordScreen")}>
+              Quên mật khẩu?
+            </Text>
           </>
         )}
         {step === "otp" && (
