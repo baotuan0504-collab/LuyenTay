@@ -1,4 +1,5 @@
-// Xác thực OTP khi login
+import bcrypt from "bcryptjs"
+// Gửi OTP quên mật khẩu
 import { Request, Response } from "express"
 import redis from "../../config/redis"
 import { IUser, User } from "../../models/User"
@@ -12,7 +13,47 @@ import { AuthService } from "./auth.service"
 
 const service = new AuthService()
 
-// Login controller for /login route
+// Gửi OTP quên mật khẩu
+export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+    if (!email) return res.status(400).json({ message: "Missing email" })
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ message: "User not found" })
+    let otp = await redis.get(`forgot_otp:${email}`)
+    if (!otp) {
+      otp = generateOtp(6)
+      await redis.set(`forgot_otp:${email}`, otp, "EX", 150)
+    }
+    await sendOtpMail(email, otp)
+    return res.json({ success: true, message: "OTP sent to email" })
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
+
+// Xác nhận OTP và đổi mật khẩu
+export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body
+    if (!email || !otp || !newPassword)
+      return res.status(400).json({ message: "Missing fields" })
+    const otpInRedis = await redis.get(`forgot_otp:${email}`)
+    if (!otpInRedis || otpInRedis !== otp) {
+      return res
+        .status(400)
+        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
+    }
+    await redis.del(`forgot_otp:${email}`)
+    const user = await User.findOne({ email })
+    if (!user) return res.status(400).json({ message: "User not found" })
+    user.password = await bcrypt.hash(newPassword, 10)
+    await user.save()
+    return res.json({ success: true, message: "Password changed successfully" })
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
 export const login = async (req: Request, res: Response) => {
   try {
     const deviceId = req.headers["x-device-id"] as string

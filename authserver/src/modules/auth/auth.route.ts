@@ -1,5 +1,7 @@
 import { Router } from "express"
 import {
+  forgotPasswordSendOtp,
+  forgotPasswordVerifyOtp,
   login,
   register,
   trustDevice,
@@ -15,5 +17,8 @@ router.post("/verify", verifyToken)
 
 router.post("/verify-login-otp", verifyLoginOtp)
 router.post("/trust-device", trustDevice)
+
+router.post("/forgot-password/send-otp", forgotPasswordSendOtp)
+router.post("/forgot-password/verify-otp", forgotPasswordVerifyOtp)
 
 export default router
