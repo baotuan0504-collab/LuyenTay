@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs"
-import { validatePassword } from "../utils/validatePassword"
+import { validatePassword } from "../../utils/validatePassword"
 // Gửi OTP quên mật khẩu
 import { Request, Response } from "express"
 import redis from "../../config/redis"
