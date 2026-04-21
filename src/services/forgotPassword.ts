@@ -4,7 +4,7 @@ export const verifyForgotPasswordOtpOnly = async (
   email: string,
   otp: string,
 ) => {
-  return apiFetch("/api/auth/forgot-password/verify-otp-only", {
+  return apiFetch("/auth/forgot-password/verify-otp-only", {
     method: "POST",
     body: JSON.stringify({ email, otp }),
   })
