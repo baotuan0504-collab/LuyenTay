@@ -1,4 +1,5 @@
 import { sendForgotPasswordOtp } from "@/services/forgotPassword"
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import {
@@ -38,6 +39,25 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backIcon}
+        onPress={() => router.back()}>
+        <MaterialCommunityIcons
+          name="arrow-left"
+          size={32}
+          color="#111"
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.backIcon}
+        onPress={() => router.back()}
+        activeOpacity={0.7}>
+        <MaterialCommunityIcons
+          name="arrow-left"
+          size={32}
+          color="#111"
+        />
+      </TouchableOpacity>
       <Text style={styles.title}>Quên mật khẩu</Text>
       <TextInput
         style={styles.input}
@@ -56,12 +76,6 @@ export default function ForgotPasswordScreen() {
         <Text style={styles.buttonText}>
           {isLoading ? "Đang gửi..." : "Gửi mã OTP"}
         </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => router.back()}
-        disabled={isLoading}>
-        <Text style={styles.secondaryButtonText}>Quay lại</Text>
       </TouchableOpacity>
     </View>
   )
@@ -90,15 +104,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   buttonText: { color: "#fff", fontWeight: "bold" },
-  secondaryButton: {
+  backIcon: {
+    position: "absolute",
+    top: 32,
+    left: 16,
+    zIndex: 10,
+    padding: 4,
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 14,
+    borderRadius: 24,
+    elevation: 2,
+    justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#111",
+    width: 40,
+    height: 40,
   },
-  secondaryButtonText: { color: "#111", fontWeight: "bold" },
   error: { color: "red", marginBottom: 8, textAlign: "center" },
   success: { color: "green", marginBottom: 8, textAlign: "center" },
 })
