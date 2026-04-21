@@ -40,12 +40,10 @@ export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
     if (!email || !otp || !newPassword)
       return res.status(400).json({ message: "Missing fields" })
     if (!validatePassword(newPassword)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
-        })
+      return res.status(400).json({
+        message:
+          "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
+      })
     }
     const otpInRedis = await redis.get(`forgot_otp:${email}`)
     if (!otpInRedis || otpInRedis !== otp) {
@@ -193,5 +191,28 @@ export const verifyToken = async (req: Request, res: Response) => {
     res.json(result)
   } catch (err: any) {
     res.status(401).json({ message: err.message })
+  }
+}
+
+// Xác thực OTP forgot password, không đổi mật khẩu
+export const forgotPasswordVerifyOtpOnly = async (
+  req: Request,
+  res: Response,
+) => {
+  const { email, otp } = req.body
+  if (!email || !otp) {
+    return res.status(400).json({ message: "Missing email or otp" })
+  }
+  try {
+    const otpInRedis = await redis.get(`forgot_otp:${email}`)
+    if (!otpInRedis || otpInRedis !== otp) {
+      return res
+        .status(400)
+        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
+    }
+    // Không đổi mật khẩu, chỉ xác thực OTP
+    return res.status(200).json({ message: "OTP hợp lệ" })
+  } catch (err) {
+    return res.status(500).json({ message: "Lỗi server" })
   }
 }
