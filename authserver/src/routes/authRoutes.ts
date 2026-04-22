@@ -1,16 +1,24 @@
 import { Router } from "express"
-
-import { getMe, logout, refreshToken } from "../controllers/authController"
-import { protectRoute } from "../middleware/auth"
-import authModuleRouter from "../modules/auth/auth.route"
+import {
+  authPasswordRouter,
+  authRootRouter,
+  authVerifyRouter,
+} from "../modules/auth/auth.route"
 
 const router = Router()
 
-// Mount OOP module routes
-router.use(authModuleRouter)
+/**
+ * HỆ THỐNG ROUTER CHA (PARENT)
+ * Quản lý các phân vùng logic của Auth Module
+ */
 
-router.post("/logout", logout)
-router.get("/me", protectRoute, getMe)
-router.post("/refresh", refreshToken)
+// 1. Phân vùng Gốc: Login, Register, Logout, Me, Refresh
+router.use("/", authRootRouter)
+
+// 2. Phân vùng Password: /forgot-password/...
+router.use("/forgot-password", authPasswordRouter)
+
+// 3. Phân vùng Verification: /verify-login-otp, /trust-device
+router.use("/", authVerifyRouter)
 
 export default router

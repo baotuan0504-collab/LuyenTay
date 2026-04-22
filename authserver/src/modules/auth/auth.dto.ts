@@ -88,3 +88,37 @@ export class VerifyTokenResponseDto {
     this.userId = data.userId
   }
 }
+
+export class ForgotPasswordSendOtpDto {
+  email: string
+  constructor(data: any) {
+    this.email = data.email
+  }
+}
+
+export class ForgotPasswordVerifyOtpDto {
+  email: string
+  otp: string
+  constructor(data: any) {
+    this.email = data.email
+    this.otp = data.otp
+  }
+}
+
+export class ResetPasswordDto {
+  email: string
+  newPassword: string
+  constructor(data: any) {
+    this.email = data.email
+    this.newPassword = data.newPassword
+  }
+}
+
+export class VerifyLoginOtpDto {
+  email: string
+  otp: string
+  constructor(data: any) {
+    this.email = data.email
+    this.otp = data.otp
+  }
+}

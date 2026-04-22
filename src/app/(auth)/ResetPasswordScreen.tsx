@@ -1,5 +1,5 @@
 import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
-import { verifyForgotPasswordOtp } from "@/services/forgotPassword"
+import { forgotPasswordService } from "@/services/auth.service"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
@@ -20,7 +20,7 @@ export default function ResetPasswordScreen() {
     setSuccess("")
     setIsLoading(true)
     try {
-      await verifyForgotPasswordOtp(email, newPassword)
+      await forgotPasswordService.resetPassword(email, newPassword)
       setSuccess("Đổi mật khẩu thành công...")
       setTimeout(() => {
         router.replace("/(auth)/login")

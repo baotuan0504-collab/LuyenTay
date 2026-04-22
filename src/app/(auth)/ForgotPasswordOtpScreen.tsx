@@ -1,5 +1,5 @@
 import LoginOtpStep from "@/components/auth/login/LoginOtpStep"
-import { verifyForgotPasswordOtpOnly } from "@/services/forgotPassword"
+import { forgotPasswordService } from "@/services/auth.service"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
 import { StyleSheet, Text, View } from "react-native"
@@ -16,7 +16,7 @@ export default function ForgotPasswordOtpScreen() {
     setError("")
     setIsLoading(true)
     try {
-      await verifyForgotPasswordOtpOnly(email, otp)
+      await forgotPasswordService.verifyOtpOnly(email, otp)
       // Success: Chuyển trang ngay lập tức không thông báo
       router.push({
         pathname: "/(auth)/NewPasswordScreen",

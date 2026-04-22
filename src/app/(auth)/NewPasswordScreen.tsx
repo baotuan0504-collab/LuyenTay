@@ -1,4 +1,4 @@
-import { verifyForgotPasswordOtp } from "@/services/forgotPassword"
+import { forgotPasswordService } from "@/services/auth.service"
 import { validatePassword } from "@/utils/validatePassword"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
@@ -43,7 +43,7 @@ export default function NewPasswordScreen() {
     
     setIsLoading(true)
     try {
-      await verifyForgotPasswordOtp(email, newPassword)
+      await forgotPasswordService.resetPassword(email, newPassword)
       setSuccess("Đổi mật khẩu thành công! Đang chuyển về đăng nhập...")
       setTimeout(() => {
         router.replace("/(auth)/login")

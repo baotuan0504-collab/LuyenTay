@@ -1,4 +1,4 @@
-import { sendForgotPasswordOtp } from "@/services/forgotPassword"
+import { forgotPasswordService } from "@/services/auth.service"
 import { useRouter } from "expo-router"
 import { useState } from "react"
 import {
@@ -27,7 +27,7 @@ export default function ForgotPasswordScreen() {
     setSuccess("")
     setIsLoading(true)
     try {
-      await sendForgotPasswordOtp(email)
+      await forgotPasswordService.sendOtp(email)
       setSuccess("Đã gửi mã OTP về email. Vui lòng kiểm tra hộp thư!")
       setTimeout(() => {
         router.push({

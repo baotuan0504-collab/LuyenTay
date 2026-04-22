@@ -5,9 +5,9 @@ import {
   logout as logoutService,
   refreshToken as refreshTokenService,
   register,
+  verifyLoginOtp as verifyLoginOtpService,
 } from "@/services/auth.service"
 import { updateProfile as updateProfileService } from "@/services/user.service"
-import { verifyLoginOtp as verifyLoginOtpService } from "@/services/verifyLoginOtp"
 import * as SecureStore from "expo-secure-store"
 import {
   createContext,

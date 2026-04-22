@@ -26,11 +26,11 @@ export const register = async (email: string, password: string, name = "") => {
   }
 }
 
-export const refreshToken = async (refreshToken: string) => {
+export const refreshToken = async (refreshTokenValue: string) => {
   try {
     const data = await apiFetch("/auth/refresh", {
       method: "POST",
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: refreshTokenValue }),
     })
     console.log("Token refresh successful:", data)
     return data
@@ -39,14 +39,47 @@ export const refreshToken = async (refreshToken: string) => {
   }
 }
 
-export const logout = async (refreshToken: string) => {
+export const logout = async (refreshTokenValue: string) => {
   try {
     await apiFetch("/auth/logout", {
       method: "POST",
-      body: JSON.stringify({ refreshToken }),
+      body: JSON.stringify({ refreshToken: refreshTokenValue }),
     })
   } catch (error) {
-    // Không throw để FE luôn xóa local, kể cả khi backend lỗi
     console.warn("Logout API failed:", error)
   }
+}
+
+// Grouped Forgot Password features
+export const forgotPasswordService = {
+  sendOtp: async (email: string) => {
+    return apiFetch("/auth/forgot-password/send-otp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    })
+  },
+  verifyOtpOnly: async (email: string, otp: string) => {
+    return apiFetch("/auth/forgot-password/verify-otp-only", {
+      method: "POST",
+      body: JSON.stringify({ email, otp }),
+    })
+  },
+  resetPassword: async (email: string, newPassword: string) => {
+    return apiFetch("/auth/forgot-password/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({ email, newPassword }),
+    })
+  },
+}
+
+// Verify Login OTP
+export const verifyLoginOtp = async (
+  email: string,
+  otp: string,
+  trustDevice: boolean = false,
+) => {
+  return apiFetch("/auth/verify-login-otp", {
+    method: "POST",
+    body: JSON.stringify({ email, otp, trustDevice }),
+  })
 }

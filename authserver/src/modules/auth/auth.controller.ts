@@ -1,308 +1,139 @@
-// Đăng xuất: Xóa refreshToken khỏi Redis và collection RefreshToken (nếu có)
-import bcrypt from "bcryptjs"
-import { validatePassword } from "../../utils/validatePassword"
-// Gửi OTP quên mật khẩu
 import { Request, Response } from "express"
-import redis from "../../config/redis"
-import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
-import { IUser, User } from "../../models/User"
-import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
-  AuthResponseDto,
+  ForgotPasswordSendOtpDto,
+  ForgotPasswordVerifyOtpDto,
+  LoginRequestDto,
   RegisterRequestDto,
+  ResetPasswordDto,
+  VerifyLoginOtpDto,
   VerifyTokenRequestDto,
 } from "./auth.dto"
 import { AuthService } from "./auth.service"
 
-const service = new AuthService()
+const authService = new AuthService()
 
-// Gửi OTP quên mật khẩu
-export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
+export const getMe = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body
-    if (!email) return res.status(400).json({ message: "Missing email" })
-
-    // Kiểm tra xem Email có đang bị khóa không
-    const { isLocked, remaining } = await checkOtpLock(email)
-    if (isLocked) {
-      return res.status(429).json({
-        message: `Tài khoản của bạn đã bị khóa chức năng OTP do nhập sai quá nhiều lần. Vui lòng thử lại sau ${Math.ceil(remaining / 60)} phút.`,
-      })
-    }
-
-    const user = await User.findOne({ email })
-    if (!user) return res.status(400).json({ message: "User not found" })
-    let otp = await redis.get(`forgot_otp:${email}`)
-    if (!otp) {
-      otp = generateOtp(6)
-      await redis.set(`forgot_otp:${email}`, otp, "EX", 150)
-    }
-    await sendOtpMail(email, otp)
-    return res.json({ success: true, message: "OTP sent to email" })
+    const userId = (req as any).userId
+    const result = await authService.getMe(userId)
+    res.json(result)
   } catch (err: any) {
-    res.status(400).json({ message: err.message })
+    const status = err.message === "User not found" ? 404 : 500
+    res.status(status).json({ message: err.message })
   }
 }
 
-// Xác nhận đổi mật khẩu (sau khi OTP đã được xác thực thành công)
-export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
-  // Nếu req.body trống (có thể do xung đột middleware), thử lấy từ rawBody
-  if (
-    (!req.body || Object.keys(req.body).length === 0) &&
-    (req as any).rawBody
-  ) {
-    try {
-      req.body = JSON.parse((req as any).rawBody)
-    } catch (e) {
-      // Không nên log body ở đây nữa vì chứa mật khẩu
-    }
-  }
-
+export const refreshToken = async (req: Request, res: Response) => {
   try {
-    const { email, newPassword } = req.body
-    if (!email || !newPassword) {
-      return res.status(400).json({
-        message: "Missing fields: email and newPassword are required",
-      })
-    }
-
-    if (!validatePassword(newPassword)) {
-      return res.status(400).json({
-        message:
-          "Mật khẩu phải từ 8 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
-      })
-    }
-
-    // Kiểm tra xem user đã pass bước verify OTP chưa (thông qua lock trong redis hoặc tương tự)
-    // Để đơn giản theo yêu cầu 'xoá ngay khỏi redis', ta có thể dùng 1 key khác để đánh dấu đã verify
-    const isVerified = await redis.get(`forgot_verified:${email}`)
-    if (!isVerified) {
-      return res.status(400).json({ message: "Vui lòng xác thực OTP trước" })
-    }
-
-    const user = await User.findOne({ email })
-    if (!user) return res.status(400).json({ message: "User not found" })
-
-    user.password = await bcrypt.hash(newPassword, 10)
-    await user.save()
-
-    // Xoá dấu verify sau khi đổi pass thành công
-    await redis.del(`forgot_verified:${email}`)
-
-    return res.json({ success: true, message: "Password changed successfully" })
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-export const login = async (req: Request, res: Response) => {
-  try {
-    const deviceId = req.headers["x-device-id"] as string
-    const dto = { ...req.body, deviceId }
-    const result = await service.login(dto)
-    return res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-// OTP verification endpoint: only checks OTP, returns tokens, does NOT handle trust device
-export const verifyLoginOtp = async (req: Request, res: Response) => {
-  try {
-    const { email, otp } = req.body
-    console.log("[verifyLoginOtp] email:", email, "otp:", otp)
-    const otpInRedis = await redis.get(`otp:${email}`)
-    console.log("[verifyLoginOtp] otpInRedis:", otpInRedis)
-    if (!otpInRedis || otpInRedis !== otp) {
-      console.log("[verifyLoginOtp] OTP không hợp lệ hoặc đã hết hạn")
-      return res
-        .status(400)
-        .json({ message: "OTP không hợp lệ hoặc đã hết hạn" })
-    }
-    // Xoá OTP sau khi dùng
-    await redis.del(`otp:${email}`)
-    const user = (await User.findOne({ email })) as IUser | null
-    console.log("[verifyLoginOtp] user:", user)
-    if (!user) return res.status(400).json({ message: "User not found" })
-    // Trả về token như login thường
-    const tokens = await service["createTokenPair"](user._id.toString())
-    console.log("[verifyLoginOtp] Trả về tokens:", tokens)
-    return res.json(new AuthResponseDto({ ...tokens, user }))
-  } catch (err: any) {
-    console.log("[verifyLoginOtp] ERROR:", err)
-    res.status(400).json({ message: err.message })
-  }
-}
-
-// Trust device endpoint: FE calls this after OTP is verified, only needs email + deviceId
-export const trustDevice = async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body
-    const deviceId = req.headers["x-device-id"] as string
-    if (!email || !deviceId) {
-      return res.status(400).json({ message: "Missing email or deviceId" })
-    }
-    const user = (await User.findOne({ email })) as IUser | null
-    if (!user) return res.status(400).json({ message: "User not found" })
-    if (!user.trustedDevices.includes(deviceId)) {
-      user.trustedDevices.push(deviceId)
-      await user.save()
-      console.log(
-        "[trustDevice] Đã thêm deviceId vào trustedDevices:",
-        user.trustedDevices,
-      )
-    } else {
-      console.log("[trustDevice] deviceId đã tồn tại hoặc không hợp lệ")
-    }
-    return res.json({ success: true, trustedDevices: user.trustedDevices })
-  } catch (err: any) {
-    console.log("[trustDevice] ERROR:", err)
-    res.status(400).json({ message: err.message })
-  }
-}
-
-// Multi-step registration controller
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { step } = req.body
-    if (step === 1) {
-      // Step 1: Save basic info to session or temp storage (simulate for now)
-      return res.json({ success: true, step: 1, data: req.body })
-    } else if (step === 2) {
-      // Step 2: Sinh OTP, gửi mail, lưu OTP vào Redis nếu chưa có, không ghi đè OTP đang sống
-      const { email } = req.body
-      if (!email) return res.status(400).json({ message: "Missing email" })
-      // Kiểm tra email đã tồn tại chưa
-      const existingUser = (await User.findOne({ email })) as IUser | null
-      if (existingUser) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Tài khoản đã tồn tại!" })
-      }
-      let otp = await redis.get(`otp:${email}`)
-      if (!otp) {
-        otp = generateOtp(6)
-        try {
-          await redis.set(`otp:${email}`, otp, "EX", 150)
-        } catch (e: any) {
-          return res
-            .status(500)
-            .json({ message: "Redis set OTP failed", error: e.message })
-        }
-      }
-      try {
-        await sendOtpMail(email, otp)
-      } catch (e: any) {
-        return res
-          .status(500)
-          .json({ message: "Send mail failed", error: e.message })
-      }
-      // Không trả về OTP cho FE
-      return res.json({
-        success: true,
-        step: 2,
-        message: "OTP sent to email",
-      })
-    } else if (step === 3) {
-      // Step 3: Finalize registration, kiểm tra OTP, tạo user
-      // TODO: Kiểm tra OTP với email, nếu đúng mới cho tạo user
-      const dto = new RegisterRequestDto(req.body)
-      const result = await service.register(dto)
-      // Nếu cần truy cập newUser._id, ép kiểu trong service.register tương tự
-      return res.json(result)
-    } else {
-      return res.status(400).json({ message: "Invalid registration step" })
-    }
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-export const verifyToken = async (req: Request, res: Response) => {
-  try {
-    const dto = new VerifyTokenRequestDto(req.body)
-    const result = await service.verifyToken(dto)
+    const { refreshToken: rt } = req.body
+    if (!rt) return res.status(400).json({ message: "Missing refreshToken" })
+    const result = await authService.refreshToken(rt)
     res.json(result)
   } catch (err: any) {
     res.status(401).json({ message: err.message })
   }
 }
 
-// Xác thực OTP forgot password, không đổi mật khẩu
-export const forgotPasswordVerifyOtpOnly = async (
-  req: Request,
-  res: Response,
-) => {
-  const { email, otp } = req.body
-  if (!email || !otp) {
-    return res.status(400).json({ message: "Missing email or otp" })
-  }
-
-  // Kiểm tra khóa OTP
-  const { isLocked, remaining } = await checkOtpLock(email)
-  if (isLocked) {
-    return res.status(429).json({
-      message: `Tài khoản đang bị khóa. Vui lòng quay lại sau ${Math.ceil(remaining / 60)} phút.`,
-    })
-  }
-
+export const login = async (req: Request, res: Response) => {
   try {
-    const otpInRedis = await redis.get(`forgot_otp:${email}`)
-    if (!otpInRedis || otpInRedis !== otp) {
-      // Xử lý khi nhập sai: Tăng bộ đếm, khóa nếu quá 3 lần
-      const { fails, isLocked: nowLocked } = await handleOtpFailure(email)
+    const deviceId = req.headers["x-device-id"] as string
+    const dto = new LoginRequestDto({ ...req.body, deviceId })
+    const result = await authService.login(dto)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
 
-      if (nowLocked) {
-        await redis.del(`forgot_otp:${email}`)
-        return res.status(429).json({
-          message:
-            "Bạn đã nhập sai quá 3 lần. Chức năng OTP đã bị khóa trong 1 giờ.",
-        })
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { step } = req.body
+    if (step === 3) {
+      const dto = new RegisterRequestDto(req.body)
+      const result = await authService.register(dto)
+      res.json(result)
+    } else {
+      const { email } = req.body
+      if (step === 2) {
+        const result = await authService.sendForgotPasswordOtp(email)
+        res.json({ ...result, step: 2 })
+      } else {
+        res.json({ success: true, step: 1 })
       }
-
-      return res.status(400).json({
-        message: `Mã OTP không chính xác. Bạn còn ${3 - fails} lần thử.`,
-      })
     }
-    // Xoá OTP và bộ đếm sai ngay lập tức sau khi check thành công
-    await redis.del(`forgot_otp:${email}`)
-    await redis.del(`otp_fails:${email}`)
-
-    // Đặt 1 key tạm thời để cho phép đổi mật khẩu trong vòng 5 phút
-    await redis.set(`forgot_verified:${email}`, "true", "EX", 300)
-
-    return res.status(200).json({ message: "OTP hợp lệ", success: true })
-  } catch (err) {
-    return res.status(500).json({ message: "Lỗi server" })
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
   }
 }
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    // Lấy refreshToken từ body, header hoặc cookie
-    const refreshToken =
-      req.body.refreshToken ||
-      req.headers["x-refresh-token"] ||
-      req.cookies?.refreshToken
-    if (!refreshToken) {
-      return res.status(400).json({ message: "Missing refreshToken" })
-    }
+    const token = req.body.refreshToken || req.headers["x-refresh-token"]
+    if (!token) return res.status(400).json({ message: "Missing token" })
+    await authService.logout(token)
+    res.json({ success: true, message: "Logged out" })
+  } catch (err: any) {
+    res.status(500).json({ message: err.message })
+  }
+}
 
-    // Xóa refreshToken khỏi Redis
-    await redis.del(`refresh_token:${refreshToken}`)
+export const verifyToken = async (req: Request, res: Response) => {
+  try {
+    const dto = new VerifyTokenRequestDto(req.body)
+    const result = await authService.verifyToken(dto)
+    res.json(result)
+  } catch (err: any) {
+    res.status(401).json({ message: err.message })
+  }
+}
 
-    // Nếu có lưu trong collection RefreshToken thì xóa luôn
-    try {
-      const { RefreshToken } = await import("../../models/RefreshToken")
-      await RefreshToken.deleteMany({ tokenHash: refreshToken })
-    } catch (e) {
-      // Nếu không dùng collection hoặc lỗi import thì bỏ qua
-    }
+export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
+  try {
+    const dto = new ForgotPasswordSendOtpDto(req.body)
+    const result = await authService.sendForgotPasswordOtp(dto.email)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
 
-    // Nếu muốn xóa toàn bộ phiên đăng nhập của user (logout all), có thể xóa theo userId
-    // Ví dụ: await redis.del(`user_sessions:${userId}`)
+export const forgotPasswordVerifyOtpOnly = async (req: Request, res: Response) => {
+  try {
+    const dto = new ForgotPasswordVerifyOtpDto(req.body)
+    const result = await authService.verifyForgotPasswordOtpOnly(dto.email, dto.otp)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
 
-    return res.json({ success: true, message: "Logged out successfully" })
-  } catch (err) {
-    return res.status(500).json({ message: "Internal server error" })
+export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
+  try {
+    const dto = new ResetPasswordDto(req.body)
+    const result = await authService.resetPassword(dto.email, dto.newPassword)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
+
+export const verifyLoginOtp = async (req: Request, res: Response) => {
+  try {
+    const dto = new VerifyLoginOtpDto(req.body)
+    const result = await authService.verifyLoginOtp(dto.email, dto.otp)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
+  }
+}
+
+export const trustDevice = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+    const deviceId = req.headers["x-device-id"] as string
+    const result = await authService.trustDevice(email, deviceId)
+    res.json(result)
+  } catch (err: any) {
+    res.status(400).json({ message: err.message })
   }
 }

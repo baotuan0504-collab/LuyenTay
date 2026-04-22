@@ -50,7 +50,7 @@ export const apiFetch = async (
     endpoint === "/auth/register" ||
     endpoint === "/auth/refresh"
 
-  const getHeaders = async (customToken?: string) => {
+  const getHeaders = async (customToken?: string, customPath?: string) => {
     let token = customToken
     if (!token) {
       token = (options.headers as any)?.["Authorization"] || (options.headers as any)?.["authorization"]
@@ -64,9 +64,11 @@ export const apiFetch = async (
       token = (await SecureStore.getItemAsync("auth_accessToken")) || ""
     }
 
-    const method = (options.method || "GET").toUpperCase()
-    const path = endpoint
-    const body = options.body ? (typeof options.body === "string" ? options.body : JSON.stringify(options.body)) : undefined
+    const method = customPath ? "POST" : (options.method || "GET").toUpperCase()
+    const path = customPath || endpoint
+    const body = customPath 
+      ? JSON.stringify({ refreshToken: customToken }) 
+      : (options.body ? (typeof options.body === "string" ? options.body : JSON.stringify(options.body)) : undefined)
 
     const defaultHeaders = await getDefaultApiHeaders({ token, method, path, body })
 
@@ -113,7 +115,7 @@ export const apiFetch = async (
 
         const refreshRes = await fetch(BASE_URL("/auth/refresh") + "/auth/refresh", {
           method: "POST",
-          headers: await getHeaders(storedRefreshToken),
+          headers: await getHeaders(storedRefreshToken, "/auth/refresh"),
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
         })
 
