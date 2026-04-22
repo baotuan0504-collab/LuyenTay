@@ -77,17 +77,29 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         if (storedUser) {
           setUser(formatUser(JSON.parse(storedUser)))
         }
-        if (storedAccessToken) {
-          setAccessToken(storedAccessToken)
-        }
         if (storedRefreshToken) {
           setRefreshToken(storedRefreshToken)
+          // Nếu có refresh token, tự động refresh access token
+          try {
+            const data = await refreshTokenService(storedRefreshToken)
+            setAccessToken(data.accessToken ?? null)
+            setRefreshToken(data.refreshToken ?? null)
+            await saveAuthState(
+              storedUser ? formatUser(JSON.parse(storedUser)) : null,
+              data.accessToken ?? null,
+              data.refreshToken ?? null,
+            )
+          } catch (err) {
+            // Nếu refresh lỗi, sign out
+            await signOut()
+          }
+        } else if (storedAccessToken) {
+          setAccessToken(storedAccessToken)
         }
       } catch (error) {
         console.error("Error restoring auth state:", error)
       }
     }
-
     restoreAuth()
   }, [])
 
