@@ -80,8 +80,12 @@ export const apiFetch = async (
       headers[k.toLowerCase()] = v as string
     }
     
-    // Đảm bảo header authorization luôn dùng token mới nhất (không bị ghi đè bởi options.headers cũ)
-    headers["authorization"] = token ? String(token) : "none"
+    // Đảm bảo header authorization luôn dùng token mới nhất và đúng định dạng Bearer
+    if (token && token !== "none") {
+      headers["authorization"] = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+    } else {
+      headers["authorization"] = "none"
+    }
     return headers
   }
 

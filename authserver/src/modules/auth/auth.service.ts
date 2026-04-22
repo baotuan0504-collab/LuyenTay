@@ -90,7 +90,14 @@ export class AuthService {
   async verifyToken(dto: VerifyTokenRequestDto) {
     const payload = verifyToken(dto.token)
     if (!payload.userId) throw new Error("Invalid token")
-    return new VerifyTokenResponseDto({ userId: payload.userId })
+
+    // SINGLE DEVICE SESSION: Kiểm tra xem đây có phải mã Access Token mới nhất không
+    const user = await User.findById(payload.userId)
+    if (!user || user.lastAccessToken !== dto.token) {
+      throw new Error("Session overwritten by newer login")
+    }
+
+    return new VerifyTokenResponseDto({ userId: payload.userId as string })
   }
 
   async logout(refreshToken: string) {
