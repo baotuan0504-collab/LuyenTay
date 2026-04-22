@@ -1,5 +1,6 @@
 import type { NextFunction, Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
+import { Reaction } from "../../reaction/model/reaction.model"
 import { Post } from "../model/post.model"
 
 export async function createPost(
@@ -51,12 +52,46 @@ export async function getPosts(
   next: NextFunction,
 ) {
   try {
+    const userId = req.userId
     // Fetch all posts, including multiple posts per user
     const posts = await Post.find({})
       .populate("user", "name username avatar")
       .sort({ createdAt: -1 })
 
-    res.json(posts)
+    // Lấy reactionCounts và myReaction cho mỗi post
+    const postIds = posts.map(p => p._id)
+    // Lấy tất cả reaction cho các post này
+    const allReactions = await Reaction.find({
+      targetId: { $in: postIds },
+      targetType: "post",
+    })
+
+    // Gom reactionCounts cho từng post
+    const reactionCountsMap = {}
+    allReactions.forEach(r => {
+      const pid = r.targetId.toString()
+      if (!reactionCountsMap[pid]) reactionCountsMap[pid] = {}
+      reactionCountsMap[pid][r.reactionType] =
+        (reactionCountsMap[pid][r.reactionType] || 0) + 1
+    })
+
+    // Nếu có userId, lấy myReaction cho từng post
+    const myReactionMap = {}
+    if (userId) {
+      allReactions.forEach(r => {
+        if (r.user.toString() === userId.toString()) {
+          myReactionMap[r.targetId.toString()] = r.reactionType
+        }
+      })
+    }
+
+    // Trả về posts kèm reactionCounts và myReaction
+    const result = posts.map(post => ({
+      ...post.toObject(),
+      reactionCounts: reactionCountsMap[post._id.toString()] || {},
+      myReaction: myReactionMap[post._id.toString()] || null,
+    }))
+    res.json(result)
   } catch (error) {
     res.status(500)
     next(error)

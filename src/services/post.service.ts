@@ -1,17 +1,5 @@
 // Lấy comment dạng nested (cha + replies)
-export const getNestedCommentsByPost = async (postId: string, token?: string) => {
-  const params = new URLSearchParams({
-    targetId: postId,
-    targetType: "post",
-  })
-  const data = await apiFetch(`/comments/nested?${params.toString()}`, {
-    method: "GET",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  })
-  return data
-}
 import { apiFetch } from "./api"
-
 
 export interface PostResponse {
   _id: string
@@ -28,8 +16,9 @@ export interface PostResponse {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  reactionCounts?: Record<string, number>
+  myReaction?: string | null
 }
-
 
 export const createPost = async (
   postData: { imageUrl?: string; videoUrl?: string; description?: string },
@@ -51,7 +40,6 @@ export const createPost = async (
   }
 }
 
-
 export const getPosts = async (token: string): Promise<PostResponse[]> => {
   try {
     const data = await apiFetch("/posts", {
@@ -67,7 +55,6 @@ export const getPosts = async (token: string): Promise<PostResponse[]> => {
   }
 }
 
-
 export const getPostDetail = async (
   postId: string,
   token: string,
@@ -80,7 +67,6 @@ export const getPostDetail = async (
   })
   return data as PostResponse
 }
-
 
 export const getCommentsByPost = async (
   postId: string,
@@ -101,5 +87,17 @@ export const getCommentsByPost = async (
   return data
 }
 
-
-
+export const getNestedCommentsByPost = async (
+  postId: string,
+  token?: string,
+) => {
+  const params = new URLSearchParams({
+    targetId: postId,
+    targetType: "post",
+  })
+  const data = await apiFetch(`/comments/nested?${params.toString()}`, {
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  return data
+}

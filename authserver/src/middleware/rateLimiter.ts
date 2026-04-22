@@ -23,7 +23,7 @@ export async function globalRateLimiter(
 
     // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (30) để load trang Home dễ dàng
     // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 10 để bảo mật
-    const limit = method === "GET" ? 50 : 10
+    const limit = method === "GET" ? 20 : 10
 
     if (current > limit) {
       return res.status(429).json({
@@ -41,7 +41,9 @@ export async function globalRateLimiter(
 /**
  * Helper kiểm tra xem Email có đang bị khóa OTP hay không
  */
-export async function checkOtpLock(email: string): Promise<{ isLocked: boolean; remaining: number }> {
+export async function checkOtpLock(
+  email: string,
+): Promise<{ isLocked: boolean; remaining: number }> {
   const lockKey = `otp_blocked:${email}`
   const remaining = await redis.ttl(lockKey)
   return {
@@ -53,7 +55,9 @@ export async function checkOtpLock(email: string): Promise<{ isLocked: boolean; 
 /**
  * Helper xử lý khi nhập sai OTP: Tăng bộ đếm, nếu quá 3 lần thì khóa 1 giờ
  */
-export async function handleOtpFailure(email: string): Promise<{ fails: number; isLocked: boolean }> {
+export async function handleOtpFailure(
+  email: string,
+): Promise<{ fails: number; isLocked: boolean }> {
   const failKey = `otp_fails:${email}`
   const lockKey = `otp_blocked:${email}`
 

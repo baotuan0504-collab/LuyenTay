@@ -16,7 +16,6 @@ import {
   View,
 } from "react-native"
 
-
 import { ReactionBar } from "@/components/ReactionBar"
 import { StoryBar } from "@/components/StoryBar"
 import { StoryViewer } from "@/components/StoryViewer"
@@ -30,22 +29,17 @@ import { Image } from "expo-image"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-
 import {
-  getMyReaction,
-  getReactionCounts,
   getReactionUsers,
   removeReaction,
   upsertReaction,
 } from "@/services/reaction.service"
-
 
 interface PostCardProps {
   post: Post
   currentUserId?: string
   onShowReactors: (post: Post) => void
 }
-
 
 const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
   const { accessToken } = useAuth()
@@ -59,34 +53,19 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
     player.muted = false
     player.volume = 1
   })
-  // Thêm state cho reaction
-  const [myReaction, setMyReaction] = useState<string | undefined>(undefined)
+
+  // Local state for reaction UI
+  const [myReaction, setMyReaction] = useState<string | undefined>(
+    post.myReaction || undefined,
+  )
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>(
-    {},
+    post.reactionCounts || {},
   )
 
-
   useEffect(() => {
-    if (accessToken) {
-      // Lấy reaction của user
-      getMyReaction(post.id, "post", accessToken)
-        .then(data => setMyReaction(data?.reactionType))
-        .catch(() => setMyReaction(undefined))
-    }
-
-
-    // Lấy tổng reaction từng loại
-    getReactionCounts(post.id, "post")
-      .then(data => {
-        const counts: Record<string, number> = {}
-        data.forEach((r: any) => {
-          counts[r._id] = r.count
-        })
-        setReactionCounts(counts)
-      })
-      .catch(() => setReactionCounts({}))
-  }, [post.id, accessToken])
-
+    setMyReaction(post.myReaction || undefined)
+    setReactionCounts(post.reactionCounts || {})
+  }, [post.myReaction, post.reactionCounts, post.id])
 
   const handleReaction = async (type: string) => {
     if (!accessToken) {
@@ -96,7 +75,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
       )
       return
     }
-
 
     try {
       if (myReaction === type) {
@@ -128,7 +106,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
     }
   }
 
-
   useEffect(() => {
     if (!post.video_url) return
     if (isPlaying) {
@@ -137,7 +114,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
       player.pause()
     }
   }, [isPlaying, player, post.video_url])
-
 
   return (
     <View style={styles.postContainer}>
@@ -159,7 +135,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
             </View>
           )}
 
-
           <View>
             <Text style={styles.username}>
               {isOwnPost ? "You" : `@${postUser?.username}`}
@@ -167,7 +142,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
             <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
-
 
         {/* Post content */}
         <View style={styles.timeRemainingBadge}>
@@ -177,13 +151,11 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         </View>
       </View>
 
-
       {post.description ? (
         <View style={styles.postDescriptionContainer}>
           <Text style={styles.postDescription}>{post.description}</Text>
         </View>
       ) : null}
-
 
       <TouchableOpacity
         activeOpacity={0.9}
@@ -270,7 +242,6 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
   )
 }
 
-
 export default function Index() {
   const [showPreview, setShowPreview] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
@@ -283,7 +254,6 @@ export default function Index() {
     player.muted = false
     player.volume = 1
   })
-
 
   const router = useRouter()
   const {
@@ -300,13 +270,11 @@ export default function Index() {
   } = useStories()
   const { user } = useAuth()
 
-
   const [selectedUserStories, setSelectedUserStories] = useState<Story[]>([])
   const [isViewerVisible, setIsViewerVisible] = useState(false)
   const [isStoryMode, setIsStoryMode] = useState(false)
   const [showReactors, setShowReactors] = useState(false)
   const [reactors, setReactors] = useState<any[]>([])
-
 
   const usersWithStories = useMemo(() => {
     // Pure function, no side effects, only depends on stories
@@ -344,19 +312,16 @@ export default function Index() {
       })
   }, [stories])
 
-
   const currentUserStory = useMemo(() => {
     if (!user?.id) return undefined
     const self = usersWithStories.find(u => String(u.id) === String(user.id))
     return self
   }, [usersWithStories, user?.id])
 
-
   const otherUsersStories = useMemo(() => {
     if (!user?.id) return usersWithStories
     return usersWithStories.filter(u => String(u.id) !== String(user.id))
   }, [usersWithStories, user?.id])
-
 
   const handleUserStoryPress = (userId: string) => {
     const userGroup = usersWithStories.find(u => u.id === userId)
@@ -365,7 +330,6 @@ export default function Index() {
       setIsViewerVisible(true)
     }
   }
-
 
   const onRefresh = async () => {
     setRefreshing(true)
@@ -378,7 +342,6 @@ export default function Index() {
     }
   }
 
-
   useEffect(() => {
     const unsub = events.on("posts:refresh", () => {
       try {
@@ -389,7 +352,6 @@ export default function Index() {
     })
     return () => unsub && unsub()
   }, [refreshPosts])
-
 
   const isFocused = useIsFocused()
   // Chỉ gọi refresh khi lần đầu vào hoặc khi isFocused chuyển từ false -> true
@@ -406,7 +368,6 @@ export default function Index() {
     prevFocusedRef.current = isFocused
   }, [isFocused])
 
-
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== "granted") {
@@ -416,7 +377,6 @@ export default function Index() {
       )
       return
     }
-
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -445,7 +405,6 @@ export default function Index() {
     }
   }
 
-
   const pickVideo = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (status !== "granted") {
@@ -455,7 +414,6 @@ export default function Index() {
       )
       return
     }
-
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["videos"],
@@ -500,7 +458,6 @@ export default function Index() {
     }
   }
 
-
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync()
     if (status !== "granted") {
@@ -510,7 +467,6 @@ export default function Index() {
       )
       return
     }
-
 
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -546,7 +502,6 @@ export default function Index() {
     }
   }
 
-
   const recordVideo = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync()
     if (status !== "granted") {
@@ -556,7 +511,6 @@ export default function Index() {
       )
       return
     }
-
 
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -609,7 +563,6 @@ export default function Index() {
     }
   }
 
-
   const showImagePicker = (forStory = false) => {
     setIsStoryMode(forStory)
     Alert.alert(forStory ? "Add Story" : "Create Post", "Choose an option", [
@@ -621,10 +574,8 @@ export default function Index() {
     ])
   }
 
-
   const handlePost = async () => {
     if (!previewImage) return
-
 
     setIsUploading(true)
     try {
@@ -648,7 +599,6 @@ export default function Index() {
     }
   }
 
-
   const handleShowReactors = async (post: Post) => {
     // Gọi API lấy danh sách người đã thả reaction cho post
     try {
@@ -661,7 +611,6 @@ export default function Index() {
     }
   }
 
-
   const renderPost = ({ item }: { item: Post }) => (
     <PostCard
       post={item}
@@ -669,7 +618,6 @@ export default function Index() {
       onShowReactors={handleShowReactors}
     />
   )
-
 
   return (
     <View style={styles.container}>
@@ -709,7 +657,6 @@ export default function Index() {
           />
         }
       />
-
 
       <StoryViewer
         visible={isViewerVisible}
@@ -773,7 +720,6 @@ export default function Index() {
               </TouchableOpacity>
             </View>
 
-
             {/* USER INFO */}
             <View
               style={{
@@ -791,7 +737,6 @@ export default function Index() {
               </View>
             </View>
 
-
             {/* INPUT */}
             <TextInput
               placeholder="Bạn đang nghĩ gì?"
@@ -800,7 +745,6 @@ export default function Index() {
               multiline
               style={styles.descriptionInput}
             />
-
 
             {/* MEDIA */}
             {(previewImage || previewVideo) && (
@@ -823,7 +767,6 @@ export default function Index() {
                 )}
               </View>
             )}
-
 
             {/* BOTTOM ACTIONS */}
             <View
@@ -854,7 +797,6 @@ export default function Index() {
           </View>
         </View>
       </Modal>
-
 
       {/* Modal hiển thị danh sách người thả reaction */}
       <Modal
@@ -950,7 +892,6 @@ export default function Index() {
     </View>
   )
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -1175,6 +1116,3 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 })
-
-
-

@@ -20,8 +20,8 @@ export default function ResetPasswordScreen() {
     setSuccess("")
     setIsLoading(true)
     try {
-      await verifyForgotPasswordOtp(email, otp, newPassword)
-      setSuccess("Đổi mật khẩu thành công! Đang chuyển về đăng nhập...")
+      await verifyForgotPasswordOtp(email, newPassword)
+      setSuccess("Đổi mật khẩu thành công...")
       setTimeout(() => {
         router.replace("/(auth)/login")
       }, 1200)

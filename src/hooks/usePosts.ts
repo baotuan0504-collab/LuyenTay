@@ -4,14 +4,12 @@ import { isUnauthorizedError } from "@/services/api"
 import * as postService from "@/services/post.service"
 import { useEffect, useState } from "react"
 
-
 export interface PostUser {
   id: string
   name: string
   username: string
   profile_image_url?: string
 }
-
 
 export interface Post {
   id: string
@@ -23,14 +21,14 @@ export interface Post {
   expires_at: string
   is_active: boolean
   profiles?: PostUser
+  reactionCounts?: Record<string, number>
+  myReaction?: string | null
 }
-
 
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { user, accessToken, signOut } = useAuth()
-
 
   useEffect(() => {
     if (accessToken) {
@@ -38,15 +36,12 @@ export const usePosts = () => {
     }
   }, [accessToken])
 
-
   const loadPosts = async () => {
     if (!accessToken) return
-
 
     setIsLoading(true)
     try {
       const postsData = await postService.getPosts(accessToken)
-
 
       const formattedPosts: Post[] = postsData.map(post => ({
         id: post._id,
@@ -63,8 +58,10 @@ export const usePosts = () => {
           username: post.user.username,
           profile_image_url: post.user.avatar,
         },
+        reactionCounts: post.reactionCounts || {},
+        myReaction:
+          typeof post.myReaction === "undefined" ? null : post.myReaction,
       }))
-
 
       setPosts(formattedPosts)
     } catch (error) {
@@ -83,7 +80,6 @@ export const usePosts = () => {
     }
   }
 
-
   const createPost = async (
     imageUri: string,
     description?: string,
@@ -93,11 +89,9 @@ export const usePosts = () => {
       throw new Error("User not authenticated")
     }
 
-
     try {
       let imageUrl = ""
       let videoUrl = undefined
-
 
       if (videoUri) {
         // 1. Upload thumbnail (imageUri is the thumbnail here) and video
@@ -107,7 +101,6 @@ export const usePosts = () => {
         // 1. Upload only image
         imageUrl = await uploadPostImage(user.id, imageUri)
       }
-
 
       // 2. Save metadata to Backend
       await postService.createPost(
@@ -119,7 +112,6 @@ export const usePosts = () => {
         accessToken,
       )
 
-
       // Refresh posts
       await loadPosts()
     } catch (error) {
@@ -128,14 +120,9 @@ export const usePosts = () => {
     }
   }
 
-
   const refreshPosts = async () => {
     await loadPosts()
   }
 
-
   return { createPost, posts, refreshPosts, isLoading }
 }
-
-
-
