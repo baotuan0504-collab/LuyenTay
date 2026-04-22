@@ -73,10 +73,15 @@ export const apiFetch = async (
     const defaultHeaders = await getDefaultApiHeaders({ token, method, path, body })
 
     const headers: Record<string, string> = {}
-    for (const [k, v] of Object.entries({ ...defaultHeaders, ...options.headers })) {
+    // Nếu là customPath (thường là refresh), không trộn headers cũ để tránh ghi đè Token/Signature
+    const baseHeaders = customPath ? defaultHeaders : { ...defaultHeaders, ...options.headers }
+    
+    for (const [k, v] of Object.entries(baseHeaders)) {
       headers[k.toLowerCase()] = v as string
     }
-    if (!headers["authorization"]) headers["authorization"] = "none"
+    
+    // Đảm bảo header authorization luôn dùng token mới nhất (không bị ghi đè bởi options.headers cũ)
+    headers["authorization"] = token ? String(token) : "none"
     return headers
   }
 
@@ -113,9 +118,12 @@ export const apiFetch = async (
         const storedRefreshToken = await SecureStore.getItemAsync("auth_refreshToken")
         if (!storedRefreshToken) throw new Error("No Refresh Token")
 
+        // Tạo headers và signature RIÊNG cho request refresh (không trộn với options.headers của request gốc)
+        const refreshHeaders = await getHeaders(storedRefreshToken, "/auth/refresh")
+        
         const refreshRes = await fetch(BASE_URL("/auth/refresh") + "/auth/refresh", {
           method: "POST",
-          headers: await getHeaders(storedRefreshToken, "/auth/refresh"),
+          headers: refreshHeaders,
           body: JSON.stringify({ refreshToken: storedRefreshToken }),
         })
 
