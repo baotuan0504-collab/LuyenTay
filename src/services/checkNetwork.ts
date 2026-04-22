@@ -32,13 +32,13 @@ export async function isNetworkAvailable(): Promise<boolean> {
         return true
       }
     } catch (e) {
-      // Nếu ping thất bại, thử fetch lại state một lần nữa
-      state = await NetInfo.fetch()
+      // Nếu ping thất bại, ta kiểm tra lại: Nếu NetInfo cũng xác nhận (isInternetReachable === false)
+      // thì chắc chắn là không có mạng, trả về false ngay.
+      if (state.isInternetReachable === false) return false
     }
 
     // 4. Quyết định cuối cùng: 
-    // Nếu isConnected vẫn là true, ta nên cho phép tiếp tục (đặc biệt quan trọng trên Simulator).
-    // Nếu mạng thực sự hỏng, request API sau đó sẽ tự động throw error.
+    // Nếu isInternetReachable là null (đang check/Simulator cũ), ta tạm tin vào isConnected.
     return state.isConnected !== false
   } catch {
     // Fail-safe: Nếu gặp lỗi trong lúc check, hãy cho phép tiếp tục để không chặn người dùng oan uổng
