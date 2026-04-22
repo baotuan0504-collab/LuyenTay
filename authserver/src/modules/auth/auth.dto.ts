@@ -5,7 +5,7 @@ export class LoginRequestDto {
   password: string
   deviceId?: string
   constructor(data: any) {
-    this.email = data.email
+    this.email = data.email?.trim()
     this.password = data.password
     this.deviceId = data.deviceId
   }
@@ -30,7 +30,7 @@ export class RegisterStep2Dto {
   email: string
   password: string
   constructor(data: any) {
-    this.email = data.email
+    this.email = data.email?.trim()
     this.password = data.password
   }
 }
@@ -40,7 +40,7 @@ export class RegisterStep3Dto {
   email: string
   otp: string
   constructor(data: any) {
-    this.email = data.email
+    this.email = data.email?.trim()
     this.otp = data.otp
   }
 }
@@ -59,7 +59,7 @@ export class RegisterRequestDto {
     this.lastName = data.lastName
     this.birthDate = data.birthDate
     this.gender = data.gender
-    this.email = data.email
+    this.email = data.email?.trim()
     this.password = data.password
     this.otp = data.otp
   }
@@ -92,7 +92,7 @@ export class VerifyTokenResponseDto {
 export class ForgotPasswordSendOtpDto {
   email: string
   constructor(data: any) {
-    this.email = data.email
+    this.email = data.email?.trim()
   }
 }
 

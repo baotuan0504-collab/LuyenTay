@@ -35,7 +35,7 @@ export class AuthService {
   async refreshToken(rt: string) {
     const userId = await redis.get(`refresh_token:${rt}`)
     if (!userId) throw new Error("Invalid or expired refresh token")
-    
+
     await redis.del(`refresh_token:${rt}`)
     const tokens = await this.createTokenPair(userId)
     return tokens
@@ -68,10 +68,10 @@ export class AuthService {
   async register(dto: RegisterRequestDto) {
     const existingUser = await User.findOne({ email: dto.email })
     if (existingUser) throw new Error("Email already in use")
-    
+
     const otpInRedis = await redis.get(`otp:${dto.email}`)
     if (!otpInRedis || otpInRedis !== dto.otp) {
-       throw new Error(`OTP không hợp lệ hoặc đã hết hạn.`)
+      throw new Error(`OTP không hợp lệ hoặc đã hết hạn.`)
     }
 
     await redis.del(`otp:${dto.email}`)
@@ -94,6 +94,10 @@ export class AuthService {
   }
 
   async logout(refreshToken: string) {
+    const userId = await redis.get(`refresh_token:${refreshToken}`)
+    if (userId) {
+      await redis.del(`active_session:${userId}`)
+    }
     await redis.del(`refresh_token:${refreshToken}`)
   }
 
@@ -174,6 +178,13 @@ export class AuthService {
   }
 
   private async createTokenPair(userId: string) {
+    // SINGLE DEVICE SESSION LOGIC
+    const activeSessionKey = `active_session:${userId}`
+    const oldTokenKey = await redis.get(activeSessionKey)
+    if (oldTokenKey) {
+      await redis.del(oldTokenKey)
+    }
+
     const accessToken = signToken({ userId })
     await User.findByIdAndUpdate(userId, {
       $set: { lastAccessToken: accessToken },
@@ -182,6 +193,10 @@ export class AuthService {
     const refreshSecret = generateRefreshToken()
     const refreshTokenKey = `refresh_token:${refreshSecret}`
     await redis.set(refreshTokenKey, userId.toString(), "EX", 30 * 24 * 60 * 60)
+    
+    // Cập nhật phiên đăng nhập mới
+    await redis.set(activeSessionKey, refreshTokenKey, "EX", 30 * 24 * 60 * 60)
+
     return {
       accessToken,
       refreshToken: refreshSecret,
