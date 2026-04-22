@@ -86,12 +86,12 @@ export async function verifySignature(
   })
 
   if (signature !== expectedSignature) {
-    console.log("[DEBUG] Backend Signature Mismatch:", {
+    console.log("[DEBUG] Backend Signature Mismatch!", {
       path,
       timestamp,
+      secret_preview: token?.substring(0, 15) + "...",
       expected: expectedSignature,
-      received: signature,
-      headers: req.headers,
+      received: signature
     })
     return res.status(401).json({ 
       message: "Invalid signature",

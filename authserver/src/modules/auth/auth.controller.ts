@@ -79,10 +79,16 @@ export const logout = async (req: Request, res: Response) => {
 
 export const verifyToken = async (req: Request, res: Response) => {
   try {
+    const { token } = req.body
+    console.log("[AuthServer] Verifying token:", token?.substring(0, 20) + "...")
+    
     const dto = new VerifyTokenRequestDto(req.body)
     const result = await authService.verifyToken(dto)
+    
+    console.log("[AuthServer] Verify Success for userId:", result.userId)
     res.json(result)
   } catch (err: any) {
+    console.error("[AuthServer] Verify Failed:", err.message)
     res.status(401).json({ message: err.message })
   }
 }

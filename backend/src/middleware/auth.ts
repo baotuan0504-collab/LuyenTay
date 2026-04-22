@@ -37,6 +37,9 @@ export async function protectRoute(
       body: bodyStr,
     })
 
+    console.log(
+      `[protectRoute] Calling AuthServer /verify with token: ${token.substring(0, 15)}...`
+    )
     // Gọi sang authserver để xác thực token
     const response = await axios.post(`${AUTHSERVER_URL}/api/auth/verify`, bodyObj, {
       headers: {
@@ -48,18 +51,9 @@ export async function protectRoute(
         "authorization": `Bearer ${token}`
       }
     })
-    console.log(
-      "[protectRoute] ĐÃ QUA XÁC THỰC, userId:",
-      response.data?.userId,
-    )
-    // Log để debug service-to-service
-    console.log(
-      "[protectRoute] Call:",
-      `${AUTHSERVER_URL}/api/auth/verify`,
-      "token:",
-      token,
-    )
-    console.log("[protectRoute] Response:", response.data)
+    
+    console.log("[protectRoute] AuthServer Response Status:", response.status)
+    console.log("[protectRoute] AuthServer Data:", response.data)
     if (!response.data || !response.data.userId) {
       return res.status(401).json({ message: "Unauthorized" })
     }
