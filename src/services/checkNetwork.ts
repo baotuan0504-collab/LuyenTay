@@ -9,21 +9,40 @@ export async function isNetworkAvailable(): Promise<boolean> {
     let state = await NetInfo.fetch()
 
     // 1. Nếu không có kết nối vật lý (tắt Wifi/4G), báo lỗi ngay
-    if (!state.isConnected) return false
+    if (state.isConnected === false) return false
 
-    // 2. Nếu có kết nối nhưng báo không có Internet (isInternetReachable = false)
-    // Trường hợp này hay xảy ra khi vừa bật mạng lại, thư viện chưa kịp cập nhật trạng thái "Reachable"
-    if (state.isInternetReachable === false) {
-      // Đợi 1.5 giây để thư viện thực hiện ping kiểm tra internet thực tế
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+    // 2. Nếu NetInfo xác nhận có Internet, trả về true luôn
+    if (state.isInternetReachable === true) return true
+
+    // 3. Trường hợp isInternetReachable là false hoặc null (thường gặp trên Simulator hoặc vừa bật lại mạng)
+    // Ta thực hiện một HEAD request thực tế để kiểm tra xem có "thông" mạng thật không.
+    // Điều này chính xác hơn việc đợi setTimeout 1.5s.
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000)
+
+      const response = await fetch("https://www.google.com", {
+        method: "HEAD",
+        signal: controller.signal,
+        cache: "no-store",
+      })
+
+      clearTimeout(timeoutId)
+      if (response.ok || response.status) {
+        return true
+      }
+    } catch (e) {
+      // Nếu ping thất bại, thử fetch lại state một lần nữa
       state = await NetInfo.fetch()
     }
 
-    // 3. Sau khi đợi, nếu vẫn báo false thì mới thực sự là không có internet.
-    // Nếu là null (đang check) hoặc true thì đều cho qua.
-    return !!state.isConnected && state.isInternetReachable !== false
+    // 4. Quyết định cuối cùng: 
+    // Nếu isConnected vẫn là true, ta nên cho phép tiếp tục (đặc biệt quan trọng trên Simulator).
+    // Nếu mạng thực sự hỏng, request API sau đó sẽ tự động throw error.
+    return state.isConnected !== false
   } catch {
-    return false
+    // Fail-safe: Nếu gặp lỗi trong lúc check, hãy cho phép tiếp tục để không chặn người dùng oan uổng
+    return true
   }
 }
 
