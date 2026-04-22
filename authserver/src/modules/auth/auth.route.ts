@@ -21,7 +21,7 @@ authRootRouter.post("/register", register)
 authRootRouter.post("/logout", logout)
 authRootRouter.post("/refresh", refreshToken)
 authRootRouter.get("/me", protectRoute, getMe)
-authRootRouter.post("/verify-token", verifyToken)
+authRootRouter.post("/verify", verifyToken)
 
 // 2. Password Router: Luồng quên mật khẩu
 const authPasswordRouter = Router()
