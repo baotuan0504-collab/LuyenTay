@@ -14,14 +14,34 @@ export async function verifySignature(
   const signature = req.headers["x-signature"] as string
   const timestamp = req.headers["x-timestamp"] as string
   let token = req.headers["authorization"] as string
-  // Nếu là login/register, FE sẽ gửi 'none', backend sẽ dùng secret mặc định
-  if (!token || token === "none") token = "default_secret"
   const clientType = req.headers["x-client-type"]
   const deviceId = req.headers["x-device-id"]
   const idempotencyKey = req.headers["idempotency-key"]
 
+  // Chuẩn hóa path tương tự như bên dưới
+  const fullPathForVerify = req.originalUrl.split("?")[0]
+  const normalizedPath = "/" + fullPathForVerify.replace(/^\/api/, "").replace(/^\/+|\/+$/g, "")
+
+  // Đặc biệt cho API /refresh: Nếu FE gửi 'none' ở Authorization, ta lấy refreshToken từ body để làm secret ký
+  if (normalizedPath === "/auth/refresh" && (!token || token === "none")) {
+    token = req.body.refreshToken
+  }
+
+  // Nếu vẫn không có token, dùng secret mặc định
+  if (!token || token === "none") token = "default_secret"
+
   // Skip signature verification for OPTIONS requests (CORS pre-flight)
   if (req.method === "OPTIONS") {
+    return next()
+  }
+
+  // Chuẩn hóa path tương tự như bên dưới để kiểm tra bypass
+  const fullPathForBypass = req.originalUrl.split("?")[0]
+  const normalizedPathForBypass = "/" + fullPathForBypass.replace(/^\/api/, "").replace(/^\/+|\/+$/g, "")
+
+  // Bypass signature cho endpoint verify token (service-to-service) để gỡ lỗi
+  if (normalizedPathForBypass === "/auth/verify") {
+    console.log("[DEBUG] Bypassing signature for internal /auth/verify request")
     return next()
   }
 

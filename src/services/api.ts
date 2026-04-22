@@ -96,6 +96,8 @@ export const apiFetch = async (
   const handleResponse = (response: Response, data: any) => {
     if (!response.ok) {
       const message = data?.message || response.statusText || "Request failed"
+      console.log(`[API Error] ${response.status} - ${message} for ${endpoint}`)
+      
       if (response.status === 429) {
         Alert.alert("Thông báo", message)
         const error = new ApiError(message, response.status)
@@ -147,13 +149,15 @@ export const apiFetch = async (
         const refreshData = await refreshRes.json()
         const newToken = refreshData.accessToken
         
+        console.log(`[Auth] Refresh Success. New Token: ${newToken.substring(0, 15)}...`)
+        
         await SecureStore.setItemAsync("auth_accessToken", newToken)
         await SecureStore.setItemAsync("auth_refreshToken", refreshData.refreshToken)
 
         processQueue(null, newToken)
         isRefreshing = false
 
-        // Thử lại request hiện tại bằng token mới
+        console.log(`[Auth] Retrying original request: ${endpoint}`)
         const retry = await executeRequest(newToken)
         return handleResponse(retry.response, retry.data)
       } catch (err) {
