@@ -1,8 +1,10 @@
+// Đăng xuất: Xóa refreshToken khỏi Redis và collection RefreshToken (nếu có)
 import bcrypt from "bcryptjs"
 import { validatePassword } from "../../utils/validatePassword"
 // Gửi OTP quên mật khẩu
 import { Request, Response } from "express"
 import redis from "../../config/redis"
+import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
 import { IUser, User } from "../../models/User"
 import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
@@ -11,7 +13,6 @@ import {
   VerifyTokenRequestDto,
 } from "./auth.dto"
 import { AuthService } from "./auth.service"
-import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
 
 const service = new AuthService()
 
@@ -253,7 +254,8 @@ export const forgotPasswordVerifyOtpOnly = async (
       if (nowLocked) {
         await redis.del(`forgot_otp:${email}`)
         return res.status(429).json({
-          message: "Bạn đã nhập sai quá 3 lần. Chức năng OTP đã bị khóa trong 1 giờ.",
+          message:
+            "Bạn đã nhập sai quá 3 lần. Chức năng OTP đã bị khóa trong 1 giờ.",
         })
       }
 
@@ -271,5 +273,36 @@ export const forgotPasswordVerifyOtpOnly = async (
     return res.status(200).json({ message: "OTP hợp lệ", success: true })
   } catch (err) {
     return res.status(500).json({ message: "Lỗi server" })
+  }
+}
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // Lấy refreshToken từ body, header hoặc cookie
+    const refreshToken =
+      req.body.refreshToken ||
+      req.headers["x-refresh-token"] ||
+      req.cookies?.refreshToken
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Missing refreshToken" })
+    }
+
+    // Xóa refreshToken khỏi Redis
+    await redis.del(`refresh_token:${refreshToken}`)
+
+    // Nếu có lưu trong collection RefreshToken thì xóa luôn
+    try {
+      const { RefreshToken } = await import("../../models/RefreshToken")
+      await RefreshToken.deleteMany({ tokenHash: refreshToken })
+    } catch (e) {
+      // Nếu không dùng collection hoặc lỗi import thì bỏ qua
+    }
+
+    // Nếu muốn xóa toàn bộ phiên đăng nhập của user (logout all), có thể xóa theo userId
+    // Ví dụ: await redis.del(`user_sessions:${userId}`)
+
+    return res.json({ success: true, message: "Logged out successfully" })
+  } catch (err) {
+    return res.status(500).json({ message: "Internal server error" })
   }
 }

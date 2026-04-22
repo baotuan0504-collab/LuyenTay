@@ -1,6 +1,8 @@
+// Đăng xuất: Xóa refreshToken khỏi Redis và collection RefreshToken (nếu có)
 import type { NextFunction, Response } from "express"
 import redis from "../config/redis"
 import type { AuthRequest } from "../middleware/auth"
+import { RefreshToken } from "../models/RefreshToken"
 import { User } from "../models/User"
 import {
   generateRefreshToken,
@@ -8,8 +10,6 @@ import {
   signToken,
   verifyPassword,
 } from "../utils/auth"
-
-const REFRESH_TOKEN_EXPIRE_MS = 30 * 24 * 60 * 60 * 1000
 
 const buildUserResponse = (user: any) => ({
   id: user._id.toString(),
@@ -151,5 +151,34 @@ export async function refreshToken(
   } catch (error) {
     res.status(500).json({ message: "Internal server error" })
     next(error)
+  }
+}
+
+export async function logout(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    // Lấy refreshToken từ body, header hoặc cookie
+    const refreshToken =
+      req.body.refreshToken ||
+      req.headers["x-refresh-token"] ||
+      req.cookies?.refreshToken
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Missing refreshToken" })
+    }
+
+    // Xóa refreshToken khỏi Redis
+    await redis.del(`refresh_token:${refreshToken}`)
+
+    // Nếu có lưu trong collection RefreshToken thì xóa luôn
+    try {
+      await RefreshToken.deleteMany({ tokenHash: refreshToken })
+    } catch (e) {
+      // Nếu không dùng collection hoặc lỗi import thì bỏ qua
+    }
+  } catch {
+    console.log("Error during logout")
   }
 }

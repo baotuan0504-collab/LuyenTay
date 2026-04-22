@@ -4,13 +4,15 @@ import {
   forgotPasswordVerifyOtp,
   forgotPasswordVerifyOtpOnly,
   login,
+  logout,
   register,
   trustDevice,
   verifyLoginOtp,
-  verifyToken,
+  verifyToken
 } from "./auth.controller"
 
 const router = Router()
+router.post("/logout", logout)
 
 router.post("/login", login)
 router.post("/register", register)

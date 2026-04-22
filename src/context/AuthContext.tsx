@@ -2,6 +2,7 @@
 
 import {
   login,
+  logout as logoutService,
   refreshToken as refreshTokenService,
   register,
 } from "@/services/auth.service"
@@ -190,6 +191,10 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   }
 
   const signOut = async () => {
+    // Gọi API logout nếu có refreshToken
+    if (refreshToken) {
+      await logoutService(refreshToken)
+    }
     setUser(null)
     setAccessToken(null)
     setRefreshToken(null)
