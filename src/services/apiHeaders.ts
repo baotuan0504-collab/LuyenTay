@@ -137,24 +137,30 @@ export async function getDefaultApiHeaders({
   const normalizedPath =
     "/" + (path || "").split("?")[0].replace(/^\/+|\/+$/g, "")
 
-  // 7. Tạo signature
-  const signature = buildSignature({
-    method: method.toUpperCase(),
-    path: normalizedPath,
-    timestamp,
-    body: bodyString,
-    secret,
-  })
-
-  return {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "X-Client-Type": "mobile",
-    "X-Device-Id": deviceId,
-    "Accept-Language": "vi",
-    "Idempotency-Key": idempotencyKey,
-    "X-Timestamp": timestamp,
-    "X-Signature": signature,
-    "Authorization": token ? String(token) : "none",
-  }
+    // 7. Tạo signature
+    const signature = buildSignature({
+      method: method.toUpperCase(),
+      path: normalizedPath,
+      timestamp,
+      body: bodyString,
+      secret,
+    })
+  
+    // 8. Định dạng Header Authorization (phải có Bearer cho Backend)
+    let authHeader = "none"
+    if (token && token !== "none") {
+      authHeader = token.startsWith("Bearer ") ? token : `Bearer ${token}`
+    }
+  
+    return {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "X-Client-Type": "mobile",
+      "X-Device-Id": deviceId,
+      "Accept-Language": "vi",
+      "Idempotency-Key": idempotencyKey,
+      "X-Timestamp": timestamp,
+      "X-Signature": signature,
+      "Authorization": authHeader,
+    }
 }
