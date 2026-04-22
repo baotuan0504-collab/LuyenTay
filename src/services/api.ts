@@ -93,34 +93,49 @@ export const apiFetch = async (
     return { response, data }
   }
 
+  const handleResponse = (response: Response, data: any) => {
+    if (!response.ok) {
+      const message = data?.message || response.statusText || "Request failed"
+      if (response.status === 429) {
+        Alert.alert("Thông báo", message)
+        const error = new ApiError(message, response.status)
+        error.handled = true
+        throw error
+      }
+      throw new ApiError(message, response.status)
+    }
+    return data
+  }
+
   try {
     let { response, data } = await executeRequest()
 
-    // PHẦN XỬ LÝ HÀNG ĐỢI (QUEUE) KHI TOKEN HẾT HẠN
+    // 1. Nếu lỗi 401 (và không phải API đặc biệt), tiến hành refresh token
     if (response.status === 401 && !isAuthNoToken) {
       if (isRefreshing) {
-        // Đã có request đang refresh, ta xếp hàng đợi (Push vào Queue)
+        // Xếp hàng đợi nếu đang có tiến trình refresh khác chạy
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: async (token: string) => {
-              const retry = await executeRequest(token)
-              resolve(retry.data)
+              try {
+                const retry = await executeRequest(token)
+                resolve(handleResponse(retry.response, retry.data))
+              } catch (err) {
+                reject(err)
+              }
             },
             reject: (err: any) => reject(err),
           })
         })
       }
 
-      // Chưa có ai refresh, ta nhận nhiệm vụ refresh (Khóa isRefreshing)
       isRefreshing = true
 
       try {
         const storedRefreshToken = await SecureStore.getItemAsync("auth_refreshToken")
         if (!storedRefreshToken) throw new Error("No Refresh Token")
 
-        // Tạo headers và signature RIÊNG cho request refresh (không trộn với options.headers của request gốc)
         const refreshHeaders = await getHeaders(storedRefreshToken, "/auth/refresh")
-        
         const refreshRes = await fetch(BASE_URL("/auth/refresh") + "/auth/refresh", {
           method: "POST",
           headers: refreshHeaders,
@@ -135,13 +150,12 @@ export const apiFetch = async (
         await SecureStore.setItemAsync("auth_accessToken", newToken)
         await SecureStore.setItemAsync("auth_refreshToken", refreshData.refreshToken)
 
-        // Phục hồi tất cả các request đang đợi trong Queue
         processQueue(null, newToken)
         isRefreshing = false
 
-        // Thử lại chính request hiện tại
+        // Thử lại request hiện tại bằng token mới
         const retry = await executeRequest(newToken)
-        return retry.data
+        return handleResponse(retry.response, retry.data)
       } catch (err) {
         processQueue(err, null)
         isRefreshing = false
@@ -149,18 +163,8 @@ export const apiFetch = async (
       }
     }
 
-    if (!response.ok) {
-      const message = data?.message || response.statusText || "Request failed"
-      if (response.status === 429) {
-        Alert.alert("Thông báo", message)
-        const error = new ApiError(message, response.status)
-        error.handled = true
-        throw error
-      }
-      throw new ApiError(message, response.status)
-    }
-
-    return data
+    // 2. Xử lý phản hồi (thành công hoặc lỗi khác)
+    return handleResponse(response, data)
   } catch (error) {
     throw error
   }
