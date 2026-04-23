@@ -57,28 +57,30 @@ export const apiFetch = async (
     endpoint === "/auth/refresh"
 
   const getHeaders = async (customToken?: string, customPath?: string) => {
-    let token = customToken
-    let method = customPath ? "POST" : (options.method || "GET").toUpperCase()
-    let path = customPath || endpoint
-    let body = customPath
-      ? JSON.stringify({ refreshToken: customToken })
-      : options.body
-        ? typeof options.body === "string"
-          ? options.body
-          : JSON.stringify(options.body)
-        : undefined
+    let token: string | undefined = customToken
+    let method: string = customPath
+      ? "POST"
+      : (options.method || "GET").toUpperCase()
+    let path: string = customPath || endpoint
+    let body: string | undefined
 
     // Đảm bảo khi gọi /auth/refresh thì path, body, token đều đúng chuẩn
     if (
       isAuthNoToken &&
-      (path === "/auth/refresh" || endpoint === "/auth/refresh")
+      (customPath === "/auth/refresh" ||
+        path === "/auth/refresh" ||
+        endpoint === "/auth/refresh")
     ) {
-      // customToken chính là refreshToken
       token = customToken
       path = "/auth/refresh"
       method = "POST"
       body = JSON.stringify({ refreshToken: customToken })
     } else {
+      body = options.body
+        ? typeof options.body === "string"
+          ? options.body
+          : JSON.stringify(options.body)
+        : undefined
       if (!token) {
         token =
           (options.headers as any)?.["Authorization"] ||
