@@ -133,6 +133,9 @@ export const apiFetch = async (
         body: refreshBody,
         token,
       })
+      // Log headers and body for debugging signature issues
+      console.log("[DEBUG][/auth/refresh] Request Headers:", headers)
+      console.log("[DEBUG][/auth/refresh] Request Body:", refreshBody)
       const response = await fetch(url, {
         method: "POST",
         headers,
