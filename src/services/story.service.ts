@@ -17,16 +17,16 @@ export interface StoryResponse {
   updatedAt: string
 }
 
-export const createStory = async (
-  storyData: { imageUrl: string; videoUrl?: string; description?: string },
-  token: string,
-): Promise<StoryResponse | null> => {
+export const createStory = async (storyData: {
+  imageUrl: string
+  videoUrl?: string
+  description?: string
+}): Promise<StoryResponse | null> => {
   try {
     const data = await apiFetch("/stories", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(storyData),
     })
@@ -42,15 +42,10 @@ export const createStory = async (
   }
 }
 
-export const getStories = async (
-  token: string,
-): Promise<StoryResponse[] | null> => {
+export const getStories = async (): Promise<StoryResponse[] | null> => {
   try {
     const data = await apiFetch("/stories", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data as StoryResponse[]
   } catch (error: any) {

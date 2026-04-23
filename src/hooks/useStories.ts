@@ -37,7 +37,7 @@ export const useStories = () => {
 
     setIsLoading(true)
     try {
-      const storiesData = await storyService.getStories(accessToken)
+      const storiesData = await storyService.getStories()
       if (!storiesData) {
         setStories([])
         setIsLoading(false)
@@ -90,14 +90,11 @@ export const useStories = () => {
       imageUrl = await uploadStoryImage(user.id, imageUri)
     }
 
-    const result = await storyService.createStory(
-      {
-        imageUrl,
-        videoUrl,
-        description: description || "",
-      },
-      accessToken,
-    )
+    const result = await storyService.createStory({
+      imageUrl,
+      videoUrl,
+      description: description || "",
+    })
     if (!result) {
       // Alert already shown in service
       return

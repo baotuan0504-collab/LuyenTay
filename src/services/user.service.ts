@@ -1,16 +1,12 @@
 import { Alert } from "react-native"
 import { apiFetch } from "./api"
 
-export const updateProfile = async (
-  profileData: Record<string, unknown>,
-  token: string,
-) => {
+export const updateProfile = async (profileData: Record<string, unknown>) => {
   try {
     const data = await apiFetch("/users/profile", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(profileData),
     })
@@ -23,13 +19,10 @@ export const updateProfile = async (
   }
 }
 
-export const checkUsername = async (username: string, token: string) => {
+export const checkUsername = async (username: string) => {
   try {
     const data = await apiFetch(`/users/check-username/${username}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data as { available: boolean }
   } catch (error: any) {
@@ -39,13 +32,10 @@ export const checkUsername = async (username: string, token: string) => {
   }
 }
 
-export const getUserById = async (userId: string, token: string) => {
+export const getUserById = async (userId: string) => {
   try {
     const data = await apiFetch(`/users/${userId}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data
   } catch (error: any) {
@@ -55,13 +45,10 @@ export const getUserById = async (userId: string, token: string) => {
   }
 }
 
-export const getUsers = async (token: string) => {
+export const getUsers = async () => {
   try {
     const data = await apiFetch("/users", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data as {
       _id: string
@@ -77,20 +64,13 @@ export const getUsers = async (token: string) => {
   }
 }
 
-export const searchUsers = async (
-  q: string,
-  token: string,
-  friendsOnly: boolean = false,
-) => {
+export const searchUsers = async (q: string, friendsOnly: boolean = false) => {
   try {
     const params = new URLSearchParams()
     if (q) params.append("q", q)
     if (friendsOnly) params.append("friendsOnly", "true")
     const data = await apiFetch(`/users/search?${params.toString()}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data as {
       _id: string

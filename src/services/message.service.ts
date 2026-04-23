@@ -1,22 +1,17 @@
-import { apiFetch } from "./api";
+import { apiFetch } from "./api"
 
-import type { ChatParticipant } from "./chat.service";
+import type { ChatParticipant } from "./chat.service"
 
 export interface MessageResponse {
-    _id: string;
-    chatId: string;
-    sender: ChatParticipant;
-    text: string;
-    createdAt: string;
+  _id: string
+  chatId: string
+  sender: ChatParticipant
+  text: string
+  createdAt: string
 }
 
-export const getMessages = async(
-    chatId: string,
-    token: string
+export const getMessages = async (
+  chatId: string,
 ): Promise<MessageResponse[]> => {
-    return apiFetch(`/messages/chat/${chatId}`, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
+  return apiFetch(`/messages/chat/${chatId}`)
 }

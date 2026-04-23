@@ -40,7 +40,9 @@ type AuthContextValue = {
   isLoggedOut: boolean
 }
 
-const AuthContext = createContext<AuthContextValue & { isRestoring: boolean } | undefined>(undefined)
+const AuthContext = createContext<
+  (AuthContextValue & { isRestoring: boolean }) | undefined
+>(undefined)
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const navigation = useNavigation()
@@ -83,7 +85,10 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
             setAccessToken(data.accessToken ?? null)
             setRefreshToken(data.refreshToken ?? null)
             setUser(formatUser(data.user))
-            console.log("[DEBUG][AuthContext] user sau refresh:", formatUser(data.user))
+            console.log(
+              "[DEBUG][AuthContext] user sau refresh:",
+              formatUser(data.user),
+            )
             await saveAuthState(
               data.user ? formatUser(data.user) : null,
               data.accessToken ?? null,
@@ -215,7 +220,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       throw new Error("No authenticated user")
     }
 
-    const updatedUserRaw = await updateProfileService(profileData, accessToken)
+    const updatedUserRaw = await updateProfileService(profileData)
     const formattedUser = formatUser(updatedUserRaw)
     setUser(formattedUser)
     await saveAuthState(formattedUser, accessToken, refreshToken)

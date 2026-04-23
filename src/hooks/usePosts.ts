@@ -41,7 +41,7 @@ export const usePosts = () => {
 
     setIsLoading(true)
     try {
-      const postsData = await postService.getPosts(accessToken)
+      const postsData = await postService.getPosts()
       if (!postsData) {
         setPosts([])
         setIsLoading(false)
@@ -100,14 +100,11 @@ export const usePosts = () => {
     }
 
     // 2. Save metadata to Backend
-    const result = await postService.createPost(
-      {
-        imageUrl,
-        videoUrl,
-        description: description || "",
-      },
-      accessToken,
-    )
+    const result = await postService.createPost({
+      imageUrl,
+      videoUrl,
+      description: description || "",
+    })
     if (!result) {
       // Alert already shown in service
       return

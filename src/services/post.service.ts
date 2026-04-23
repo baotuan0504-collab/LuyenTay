@@ -20,16 +20,16 @@ export interface PostResponse {
   myReaction?: string | null
 }
 
-export const createPost = async (
-  postData: { imageUrl?: string; videoUrl?: string; description?: string },
-  token: string,
-): Promise<PostResponse | null> => {
+export const createPost = async (postData: {
+  imageUrl?: string
+  videoUrl?: string
+  description?: string
+}): Promise<PostResponse | null> => {
   try {
     const data = await apiFetch("/posts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(postData),
     })
@@ -45,15 +45,10 @@ export const createPost = async (
   }
 }
 
-export const getPosts = async (
-  token: string,
-): Promise<PostResponse[] | null> => {
+export const getPosts = async (): Promise<PostResponse[] | null> => {
   try {
     const data = await apiFetch("/posts", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     })
     return data as PostResponse[]
   } catch (error: any) {
@@ -67,22 +62,15 @@ export const getPosts = async (
   }
 }
 
-export const getPostDetail = async (
-  postId: string,
-  token: string,
-): Promise<PostResponse> => {
+export const getPostDetail = async (postId: string): Promise<PostResponse> => {
   const data = await apiFetch(`/posts/${postId}`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
   })
   return data as PostResponse
 }
 
 export const getCommentsByPost = async (
   postId: string,
-  token?: string,
   page = 1,
   limit = 20,
 ) => {
@@ -94,22 +82,17 @@ export const getCommentsByPost = async (
   })
   const data = await apiFetch(`/comments?${params.toString()}`, {
     method: "GET",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   return data
 }
 
-export const getNestedCommentsByPost = async (
-  postId: string,
-  token?: string,
-) => {
+export const getNestedCommentsByPost = async (postId: string) => {
   const params = new URLSearchParams({
     targetId: postId,
     targetType: "post",
   })
   const data = await apiFetch(`/comments/nested?${params.toString()}`, {
     method: "GET",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
   return data
 }
