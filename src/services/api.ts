@@ -124,8 +124,18 @@ export const apiFetch = async (
   }
 
   const executeRequest = async (token?: string) => {
-    const headers = await getHeaders(token)
-    const { headers: _obs, ...remainingOptions } = options
+    // Special handling for /auth/refresh: always use correct body
+    let headers = await getHeaders(token)
+    let fetchOptions = { ...options, headers }
+    if (isAuthNoToken && token && url.endsWith("/auth/refresh")) {
+      // Ensure body is always JSON.stringify({ refreshToken })
+      fetchOptions = {
+        ...fetchOptions,
+        method: "POST",
+        body: JSON.stringify({ refreshToken: token }),
+      }
+    }
+    const { headers: _obs, ...remainingOptions } = fetchOptions
     const response = await fetch(url, { ...remainingOptions, headers })
     const data = await response.json().catch(() => null)
     return { response, data }
