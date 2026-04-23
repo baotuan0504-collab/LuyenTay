@@ -42,6 +42,7 @@ type AuthContextValue = {
     otp: string,
     trustDevice?: boolean,
   ) => Promise<any>
+  isLoggedOut: boolean
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
+  const [isLoggedOut, setIsLoggedOut] = useState(false)
 
   const STORAGE_KEYS = {
     user: "auth_user",
@@ -191,14 +193,21 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   }
 
   const signOut = async () => {
+    // Đặt cờ logged out ngay lập tức để chặn mọi API call
+    setIsLoggedOut(true)
     // Gọi API logout nếu có refreshToken
     if (refreshToken) {
-      await logoutService(refreshToken)
+      try {
+        await logoutService(refreshToken)
+      } catch (e) {
+        // Ignore errors, proceed to clear state
+      }
     }
     setUser(null)
     setAccessToken(null)
     setRefreshToken(null)
     await saveAuthState(null, null, null)
+    // Optionally: add navigation to login screen here if needed
   }
 
   const updateUser = async (profileData: Record<string, unknown>) => {
@@ -245,6 +254,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         updateUser,
         refreshAccessToken,
         verifyLoginOtp,
+        isLoggedOut,
       }}>
       {children}
     </AuthContext.Provider>
