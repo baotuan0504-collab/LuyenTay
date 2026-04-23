@@ -58,27 +58,34 @@ export const apiFetch = async (
 
   const getHeaders = async (customToken?: string, customPath?: string) => {
     let token = customToken
-    if (!token) {
-      token =
-        (options.headers as any)?.["Authorization"] ||
-        (options.headers as any)?.["authorization"]
-      if (token && token.startsWith("Bearer ")) {
-        token = token.replace(/^Bearer\s+/i, "")
-      }
-    }
-    if (isAuthNoToken && !customToken) token = undefined
-    if (!token && !isAuthNoToken) {
-      token = (await SecureStore.getItemAsync("auth_accessToken")) || ""
-    }
-    const method = customPath ? "POST" : (options.method || "GET").toUpperCase()
-    const path = customPath || endpoint
-    const body = customPath
+    let method = customPath ? "POST" : (options.method || "GET").toUpperCase()
+    let path = customPath || endpoint
+    let body = customPath
       ? JSON.stringify({ refreshToken: customToken })
       : options.body
         ? typeof options.body === "string"
           ? options.body
           : JSON.stringify(options.body)
         : undefined
+
+    // Đảm bảo khi gọi /auth/refresh thì token là refreshToken, không phải accessToken
+    if (isAuthNoToken && path === "/auth/refresh") {
+      // customToken chính là refreshToken
+      token = customToken
+    } else {
+      if (!token) {
+        token =
+          (options.headers as any)?.["Authorization"] ||
+          (options.headers as any)?.["authorization"]
+        if (token && token.startsWith("Bearer ")) {
+          token = token.replace(/^Bearer\s+/i, "")
+        }
+      }
+      if (!token && !isAuthNoToken) {
+        token = (await SecureStore.getItemAsync("auth_accessToken")) || ""
+      }
+    }
+
     const defaultHeaders = await getDefaultApiHeaders({
       token,
       method,
