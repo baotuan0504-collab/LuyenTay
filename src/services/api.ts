@@ -68,10 +68,16 @@ export const apiFetch = async (
           : JSON.stringify(options.body)
         : undefined
 
-    // Đảm bảo khi gọi /auth/refresh thì token là refreshToken, không phải accessToken
-    if (isAuthNoToken && path === "/auth/refresh") {
+    // Đảm bảo khi gọi /auth/refresh thì path, body, token đều đúng chuẩn
+    if (
+      isAuthNoToken &&
+      (path === "/auth/refresh" || endpoint === "/auth/refresh")
+    ) {
       // customToken chính là refreshToken
       token = customToken
+      path = "/auth/refresh"
+      method = "POST"
+      body = JSON.stringify({ refreshToken: customToken })
     } else {
       if (!token) {
         token =
@@ -99,7 +105,13 @@ export const apiFetch = async (
     for (const [k, v] of Object.entries(baseHeaders)) {
       headers[k.toLowerCase()] = v as string
     }
-    if (token && token !== "none") {
+    // Luôn đảm bảo Authorization là Bearer <refreshToken> khi refresh
+    if (
+      isAuthNoToken &&
+      (path === "/auth/refresh" || endpoint === "/auth/refresh")
+    ) {
+      headers["authorization"] = token ? `Bearer ${token}` : "none"
+    } else if (token && token !== "none") {
       headers["authorization"] = token.startsWith("Bearer ")
         ? token
         : `Bearer ${token}`
