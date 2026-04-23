@@ -11,6 +11,7 @@ import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
 import type { PropsWithChildren } from "react"
 import { createContext, useContext, useEffect, useState } from "react"
+import { setGlobalIsLoggedOut, setTokenUpdateListener } from "@/services/api"
 
 type AuthUser = {
   id: string
@@ -63,9 +64,19 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     if (!userData) return null
     return {
       ...userData,
-      id: userData.id || userData._id, // Ưu tiên id, nếu không có thì dùng _id
+      id: userData.id || userData._id,
     }
   }
+
+  // Đăng ký listener để nhận update từ api.ts khi token được refresh tự động
+  useEffect(() => {
+    setTokenUpdateListener(({ accessToken, refreshToken, user }) => {
+      console.log("[AuthContext] Syncing token update from API interceptor")
+      if (accessToken) setAccessToken(accessToken)
+      if (refreshToken) setRefreshToken(refreshToken)
+      if (user) setUser(formatUser(user))
+    })
+  }, [])
 
   useEffect(() => {
     const restoreAuth = async () => {
@@ -78,32 +89,48 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
             SecureStore.getItemAsync(STORAGE_KEYS.refreshToken),
           ])
 
-        if (storedRefreshToken) {
-          setRefreshToken(storedRefreshToken)
+        console.log("[AuthContext] Restoring session from storage...")
+
+        // Restore immediately to satisfy UI requirements
+        if (storedAccessToken) setAccessToken(storedAccessToken)
+        if (storedRefreshToken) setRefreshToken(storedRefreshToken)
+        if (storedUser) {
+          try {
+            setUser(formatUser(JSON.parse(storedUser)))
+          } catch (e) {
+            console.error("Error parsing stored user:", e)
+          }
+        }
+
+        /**
+         * Logic mới:
+         * Không ép buộc refresh token ngay lập tức khi mở app nếu accessToken vẫn còn.
+         * Điều này giúp app load nhanh hơn và tránh bị logout oan uổng khi reload (r) 
+         * trong môi trường dev nếu network chập chờn.
+         * 
+         * apiFetch sẽ tự động xử lý refresh khi một API thực tế trả về 401.
+         */
+        if (storedRefreshToken && !storedAccessToken) {
+          console.log("[AuthContext] Access token missing, attempting background refresh...")
           try {
             const data = await refreshTokenService(storedRefreshToken)
             setAccessToken(data.accessToken ?? null)
             setRefreshToken(data.refreshToken ?? null)
-            setUser(formatUser(data.user))
-            console.log(
-              "[DEBUG][AuthContext] user sau refresh:",
-              formatUser(data.user),
-            )
+            const fUser = formatUser(data.user)
+            setUser(fUser)
             await saveAuthState(
-              data.user ? formatUser(data.user) : null,
+              fUser,
               data.accessToken ?? null,
               data.refreshToken ?? null,
             )
           } catch (err) {
-            await signOut()
+            console.warn("[AuthContext] Background refresh failed during restore")
+            // Không signOut ở đây, để user tiếp tục với những gì đang có 
+            //(nếu server chỉ lỗi tạm thời)
           }
-        } else if (storedUser) {
-          setUser(formatUser(JSON.parse(storedUser)))
-        } else if (storedAccessToken) {
-          setAccessToken(storedAccessToken)
         }
       } catch (error) {
-        console.error("Error restoring auth state:", error)
+        console.error("[AuthContext] Error restoring auth state:", error)
       } finally {
         setIsRestoring(false)
       }
@@ -163,7 +190,6 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
 
   const signIn = async (email: string, password: string) => {
     const data = await login(email, password)
-    // If requireOtp, do not set user/token yet, just return data
     if (data && data.requireOtp) {
       return data
     }
@@ -198,21 +224,19 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   }
 
   const signOut = async () => {
-    // Đặt cờ logged out ngay lập tức để chặn mọi API call
     setIsLoggedOut(true)
-    // Gọi API logout nếu có refreshToken
+    setGlobalIsLoggedOut(true)
     if (refreshToken) {
       try {
         await logoutService(refreshToken)
       } catch (e) {
-        // Ignore errors, proceed to clear state
+        // Ignore errors
       }
     }
     setUser(null)
     setAccessToken(null)
     setRefreshToken(null)
     await saveAuthState(null, null, null)
-    // Optionally: add navigation to login screen here if needed
   }
 
   const updateUser = async (profileData: Record<string, unknown>) => {
@@ -235,13 +259,14 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       const data = await refreshTokenService(refreshToken)
       setAccessToken(data.accessToken ?? null)
       setRefreshToken(data.refreshToken ?? null)
+      const fUser = formatUser(data.user)
+      if (fUser) setUser(fUser)
       await saveAuthState(
-        user,
+        fUser || user,
         data.accessToken ?? null,
         data.refreshToken ?? null,
       )
     } catch (error) {
-      // If refresh fails, sign out
       await signOut()
       throw error
     }
@@ -266,6 +291,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     </AuthContext.Provider>
   )
 }
+
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {

@@ -22,6 +22,18 @@ const BASE_URL = (endpoint: string): string => {
 let isRefreshing = false
 let failedQueue: any[] = []
 
+// Listener để thông báo cho AuthContext khi token thay đổi
+type TokenUpdateListener = (data: {
+  accessToken: string | null
+  refreshToken: string | null
+  user?: any
+}) => void
+let tokenUpdateListener: TokenUpdateListener | null = null
+
+export const setTokenUpdateListener = (listener: TokenUpdateListener) => {
+  tokenUpdateListener = listener
+}
+
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -56,39 +68,27 @@ export const apiFetch = async (
     endpoint === "/auth/register" ||
     endpoint === "/auth/refresh"
 
-  // Always get the latest refreshToken from SecureStore for /auth/refresh
   const getHeaders = async (customToken?: string, customPath?: string) => {
     let token: string | undefined = customToken
-    let method: string = customPath
-      ? "POST"
-      : (options.method || "GET").toUpperCase()
     let path: string = customPath || endpoint
-    let body: string | undefined
+    let method: string = (
+      customPath ? "POST" : options.method || "GET"
+    ).toUpperCase()
+    let body: string | undefined = options.body
+      ? typeof options.body === "string"
+        ? options.body
+        : JSON.stringify(options.body)
+      : undefined
 
-    if (
-      isAuthNoToken &&
-      (customPath === "/auth/refresh" ||
-        path === "/auth/refresh" ||
-        endpoint === "/auth/refresh")
-    ) {
-      // Always get the latest refreshToken from SecureStore
-      const storedToken = await SecureStore.getItemAsync("auth_refreshToken")
+    // Nếu là refresh token request (dù là gọi trực tiếp hay từ interceptor)
+    if (path === "/auth/refresh" || customPath === "/auth/refresh") {
+      const storedToken =
+        customToken || (await SecureStore.getItemAsync("auth_refreshToken"))
       token = storedToken || ""
       path = "/auth/refresh"
       method = "POST"
       body = JSON.stringify({ refreshToken: token })
-      // Log for debugging
-      console.log("[DEBUG][/auth/refresh] refreshToken for signature:", token)
-      console.log(
-        "[DEBUG][/auth/refresh] refreshToken in body:",
-        JSON.parse(body).refreshToken,
-      )
     } else {
-      body = options.body
-        ? typeof options.body === "string"
-          ? options.body
-          : JSON.stringify(options.body)
-        : undefined
       if (!token) {
         token =
           (options.headers as any)?.["Authorization"] ||
@@ -108,67 +108,43 @@ export const apiFetch = async (
       path,
       body,
     })
+
     const headers: Record<string, string> = {}
-    const baseHeaders = customPath
-      ? defaultHeaders
-      : { ...defaultHeaders, ...options.headers }
+    const baseHeaders = { ...defaultHeaders, ...options.headers }
     for (const [k, v] of Object.entries(baseHeaders)) {
       headers[k.toLowerCase()] = v as string
     }
-    // Luôn đảm bảo Authorization là Bearer <refreshToken> khi refresh
-    if (
-      isAuthNoToken &&
-      (path === "/auth/refresh" || endpoint === "/auth/refresh")
-    ) {
-      headers["authorization"] = token ? `Bearer ${token}` : "none"
-    } else if (token && token !== "none") {
+
+    // Luôn đảm bảo Authorization là Bearer <token>
+    if (token && token !== "none") {
       headers["authorization"] = token.startsWith("Bearer ")
         ? token
         : `Bearer ${token}`
     } else {
       headers["authorization"] = "none"
     }
-    return headers
+
+    return { headers, body }
   }
 
   const executeRequest = async (token?: string) => {
-    // Special handling for /auth/refresh: always use correct body and signature
-    if (isAuthNoToken && token && url.endsWith("/auth/refresh")) {
-      const refreshBody = JSON.stringify({ refreshToken: token })
-      const headers = await getDefaultApiHeaders({
-        method: "POST",
-        path: "/auth/refresh",
-        body: refreshBody,
-        token,
-      })
-      // Log headers and body for debugging signature issues
-      console.log("[DEBUG][/auth/refresh] Request Headers:", headers)
-      console.log("[DEBUG][/auth/refresh] Request Body:", refreshBody)
-      const response = await fetch(url, {
-        method: "POST",
-        headers,
-        body: refreshBody,
-      })
-      const data = await response.json().catch(() => null)
-      return { response, data }
-    } else {
-      let headers = await getHeaders(token)
-      let fetchOptions = { ...options, headers }
-      const { headers: _obs, ...remainingOptions } = fetchOptions
-      const response = await fetch(url, { ...remainingOptions, headers })
-      const data = await response.json().catch(() => null)
-      return { response, data }
-    }
+    const { headers, body } = await getHeaders(token)
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      body: body || options.body,
+    })
+    const data = await response.json().catch(() => null)
+    return { response, data }
   }
 
   const handleResponse = (response: Response, data: any) => {
     if (!response.ok) {
       const message = data?.message || response.statusText || "Request failed"
       console.log(`[API Error] ${response.status} - ${message} for ${endpoint}`)
-      // Always throw ApiError so caller can catch and Alert
       const error = new ApiError(message, response.status)
       if (response.status === 429) {
-        error.handled = false // Let caller decide to Alert
+        error.handled = false
       }
       throw error
     }
@@ -177,6 +153,8 @@ export const apiFetch = async (
 
   try {
     let { response, data } = await executeRequest()
+
+    // Tự động refresh token nếu gặp lỗi 401 (và không phải đang gọi API auth)
     if (response.status === 401 && !isAuthNoToken) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -193,44 +171,72 @@ export const apiFetch = async (
           })
         })
       }
+
       isRefreshing = true
+
       try {
         const storedRefreshToken =
           await SecureStore.getItemAsync("auth_refreshToken")
         if (!storedRefreshToken) throw new Error("No Refresh Token")
-        const refreshHeaders = await getHeaders(
-          storedRefreshToken,
-          "/auth/refresh",
-        )
-        const refreshRes = await fetch(
-          BASE_URL("/auth/refresh") + "/auth/refresh",
-          {
-            method: "POST",
-            headers: refreshHeaders,
-            body: JSON.stringify({ refreshToken: storedRefreshToken }),
-          },
-        )
+
+        // Gọi API refresh
+        const refreshUrl = BASE_URL("/auth/refresh") + "/auth/refresh"
+        const refreshBody = JSON.stringify({ refreshToken: storedRefreshToken })
+        const refreshHeaders = await getDefaultApiHeaders({
+          method: "POST",
+          path: "/auth/refresh",
+          body: refreshBody,
+          token: storedRefreshToken,
+        })
+
+        const refreshRes = await fetch(refreshUrl, {
+          method: "POST",
+          headers: refreshHeaders,
+          body: refreshBody,
+        })
+
         if (!refreshRes.ok) throw new Error("Refresh Failed")
+
         const refreshData = await refreshRes.json()
         const newToken = refreshData.accessToken
+        const newRefreshToken = refreshData.refreshToken
+
+        // Lưu vào SecureStore
         await SecureStore.setItemAsync("auth_accessToken", newToken)
-        await SecureStore.setItemAsync(
-          "auth_refreshToken",
-          refreshData.refreshToken,
-        )
+        await SecureStore.setItemAsync("auth_refreshToken", newRefreshToken)
+        if (refreshData.user) {
+          await SecureStore.setItemAsync(
+            "auth_user",
+            JSON.stringify(refreshData.user),
+          )
+        }
+
+        // Thông báo cho AuthContext cập nhật state
+        if (tokenUpdateListener) {
+          tokenUpdateListener({
+            accessToken: newToken,
+            refreshToken: newRefreshToken,
+            user: refreshData.user,
+          })
+        }
+
         processQueue(null, newToken)
         isRefreshing = false
+
+        // Thực hiện lại request ban đầu với token mới
         const retry = await executeRequest(newToken)
         return handleResponse(retry.response, retry.data)
       } catch (err) {
         processQueue(err, null)
         isRefreshing = false
+
         if (globalIsLoggedOut) {
           throw new ApiError("User is logged out", 401)
         }
         throw new ApiError("Session Expired", 401)
       }
     }
+
     return handleResponse(response, data)
   } catch (error) {
     throw error
