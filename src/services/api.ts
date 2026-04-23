@@ -124,21 +124,30 @@ export const apiFetch = async (
   }
 
   const executeRequest = async (token?: string) => {
-    // Special handling for /auth/refresh: always use correct body
-    let headers = await getHeaders(token)
-    let fetchOptions = { ...options, headers }
+    // Special handling for /auth/refresh: always use correct body and signature
     if (isAuthNoToken && token && url.endsWith("/auth/refresh")) {
-      // Ensure body is always JSON.stringify({ refreshToken })
-      fetchOptions = {
-        ...fetchOptions,
+      const refreshBody = JSON.stringify({ refreshToken: token })
+      const headers = await getDefaultApiHeaders({
         method: "POST",
-        body: JSON.stringify({ refreshToken: token }),
-      }
+        path: "/auth/refresh",
+        body: refreshBody,
+        token,
+      })
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body: refreshBody,
+      })
+      const data = await response.json().catch(() => null)
+      return { response, data }
+    } else {
+      let headers = await getHeaders(token)
+      let fetchOptions = { ...options, headers }
+      const { headers: _obs, ...remainingOptions } = fetchOptions
+      const response = await fetch(url, { ...remainingOptions, headers })
+      const data = await response.json().catch(() => null)
+      return { response, data }
     }
-    const { headers: _obs, ...remainingOptions } = fetchOptions
-    const response = await fetch(url, { ...remainingOptions, headers })
-    const data = await response.json().catch(() => null)
-    return { response, data }
   }
 
   const handleResponse = (response: Response, data: any) => {
