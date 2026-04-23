@@ -40,7 +40,7 @@ type AuthContextValue = {
   isLoggedOut: boolean
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+const AuthContext = createContext<AuthContextValue & { isRestoring: boolean } | undefined>(undefined)
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const navigation = useNavigation()
@@ -49,6 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
   const [isLoggedOut, setIsLoggedOut] = useState(false)
+  const [isRestoring, setIsRestoring] = useState(true)
 
   const STORAGE_KEYS = {
     user: "auth_user",
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
 
   useEffect(() => {
     const restoreAuth = async () => {
+      setIsRestoring(true)
       try {
         const [storedUser, storedAccessToken, storedRefreshToken] =
           await Promise.all([
@@ -81,13 +83,12 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
             setAccessToken(data.accessToken ?? null)
             setRefreshToken(data.refreshToken ?? null)
             setUser(formatUser(data.user))
+            console.log("[DEBUG][AuthContext] user sau refresh:", formatUser(data.user))
             await saveAuthState(
               data.user ? formatUser(data.user) : null,
               data.accessToken ?? null,
               data.refreshToken ?? null,
             )
-            // Không điều hướng về Home, chỉ cập nhật lại state và storage
-            // Đảm bảo sau khi refresh thành công, user vẫn ở đúng màn hình hiện tại
           } catch (err) {
             await signOut()
           }
@@ -98,6 +99,8 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         }
       } catch (error) {
         console.error("Error restoring auth state:", error)
+      } finally {
+        setIsRestoring(false)
       }
     }
     restoreAuth()
@@ -252,6 +255,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         refreshAccessToken,
         verifyLoginOtp,
         isLoggedOut,
+        isRestoring,
       }}>
       {children}
     </AuthContext.Provider>
