@@ -23,7 +23,7 @@ export interface PostResponse {
 export const createPost = async (
   postData: { imageUrl?: string; videoUrl?: string; description?: string },
   token: string,
-): Promise<PostResponse> => {
+): Promise<PostResponse | null> => {
   try {
     const data = await apiFetch("/posts", {
       method: "POST",
@@ -34,13 +34,20 @@ export const createPost = async (
       body: JSON.stringify(postData),
     })
     return data as PostResponse
-  } catch (error) {
-    console.error("Error creating post:", error)
-    throw error
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi khi tạo bài viết!"
+    try {
+      require("react-native").Alert.alert("Lỗi", msg)
+    } catch {
+      if (typeof window !== "undefined" && window.alert) window.alert(msg)
+    }
+    return null
   }
 }
 
-export const getPosts = async (token: string): Promise<PostResponse[]> => {
+export const getPosts = async (
+  token: string,
+): Promise<PostResponse[] | null> => {
   try {
     const data = await apiFetch("/posts", {
       method: "GET",
@@ -49,9 +56,14 @@ export const getPosts = async (token: string): Promise<PostResponse[]> => {
       },
     })
     return data as PostResponse[]
-  } catch (error) {
-    console.error("Error fetching posts:", error)
-    throw error
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi khi tải bài viết!"
+    try {
+      require("react-native").Alert.alert("Lỗi", msg)
+    } catch {
+      if (typeof window !== "undefined" && window.alert) window.alert(msg)
+    }
+    return null
   }
 }
 

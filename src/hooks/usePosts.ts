@@ -1,8 +1,8 @@
 import { useAuth } from "@/context/AuthContext"
 import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage"
-import { isUnauthorizedError } from "@/services/api"
 import * as postService from "@/services/post.service"
 import { useEffect, useState } from "react"
+import { Alert } from "react-native"
 
 export interface PostUser {
   id: string
@@ -28,7 +28,7 @@ export interface Post {
 export const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { user, accessToken, signOut } = useAuth()
+  const { user, accessToken } = useAuth()
 
   useEffect(() => {
     if (accessToken) {
@@ -42,7 +42,11 @@ export const usePosts = () => {
     setIsLoading(true)
     try {
       const postsData = await postService.getPosts(accessToken)
-
+      if (!postsData) {
+        setPosts([])
+        setIsLoading(false)
+        return
+      }
       const formattedPosts: Post[] = postsData.map(post => ({
         id: post._id,
         user_id: post.user._id,
@@ -62,25 +66,7 @@ export const usePosts = () => {
         myReaction:
           typeof post.myReaction === "undefined" ? null : post.myReaction,
       }))
-
       setPosts(formattedPosts)
-    } catch (error: any) {
-      const msg = error?.message || "Đã xảy ra lỗi khi tải posts!"
-      try {
-        require("react-native").Alert.alert("Lỗi", msg)
-      } catch {
-        if (typeof window !== "undefined" && window.alert) window.alert(msg)
-      }
-      console.error("Error in loadPosts:", error)
-      if (isUnauthorizedError(error)) {
-        console.warn("Access token unauthorized — signing out user.")
-        try {
-          await signOut()
-        } catch (e) {
-          console.error("Error signing out after 401:", e)
-        }
-        return
-      }
     } finally {
       setIsLoading(false)
     }
@@ -92,38 +78,43 @@ export const usePosts = () => {
     videoUri?: string,
   ) => {
     if (!user || !accessToken) {
-      throw new Error("User not authenticated")
-    }
-
-    try {
-      let imageUrl = ""
-      let videoUrl = undefined
-
-      if (videoUri) {
-        // 1. Upload thumbnail (imageUri is the thumbnail here) and video
-        imageUrl = await uploadPostImage(user.id, imageUri)
-        videoUrl = await uploadPostVideo(user.id, videoUri)
-      } else {
-        // 1. Upload only image
-        imageUrl = await uploadPostImage(user.id, imageUri)
+      try {
+        Alert.alert("Lỗi", "Bạn chưa đăng nhập!")
+      } catch {
+        if (typeof window !== "undefined" && window.alert)
+          window.alert("Bạn chưa đăng nhập!")
       }
-
-      // 2. Save metadata to Backend
-      await postService.createPost(
-        {
-          imageUrl,
-          videoUrl,
-          description: description || "",
-        },
-        accessToken,
-      )
-
-      // Refresh posts
-      await loadPosts()
-    } catch (error) {
-      console.error("Error in createPost:", error)
-      throw error
+      return
     }
+
+    let imageUrl = ""
+    let videoUrl = undefined
+
+    if (videoUri) {
+      // 1. Upload thumbnail (imageUri is the thumbnail here) and video
+      imageUrl = await uploadPostImage(user.id, imageUri)
+      videoUrl = await uploadPostVideo(user.id, videoUri)
+    } else {
+      // 1. Upload only image
+      imageUrl = await uploadPostImage(user.id, imageUri)
+    }
+
+    // 2. Save metadata to Backend
+    const result = await postService.createPost(
+      {
+        imageUrl,
+        videoUrl,
+        description: description || "",
+      },
+      accessToken,
+    )
+    if (!result) {
+      // Alert already shown in service
+      return
+    }
+
+    // Refresh posts
+    await loadPosts()
   }
 
   const refreshPosts = async () => {
