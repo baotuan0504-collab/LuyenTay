@@ -1,4 +1,5 @@
 "use client"
+import { setGlobalIsLoggedOut, setTokenUpdateListener } from "@/services/api"
 import {
   login,
   logout as logoutService,
@@ -11,7 +12,6 @@ import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
 import type { PropsWithChildren } from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import { setGlobalIsLoggedOut, setTokenUpdateListener } from "@/services/api"
 
 type AuthUser = {
   id: string
@@ -80,63 +80,75 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
 
   useEffect(() => {
     const restoreAuth = async () => {
-      setIsRestoring(true)
+      console.log("[AuthContext] restoreAuth starting...");
+      setIsRestoring(true);
       try {
         const [storedUser, storedAccessToken, storedRefreshToken] =
           await Promise.all([
             SecureStore.getItemAsync(STORAGE_KEYS.user),
             SecureStore.getItemAsync(STORAGE_KEYS.accessToken),
             SecureStore.getItemAsync(STORAGE_KEYS.refreshToken),
-          ])
+          ]);
 
-        console.log("[AuthContext] Restoring session from storage...")
+        console.log("[AuthContext] Storage check:", {
+          hasUser: !!storedUser,
+          hasAccess: !!storedAccessToken,
+          hasRefresh: !!storedRefreshToken,
+        });
 
-        // Restore immediately to satisfy UI requirements
-        if (storedAccessToken) setAccessToken(storedAccessToken)
-        if (storedRefreshToken) setRefreshToken(storedRefreshToken)
+        let currentUser: AuthUser | null = null;
         if (storedUser) {
           try {
-            setUser(formatUser(JSON.parse(storedUser)))
+            currentUser = formatUser(JSON.parse(storedUser));
+            console.log("[AuthContext] Parsed user:", currentUser?.email);
+            setUser(currentUser);
           } catch (e) {
-            console.error("Error parsing stored user:", e)
+            console.error("[AuthContext] Error parsing stored user:", e);
           }
         }
 
+        if (storedAccessToken) {
+          console.log("[AuthContext] Setting access token");
+          setAccessToken(storedAccessToken);
+        }
+
+        if (storedRefreshToken) {
+          console.log("[AuthContext] Setting refresh token");
+          setRefreshToken(storedRefreshToken);
+        }
+
         /**
-         * Logic mới:
-         * Không ép buộc refresh token ngay lập tức khi mở app nếu accessToken vẫn còn.
-         * Điều này giúp app load nhanh hơn và tránh bị logout oan uổng khi reload (r) 
-         * trong môi trường dev nếu network chập chờn.
-         * 
-         * apiFetch sẽ tự động xử lý refresh khi một API thực tế trả về 401.
+         * Nếu có refresh token nhưng mất access token (hoặc muốn cập nhật profile mới nhất)
          */
         if (storedRefreshToken && !storedAccessToken) {
-          console.log("[AuthContext] Access token missing, attempting background refresh...")
+          console.log("[AuthContext] Attempting background refresh...");
           try {
-            const data = await refreshTokenService(storedRefreshToken)
-            setAccessToken(data.accessToken ?? null)
-            setRefreshToken(data.refreshToken ?? null)
-            const fUser = formatUser(data.user)
-            setUser(fUser)
+            const data = await refreshTokenService(storedRefreshToken);
+            setAccessToken(data.accessToken ?? null);
+            setRefreshToken(data.refreshToken ?? null);
+            const fUser = formatUser(data.user);
+            if (fUser) {
+              setUser(fUser);
+              currentUser = fUser;
+            }
             await saveAuthState(
               fUser,
               data.accessToken ?? null,
               data.refreshToken ?? null,
-            )
+            );
+            console.log("[AuthContext] Background refresh success");
           } catch (err) {
-            console.warn("[AuthContext] Background refresh failed during restore")
-            // Không signOut ở đây, để user tiếp tục với những gì đang có 
-            //(nếu server chỉ lỗi tạm thời)
+            console.warn("[AuthContext] Background refresh failed during restore", err);
           }
         }
       } catch (error) {
-        console.error("[AuthContext] Error restoring auth state:", error)
+        console.error("[AuthContext] Error in restoreAuth:", error);
       } finally {
-        setIsRestoring(false)
+        setIsRestoring(false);
       }
-    }
-    restoreAuth()
-  }, [])
+    };
+    restoreAuth();
+  }, []);
 
   const saveAuthState = async (
     nextUser: AuthUser | null,
