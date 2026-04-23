@@ -19,10 +19,7 @@ export const updateProfile = async (
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi cập nhật thông tin!"
     Alert.alert("Lỗi", msg)
-    if (!error?.handled) {
-      console.warn("Error updating profile:", error)
-    }
-    throw error
+    return null
   }
 }
 
@@ -38,10 +35,7 @@ export const checkUsername = async (username: string, token: string) => {
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi kiểm tra tên người dùng!"
     Alert.alert("Lỗi", msg)
-    if (!error?.handled) {
-      console.warn("Error checking username:", error)
-    }
-    throw error
+    return null
   }
 }
 
@@ -57,12 +51,10 @@ export const getUserById = async (userId: string, token: string) => {
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi lấy thông tin người dùng!"
     Alert.alert("Lỗi", msg)
-    if (!error?.handled) {
-      console.warn("Error fetching user by ID:", error)
-    }
-    throw error
+    return null
   }
 }
+
 export const getUsers = async (token: string) => {
   try {
     const data = await apiFetch("/users", {
@@ -81,10 +73,7 @@ export const getUsers = async (token: string) => {
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi lấy thông tin người dùng!"
     Alert.alert("Lỗi", msg)
-    if (!error?.handled) {
-      console.warn("Error fetching users:", error)
-    }
-    throw error
+    return null
   }
 }
 
@@ -112,9 +101,6 @@ export const searchUsers = async (
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi tìm kiếm người dùng!"
     Alert.alert("Lỗi", msg)
-    if (!error?.handled) {
-      console.warn("Error searching users:", error)
-    }
-    throw error
+    return null
   }
 }
