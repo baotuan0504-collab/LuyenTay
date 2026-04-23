@@ -1,5 +1,4 @@
 "use client"
-
 import {
   login,
   logout as logoutService,
@@ -8,14 +7,10 @@ import {
   verifyLoginOtp as verifyLoginOtpService,
 } from "@/services/auth.service"
 import { updateProfile as updateProfileService } from "@/services/user.service"
+import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type PropsWithChildren,
-} from "react"
+import type { PropsWithChildren } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
 type AuthUser = {
   id: string
@@ -48,6 +43,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
+  const navigation = useNavigation()
+  const route = useRoute()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState<string | null>(null)
@@ -77,25 +74,35 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
             SecureStore.getItemAsync(STORAGE_KEYS.refreshToken),
           ])
 
-        if (storedUser) {
-          setUser(formatUser(JSON.parse(storedUser)))
-        }
         if (storedRefreshToken) {
           setRefreshToken(storedRefreshToken)
-          // Nếu có refresh token, tự động refresh access token
           try {
             const data = await refreshTokenService(storedRefreshToken)
             setAccessToken(data.accessToken ?? null)
             setRefreshToken(data.refreshToken ?? null)
+            setUser(formatUser(data.user))
             await saveAuthState(
-              storedUser ? formatUser(JSON.parse(storedUser)) : null,
+              data.user ? formatUser(data.user) : null,
               data.accessToken ?? null,
               data.refreshToken ?? null,
             )
+            // Nếu có user và KHÔNG ở Home thì chuyển về Home
+            if (
+              data.user &&
+              navigation &&
+              navigation.reset &&
+              route?.name !== "Home"
+            ) {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" as never }],
+              })
+            }
           } catch (err) {
-            // Nếu refresh lỗi, sign out
             await signOut()
           }
+        } else if (storedUser) {
+          setUser(formatUser(JSON.parse(storedUser)))
         } else if (storedAccessToken) {
           setAccessToken(storedAccessToken)
         }
@@ -260,7 +267,6 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     </AuthContext.Provider>
   )
 }
-
 export function useAuth() {
   const context = useContext(AuthContext)
   if (!context) {
