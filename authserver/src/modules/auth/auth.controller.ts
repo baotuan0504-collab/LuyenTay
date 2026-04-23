@@ -28,7 +28,12 @@ export const refreshToken = async (req: Request, res: Response) => {
     const { refreshToken: rt } = req.body
     if (!rt) return res.status(400).json({ message: "Missing refreshToken" })
     const result = await authService.refreshToken(rt)
-    res.json(result)
+    // Always return both tokens for FE to store
+    res.json({
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      user: result.user,
+    })
   } catch (err: any) {
     res.status(401).json({ message: err.message })
   }
@@ -39,7 +44,17 @@ export const login = async (req: Request, res: Response) => {
     const deviceId = req.headers["x-device-id"] as string
     const dto = new LoginRequestDto({ ...req.body, deviceId })
     const result = await authService.login(dto)
-    res.json(result)
+    // If OTP is required, return OTP response
+    if ("requireOtp" in result) {
+      res.json(result)
+    } else {
+      // Always return both tokens for FE to store
+      res.json({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        user: result.user,
+      })
+    }
   } catch (err: any) {
     res.status(400).json({ message: err.message })
   }
@@ -51,7 +66,12 @@ export const register = async (req: Request, res: Response) => {
     if (step === 3) {
       const dto = new RegisterRequestDto(req.body)
       const result = await authService.register(dto)
-      res.json(result)
+      // Always return both tokens for FE to store
+      res.json({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        user: result.user || null,
+      })
     } else {
       const { email } = req.body
       if (step === 2) {
@@ -80,11 +100,14 @@ export const logout = async (req: Request, res: Response) => {
 export const verifyToken = async (req: Request, res: Response) => {
   try {
     const { token } = req.body
-    console.log("[AuthServer] Verifying token:", token?.substring(0, 20) + "...")
-    
+    console.log(
+      "[AuthServer] Verifying token:",
+      token?.substring(0, 20) + "...",
+    )
+
     const dto = new VerifyTokenRequestDto(req.body)
     const result = await authService.verifyToken(dto)
-    
+
     console.log("[AuthServer] Verify Success for userId:", result.userId)
     res.json(result)
   } catch (err: any) {
@@ -103,10 +126,16 @@ export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
   }
 }
 
-export const forgotPasswordVerifyOtpOnly = async (req: Request, res: Response) => {
+export const forgotPasswordVerifyOtpOnly = async (
+  req: Request,
+  res: Response,
+) => {
   try {
     const dto = new ForgotPasswordVerifyOtpDto(req.body)
-    const result = await authService.verifyForgotPasswordOtpOnly(dto.email, dto.otp)
+    const result = await authService.verifyForgotPasswordOtpOnly(
+      dto.email,
+      dto.otp,
+    )
     res.json(result)
   } catch (err: any) {
     res.status(400).json({ message: err.message })

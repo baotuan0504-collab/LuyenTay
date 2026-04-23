@@ -28,7 +28,7 @@ export class AuthService {
       email: user.email,
       username: user.username,
       avatar: user.avatar,
-      onboardingCompleted: user.onboardingCompleted
+      onboardingCompleted: user.onboardingCompleted,
     }
   }
 
@@ -38,7 +38,9 @@ export class AuthService {
 
     await redis.del(`refresh_token:${rt}`)
     const tokens = await this.createTokenPair(userId)
-    return tokens
+    // Always return user object for controller
+    const user = await User.findById(userId).select("-password")
+    return { ...tokens, user }
   }
 
   async login(dto: LoginRequestDto) {
@@ -49,7 +51,9 @@ export class AuthService {
 
     const { isLocked, remaining } = await checkOtpLock(dto.email)
     if (isLocked) {
-      throw new Error(`Chức năng OTP đang bị khóa. Thử lại sau ${Math.ceil(remaining / 60)} phút.`)
+      throw new Error(
+        `Chức năng OTP đang bị khóa. Thử lại sau ${Math.ceil(remaining / 60)} phút.`,
+      )
     }
 
     const isTrusted =
@@ -128,7 +132,8 @@ export class AuthService {
 
   async verifyForgotPasswordOtpOnly(email: string, otp: string) {
     const { isLocked, remaining } = await checkOtpLock(email)
-    if (isLocked) throw new Error(`Locked. Try again in ${Math.ceil(remaining / 60)} mins.`)
+    if (isLocked)
+      throw new Error(`Locked. Try again in ${Math.ceil(remaining / 60)} mins.`)
 
     const otpInRedis = await redis.get(`forgot_otp:${email}`)
     if (!otpInRedis || otpInRedis !== otp) {
@@ -163,7 +168,8 @@ export class AuthService {
 
   async verifyLoginOtp(email: string, otp: string) {
     const otpInRedis = await redis.get(`otp:${email}`)
-    if (!otpInRedis || otpInRedis !== otp) throw new Error("Invalid or expired OTP")
+    if (!otpInRedis || otpInRedis !== otp)
+      throw new Error("Invalid or expired OTP")
 
     await redis.del(`otp:${email}`)
     const user = await User.findOne({ email })
@@ -200,7 +206,7 @@ export class AuthService {
     const refreshSecret = generateRefreshToken()
     const refreshTokenKey = `refresh_token:${refreshSecret}`
     await redis.set(refreshTokenKey, userId.toString(), "EX", 30 * 24 * 60 * 60)
-    
+
     // Cập nhật phiên đăng nhập mới
     await redis.set(activeSessionKey, refreshTokenKey, "EX", 30 * 24 * 60 * 60)
 
