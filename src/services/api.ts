@@ -1,6 +1,9 @@
+// Helper to check if error is unauthorized
 import * as SecureStore from "expo-secure-store"
-import { Alert } from "react-native"
 import { getDefaultApiHeaders } from "./apiHeaders"
+export const isUnauthorizedError = (error: unknown): error is ApiError => {
+  return error instanceof ApiError && error.status === 401
+}
 
 // Global flag to prevent API calls after logout
 let globalIsLoggedOut = false
@@ -111,13 +114,12 @@ export const apiFetch = async (
     if (!response.ok) {
       const message = data?.message || response.statusText || "Request failed"
       console.log(`[API Error] ${response.status} - ${message} for ${endpoint}`)
+      // Always throw ApiError so caller can catch and Alert
+      const error = new ApiError(message, response.status)
       if (response.status === 429) {
-        Alert.alert("Thông báo", message)
-        const error = new ApiError(message, response.status)
-        error.handled = true
-        throw error
+        error.handled = false // Let caller decide to Alert
       }
-      throw new ApiError(message, response.status)
+      throw error
     }
     return data
   }
