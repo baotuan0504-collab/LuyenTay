@@ -86,18 +86,8 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
               data.accessToken ?? null,
               data.refreshToken ?? null,
             )
-            // Nếu có user và KHÔNG ở Home thì chuyển về Home
-            if (
-              data.user &&
-              navigation &&
-              navigation.reset &&
-              route?.name !== "Home"
-            ) {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Home" as never }],
-              })
-            }
+            // Không điều hướng về Home, chỉ cập nhật lại state và storage
+            // Đảm bảo sau khi refresh thành công, user vẫn ở đúng màn hình hiện tại
           } catch (err) {
             await signOut()
           }
