@@ -38,10 +38,7 @@ export default function SearchPage() {
     try {
       console.log("🔍 Searching:", q)
 
-      const users = await userService.searchUsers(
-        q,
-        accessToken
-      )
+      const users = await userService.searchUsers(q)
 
       console.log("doSearch received:", users)
 
@@ -74,13 +71,10 @@ export default function SearchPage() {
         accessToken={accessToken}
       />
     ),
-    [router, accessToken]
+    [router, accessToken],
   )
 
-  const keyExtractor = useCallback(
-    (item: any) => item._id,
-    []
-  )
+  const keyExtractor = useCallback((item: any) => item._id, [])
 
   return (
     <View style={styles.container}>
@@ -96,8 +90,7 @@ export default function SearchPage() {
 
           <TouchableOpacity
             style={styles.searchBtn}
-            onPress={handleSearch}
-          >
+            onPress={handleSearch}>
             <Ionicons
               name="search"
               size={18}
@@ -109,9 +102,7 @@ export default function SearchPage() {
 
       {/* DEBUG */}
       <View style={{ padding: 12 }}>
-        <Text>
-          Results: {results.length}
-        </Text>
+        <Text>Results: {results.length}</Text>
       </View>
 
       {/* RESULTS */}
@@ -135,77 +126,54 @@ export default function SearchPage() {
 /* Search Item */
 /* ============================ */
 
-const SearchItem = React.memo(
-  ({ item, router, accessToken }: any) => {
-    console.log("render:", item)
+const SearchItem = React.memo(({ item, router, accessToken }: any) => {
+  console.log("render:", item)
 
-    return (
-      <View style={styles.card}>
-        <TouchableOpacity
-          style={styles.cardLeft}
-          onPress={() =>
-            router.push(`/profile/${item._id}`)
-          }
-        >
-          {item.avatar ? (
-            <Image
-              source={{ uri: item.avatar }}
-              style={styles.cardAvatar}
-            />
-          ) : (
-            <View
-              style={[
-                styles.cardAvatar,
-                styles.placeholder,
-              ]}
-            >
-              <Text>
-                {item.name?.[0] || "U"}
-              </Text>
-            </View>
-          )}
-
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.name}>
-              {item.name}
-            </Text>
-
-            <Text style={styles.username}>
-              @{item.username}
-            </Text>
+  return (
+    <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.cardLeft}
+        onPress={() => router.push(`/profile/${item._id}`)}>
+        {item.avatar ? (
+          <Image
+            source={{ uri: item.avatar }}
+            style={styles.cardAvatar}
+          />
+        ) : (
+          <View style={[styles.cardAvatar, styles.placeholder]}>
+            <Text>{item.name?.[0] || "U"}</Text>
           </View>
-        </TouchableOpacity>
+        )}
 
-        <TouchableOpacity
-          style={styles.msgBtn}
-          onPress={async () => {
-            if (!accessToken) return
+        <View style={{ marginLeft: 12 }}>
+          <Text style={styles.name}>{item.name}</Text>
 
-            const chat =
-              await chatService.getOrCreateChat(
-                item._id,
-                accessToken
-              )
+          <Text style={styles.username}>@{item.username}</Text>
+        </View>
+      </TouchableOpacity>
 
-            router.push({
-              pathname: "/chat/[id]",
-              params: {
-                id: chat._id,
-                name: item.name,
-                avatar: item.avatar || "",
-                participantId: item._id,
-              },
-            })
-          }}
-        >
-          <Text style={styles.msgBtnText}>
-            Message
-          </Text>
-        </TouchableOpacity>
-      </View>
-    )
-  }
-)
+      <TouchableOpacity
+        style={styles.msgBtn}
+        onPress={async () => {
+          if (!accessToken) return
+
+          const chat = await chatService.getOrCreateChat(item._id, accessToken)
+
+          router.push({
+            pathname: "/chat/[id]",
+            params: {
+              id: chat._id,
+              name: item.name,
+              avatar: item.avatar || "",
+              participantId: item._id,
+            },
+          })
+        }}>
+        <Text style={styles.msgBtnText}>Message</Text>
+      </TouchableOpacity>
+    </View>
+  )
+})
 
 /* ============================ */
 /* Styles */

@@ -1,11 +1,11 @@
-import { useAuth } from "@/context/AuthContext";
-import { useChat } from "@/context/ChatContext";
-import { isUnauthorizedError } from "@/services/api";
-import * as chatService from "@/services/chat.service";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext"
+import { useChat } from "@/context/ChatContext"
+import { isUnauthorizedError } from "@/services/api"
+import * as chatService from "@/services/chat.service"
+import { Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
+import { useRouter } from "expo-router"
+import { useEffect, useState } from "react"
 
 import {
   ActivityIndicator,
@@ -15,53 +15,52 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
+} from "react-native"
 
 export default function MessagesScreen() {
-  const [chats, setChats] = useState<chatService.ChatResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [chats, setChats] = useState<chatService.ChatResponse[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
 
-  const { accessToken, signOut } = useAuth();
-  const { onlineUsers, typingUsers } = useChat();
-  const router = useRouter();
+  const { accessToken, signOut } = useAuth()
+  const { onlineUsers, typingUsers } = useChat()
+  const router = useRouter()
 
   useEffect(() => {
     if (accessToken) {
-      loadChats();
+      loadChats()
     }
-  }, [accessToken]);
+  }, [accessToken])
 
   const loadChats = async () => {
-    if (!accessToken) return;
+    if (!accessToken) return
     try {
-      const data = await chatService.getChats(accessToken);
-      setChats(data);
+      const data = await chatService.getChats()
+      setChats(data)
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        await signOut();
-        router.replace("/login");
-        return;
+        await signOut()
+        router.replace("/login")
+        return
       }
-      console.error("Error loading chats:", error);
+      console.error("Error loading chats:", error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadChats();
-    setRefreshing(false);
-  };
+    setRefreshing(true)
+    await loadChats()
+    setRefreshing(false)
+  }
 
   const renderChat = ({ item }: { item: chatService.ChatResponse }) => {
     const isOnline = item.participant
       ? onlineUsers.includes(item.participant._id)
-      : false;
+      : false
 
-    const isTyping =
-      typingUsers.get(item._id) === item.participant?._id;
+    const isTyping = typingUsers.get(item._id) === item.participant?._id
 
     return (
       <TouchableOpacity
@@ -76,8 +75,7 @@ export default function MessagesScreen() {
               participantId: item.participant?._id || "",
             },
           })
-        }
-      >
+        }>
         <View style={styles.avatarContainer}>
           {item.participant?.avatar ? (
             <Image
@@ -97,9 +95,7 @@ export default function MessagesScreen() {
 
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
-            <Text style={styles.username}>
-              {item.participant?.name}
-            </Text>
+            <Text style={styles.username}>{item.participant?.name}</Text>
 
             {item.lastMessageAt && (
               <View>
@@ -123,33 +119,31 @@ export default function MessagesScreen() {
           </View>
 
           <Text
-            style={[
-              styles.lastMessage,
-              isTyping && styles.typingText,
-            ]}
-            numberOfLines={1}
-          >
+            style={[styles.lastMessage, isTyping && styles.typingText]}
+            numberOfLines={1}>
             {isTyping
               ? "typing..."
-              : item.lastMessage?.text ||
-              "No messages yet"}
+              : item.lastMessage?.text || "No messages yet"}
           </Text>
         </View>
       </TouchableOpacity>
-    );
-  };
+    )
+  }
 
   return (
     <View style={styles.container}>
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator
+            size="large"
+            color="#000"
+          />
         </View>
       ) : (
         <FlatList
           data={chats}
           renderItem={renderChat}
-          keyExtractor={(item) => item._id}
+          keyExtractor={item => item._id}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
@@ -164,9 +158,7 @@ export default function MessagesScreen() {
                 size={64}
                 color="#ccc"
               />
-              <Text style={styles.emptyText}>
-                No conversations yet
-              </Text>
+              <Text style={styles.emptyText}>No conversations yet</Text>
             </View>
           }
         />
@@ -175,12 +167,15 @@ export default function MessagesScreen() {
       {/* Floating New Chat Button */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push("/chat/new")}
-      >
-        <Ionicons name="create" size={24} color="#fff" />
+        onPress={() => router.push("/chat/new")}>
+        <Ionicons
+          name="create"
+          size={24}
+          color="#fff"
+        />
       </TouchableOpacity>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -304,4 +299,4 @@ const styles = StyleSheet.create({
       height: 2,
     },
   },
-});
+})

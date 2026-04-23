@@ -18,13 +18,11 @@ import { ReactionBar } from "../../components/ReactionBar"
 import { useAuth } from "../../context/AuthContext"
 import { deleteComment } from "../../services/comment.service"
 
-
 import {
   getCommentsByPost,
   getPostDetail,
   PostResponse,
 } from "../../services/post.service"
-
 
 import {
   getMyReaction,
@@ -33,12 +31,10 @@ import {
   upsertReaction,
 } from "../../services/reaction.service"
 
-
 // FIX BUILD TREE
 const buildCommentTree = (comments: any[]) => {
   const map: any = {}
   const roots: any[] = []
-
 
   comments.forEach(c => {
     map[c._id] = {
@@ -48,7 +44,6 @@ const buildCommentTree = (comments: any[]) => {
   })
   comments.forEach(c => {
     const parentId = c.parentId || c.parentComment
-
 
     if (parentId && map[parentId]) {
       map[parentId].children.push(map[c._id])
@@ -71,15 +66,12 @@ const flattenComments = (comments: any[], level = 0): any[] => {
     }
   })
 
-
   return result
 }
-
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams()
   const { accessToken } = useAuth()
-
 
   const [post, setPost] = useState<PostResponse | null>(null)
   const [comments, setComments] = useState<any[]>([])
@@ -89,9 +81,13 @@ export default function PostDetailScreen() {
   const [reactionCounts, setReactionCounts] = useState<any>({})
   const router = useRouter()
   const loadComments = async () => {
-    const res = await getCommentsByPost(id as string, accessToken!)
+    const res = await getCommentsByPost(id as string)
     // Chấp nhận cả trường hợp res là mảng trực tiếp hoặc res.comments là mảng
-    const raw = Array.isArray(res) ? res : (Array.isArray(res?.comments) ? res.comments : [])
+    const raw = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.comments)
+        ? res.comments
+        : []
     console.log("RAW COMMENTS", raw)
     const tree = buildCommentTree(raw)
     console.log("TREE COMMENTS", tree)
@@ -103,13 +99,13 @@ export default function PostDetailScreen() {
     async function fetchData() {
       try {
         setLoading(true)
-        const postRes = await getPostDetail(id as string, accessToken!)
+        const postRes = await getPostDetail(id as string)
         setPost(postRes)
         await loadComments()
-        const myReact = await getMyReaction(id as string, "post", accessToken!)
+        const myReact = await getMyReaction(id as string, "post")
         setMyReaction(myReact?.reactionType)
-        
-        const counts = await getReactionCounts(id as string, "post", accessToken!)
+
+        const counts = await getReactionCounts(id as string, "post")
         const obj: any = {}
         if (Array.isArray(counts)) {
           counts.forEach((r: any) => {
@@ -127,17 +123,15 @@ export default function PostDetailScreen() {
     fetchData()
   }, [])
 
-
   const handleReaction = async (type: string) => {
     if (myReaction === type) {
-      await removeReaction(id as string, "post", accessToken!)
+      await removeReaction(id as string, "post")
       setMyReaction(undefined)
     } else {
-      await upsertReaction(id as string, "post", type, accessToken!)
+      await upsertReaction(id as string, "post", type)
       setMyReaction(type)
     }
   }
-
 
   const renderHeader = () => (
     <View
@@ -192,7 +186,6 @@ export default function PostDetailScreen() {
       accessToken &&
       (item.user?._id === post?.user._id || item.user?._id === item.user?._id)
 
-
     const handleDelete = async () => {
       Alert.alert("Xác nhận", "Bạn có chắc muốn xoá bình luận này?", [
         { text: "Huỷ", style: "cancel" },
@@ -201,7 +194,7 @@ export default function PostDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteComment(item._id, accessToken!)
+              await deleteComment(item._id)
               loadComments()
             } catch (err: any) {
               Alert.alert("Không thể xoá bình luận", err?.message || "Lỗi")
@@ -210,7 +203,6 @@ export default function PostDetailScreen() {
         },
       ])
     }
-
 
     return (
       <View
@@ -231,7 +223,6 @@ export default function PostDetailScreen() {
             marginRight: 10,
           }}
         />
-
 
         <View style={{ flex: 1 }}>
           <Text style={{ fontWeight: "bold" }}>{item.user?.name}</Text>

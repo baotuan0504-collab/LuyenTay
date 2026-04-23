@@ -1,11 +1,11 @@
-import { useAuth } from "@/context/AuthContext";
-import { isUnauthorizedError } from "@/services/api";
-import * as chatService from "@/services/chat.service";
-import * as userService from "@/services/user.service";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext"
+import { isUnauthorizedError } from "@/services/api"
+import * as chatService from "@/services/chat.service"
+import * as userService from "@/services/user.service"
+import { Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
+import { useLocalSearchParams, useRouter } from "expo-router"
+import { useEffect, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -14,102 +14,108 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
+} from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
 
 export default function PublicProfileScreen() {
-  const { id: userId } = useLocalSearchParams();
-  const { accessToken, user: currentUser, signOut } = useAuth();
-  const router = useRouter();
+  const { id: userId } = useLocalSearchParams()
+  const { accessToken, user: currentUser, signOut } = useAuth()
+  const router = useRouter()
 
-
-  const [profile, setProfile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isStartingChat, setIsStartingChat] = useState(false);
-
+  const [profile, setProfile] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isStartingChat, setIsStartingChat] = useState(false)
 
   useEffect(() => {
     if (accessToken && userId) {
-      loadProfile();
+      loadProfile()
     }
-  }, [accessToken, userId]);
-
+  }, [accessToken, userId])
 
   const loadProfile = async () => {
     try {
-      const data = await userService.getUserById(userId as string, accessToken!);
-      console.log("Loaded profile:", data);
-      setProfile(data);
+      const data = await userService.getUserById(userId as string)
+      console.log("Loaded profile:", data)
+      setProfile(data)
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        await signOut();
-        router.replace("/login");
-        return;
+        await signOut()
+        router.replace("/login")
+        return
       }
-      console.error("Error loading profile:", error);
-      Alert.alert("Error", "Could not load user profile");
+      console.error("Error loading profile:", error)
+      Alert.alert("Error", "Could not load user profile")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleMessage = async () => {
-    if (!accessToken || !profile) return;
-   
-    setIsStartingChat(true);
+    if (!accessToken || !profile) return
+
+    setIsStartingChat(true)
     try {
-      const chat = await chatService.getOrCreateChat(profile._id, accessToken);
+      const chat = await chatService.getOrCreateChat(profile._id)
       router.push({
         pathname: "/chat/[id]",
         params: {
           id: chat._id,
           name: profile.name,
           avatar: profile.avatar || "",
-          participantId: profile._id
+          participantId: profile._id,
         },
-      });
+      })
     } catch (error) {
       if (isUnauthorizedError(error)) {
-        await signOut();
-        router.replace("/login");
-        return;
+        await signOut()
+        router.replace("/login")
+        return
       }
-      console.error("Error starting chat:", error);
-      Alert.alert("Error", "Could not start conversation");
+      console.error("Error starting chat:", error)
+      Alert.alert("Error", "Could not start conversation")
     } finally {
-      setIsStartingChat(false);
+      setIsStartingChat(false)
     }
-  };
-
+  }
 
   if (isLoading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator
+          size="large"
+          color="#007AFF"
+        />
       </View>
-    );
+    )
   }
 
-
-  const isMe = currentUser?.id === profile?._id;
-
+  const isMe = currentUser?.id === profile?._id
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={28} color="#000" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}>
+          <Ionicons
+            name="chevron-back"
+            size={28}
+            color="#000"
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={{ width: 40 }} />
       </View>
 
-
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileInfo}>
           {profile.avatar ? (
-            <Image source={{ uri: profile.avatar }} style={styles.largeAvatar} />
+            <Image
+              source={{ uri: profile.avatar }}
+              style={styles.largeAvatar}
+            />
           ) : (
             <View style={[styles.largeAvatar, styles.avatarPlaceholder]}>
               <Text style={styles.largeAvatarText}>
@@ -117,10 +123,10 @@ export default function PublicProfileScreen() {
               </Text>
             </View>
           )}
-         
+
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.username}>@{profile.username}</Text>
-        
+
           <Text style={styles.joinedDate}>
             Joined {new Date(profile.createdAt).toLocaleDateString()}
           </Text>
@@ -130,13 +136,16 @@ export default function PublicProfileScreen() {
           <TouchableOpacity
             style={styles.messageButton}
             onPress={handleMessage}
-            disabled={isStartingChat}
-          >
+            disabled={isStartingChat}>
             {isStartingChat ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Ionicons name="chatbubble-outline" size={20} color="#fff" />
+                <Ionicons
+                  name="chatbubble-outline"
+                  size={20}
+                  color="#fff"
+                />
                 <Text style={styles.messageButtonText}>Message</Text>
               </>
             )}
@@ -144,7 +153,7 @@ export default function PublicProfileScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -240,14 +249,11 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontWeight: "500",
   },
-  input:{
+  input: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
     padding: 10,
     backgroundColor: "#fff",
-  }
-});
-
-
-
+  },
+})
