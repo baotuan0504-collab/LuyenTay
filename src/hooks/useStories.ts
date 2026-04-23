@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext"
 import { uploadStoryImage, uploadStoryVideo } from "@/lib/supabase/storage"
 import * as storyService from "@/services/story.service"
 import { useEffect, useState } from "react"
+import { Alert } from "react-native"
 
 export interface Story {
   id: string
@@ -37,7 +38,11 @@ export const useStories = () => {
     setIsLoading(true)
     try {
       const storiesData = await storyService.getStories(accessToken)
-
+      if (!storiesData) {
+        setStories([])
+        setIsLoading(false)
+        return
+      }
       const formattedStories: Story[] = storiesData.map((story: any) => ({
         id: String(story._id),
         user_id: String(story.user?._id),
@@ -54,16 +59,7 @@ export const useStories = () => {
           profile_image_url: story.user?.avatar,
         },
       }))
-
       setStories(formattedStories)
-    } catch (error: any) {
-      const msg = error?.message || "Đã xảy ra lỗi khi tải stories!"
-      try {
-        require("react-native").Alert.alert("Lỗi", msg)
-      } catch {
-        if (typeof window !== "undefined" && window.alert) window.alert(msg)
-      }
-      console.error("Error in loadStories:", error)
     } finally {
       setIsLoading(false)
     }
@@ -75,34 +71,39 @@ export const useStories = () => {
     videoUri?: string,
   ) => {
     if (!user || !accessToken) {
-      throw new Error("User not authenticated")
-    }
-
-    try {
-      let imageUrl = ""
-      let videoUrl = undefined
-
-      if (videoUri) {
-        imageUrl = await uploadStoryImage(user.id, imageUri)
-        videoUrl = await uploadStoryVideo(user.id, videoUri)
-      } else {
-        imageUrl = await uploadStoryImage(user.id, imageUri)
+      try {
+        Alert.alert("Lỗi", "Bạn chưa đăng nhập!")
+      } catch {
+        if (typeof window !== "undefined" && window.alert)
+          window.alert("Bạn chưa đăng nhập!")
       }
-
-      await storyService.createStory(
-        {
-          imageUrl,
-          videoUrl,
-          description: description || "",
-        },
-        accessToken,
-      )
-
-      await loadStories()
-    } catch (error) {
-      console.error("Error in createStory:", error)
-      throw error
+      return
     }
+
+    let imageUrl = ""
+    let videoUrl = undefined
+
+    if (videoUri) {
+      imageUrl = await uploadStoryImage(user.id, imageUri)
+      videoUrl = await uploadStoryVideo(user.id, videoUri)
+    } else {
+      imageUrl = await uploadStoryImage(user.id, imageUri)
+    }
+
+    const result = await storyService.createStory(
+      {
+        imageUrl,
+        videoUrl,
+        description: description || "",
+      },
+      accessToken,
+    )
+    if (!result) {
+      // Alert already shown in service
+      return
+    }
+
+    await loadStories()
   }
 
   const refreshStories = async () => {

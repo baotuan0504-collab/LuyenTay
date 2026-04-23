@@ -1,28 +1,26 @@
-import { apiFetch } from "./api";
-
+import { apiFetch } from "./api"
 
 export interface StoryResponse {
-  _id: string;
+  _id: string
   user: {
-    _id: string;
-    name: string;
-    username: string;
-    avatar: string;
-  };
-  imageUrl: string;
-  videoUrl?: string;
-  description?: string;
-  expiresAt: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+    _id: string
+    name: string
+    username: string
+    avatar: string
+  }
+  imageUrl: string
+  videoUrl?: string
+  description?: string
+  expiresAt: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
-
 
 export const createStory = async (
   storyData: { imageUrl: string; videoUrl?: string; description?: string },
-  token: string
-): Promise<StoryResponse> => {
+  token: string,
+): Promise<StoryResponse | null> => {
   try {
     const data = await apiFetch("/stories", {
       method: "POST",
@@ -31,29 +29,37 @@ export const createStory = async (
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(storyData),
-    });
-    return data as StoryResponse;
-  } catch (error) {
-    console.error("Error creating story:", error);
-    throw error;
+    })
+    return data as StoryResponse
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi khi tạo story!"
+    try {
+      require("react-native").Alert.alert("Lỗi", msg)
+    } catch {
+      if (typeof window !== "undefined" && window.alert) window.alert(msg)
+    }
+    return null
   }
-};
+}
 
-
-export const getStories = async (token: string): Promise<StoryResponse[]> => {
+export const getStories = async (
+  token: string,
+): Promise<StoryResponse[] | null> => {
   try {
     const data = await apiFetch("/stories", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    });
-    return data as StoryResponse[];
-  } catch (error) {
-    console.error("Error fetching stories:", error);
-    throw error;
+    })
+    return data as StoryResponse[]
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi khi tải stories!"
+    try {
+      require("react-native").Alert.alert("Lỗi", msg)
+    } catch {
+      if (typeof window !== "undefined" && window.alert) window.alert(msg)
+    }
+    return null
   }
-};
-
-
-
+}
