@@ -56,6 +56,7 @@ export const apiFetch = async (
     endpoint === "/auth/register" ||
     endpoint === "/auth/refresh"
 
+  // Always get the latest refreshToken from SecureStore for /auth/refresh
   const getHeaders = async (customToken?: string, customPath?: string) => {
     let token: string | undefined = customToken
     let method: string = customPath
@@ -64,17 +65,24 @@ export const apiFetch = async (
     let path: string = customPath || endpoint
     let body: string | undefined
 
-    // Đảm bảo khi gọi /auth/refresh thì path, body, token đều đúng chuẩn
     if (
       isAuthNoToken &&
       (customPath === "/auth/refresh" ||
         path === "/auth/refresh" ||
         endpoint === "/auth/refresh")
     ) {
-      token = customToken
+      // Always get the latest refreshToken from SecureStore
+      const storedToken = await SecureStore.getItemAsync("auth_refreshToken")
+      token = storedToken || ""
       path = "/auth/refresh"
       method = "POST"
-      body = JSON.stringify({ refreshToken: customToken })
+      body = JSON.stringify({ refreshToken: token })
+      // Log for debugging
+      console.log("[DEBUG][/auth/refresh] refreshToken for signature:", token)
+      console.log(
+        "[DEBUG][/auth/refresh] refreshToken in body:",
+        JSON.parse(body).refreshToken,
+      )
     } else {
       body = options.body
         ? typeof options.body === "string"
