@@ -1,3 +1,4 @@
+import { Alert } from "react-native"
 import { apiFetch } from "./api"
 
 export const login = async (email: string, password: string) => {
@@ -8,7 +9,9 @@ export const login = async (email: string, password: string) => {
     })
     console.log("Login successful:", data)
     return data
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi đăng nhập!"
+    Alert.alert("Lỗi", msg)
     throw error
   }
 }
@@ -21,7 +24,9 @@ export const register = async (email: string, password: string, name = "") => {
     })
     console.log("Registration successful:", data)
     return data
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi đăng ký!"
+    Alert.alert("Lỗi", msg)
     throw error
   }
 }
@@ -34,7 +39,9 @@ export const refreshToken = async (refreshTokenValue: string) => {
     })
     console.log("Token refresh successful:", data)
     return data
-  } catch (error) {
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi cập nhật token!"
+    Alert.alert("Lỗi", msg)
     throw error
   }
 }
@@ -45,8 +52,10 @@ export const logout = async (refreshTokenValue: string) => {
       method: "POST",
       body: JSON.stringify({ refreshToken: refreshTokenValue }),
     })
-  } catch (error) {
-    console.warn("Logout API failed:", error)
+  } catch (error: any) {
+    const msg = error?.message || "Đã xảy ra lỗi đăng xuất!"
+    Alert.alert("Lỗi", msg)
+    throw error
   }
 }
 

@@ -64,7 +64,13 @@ export const usePosts = () => {
       }))
 
       setPosts(formattedPosts)
-    } catch (error) {
+    } catch (error: any) {
+      const msg = error?.message || "Đã xảy ra lỗi khi tải posts!"
+      try {
+        require("react-native").Alert.alert("Lỗi", msg)
+      } catch {
+        if (typeof window !== "undefined" && window.alert) window.alert(msg)
+      }
       console.error("Error in loadPosts:", error)
       if (isUnauthorizedError(error)) {
         console.warn("Access token unauthorized — signing out user.")
