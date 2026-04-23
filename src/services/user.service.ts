@@ -1,5 +1,5 @@
-import { apiFetch } from "./api"
 import { Alert } from "react-native"
+import { apiFetch } from "./api"
 
 export const updateProfile = async (
   profileData: Record<string, unknown>,
@@ -63,7 +63,6 @@ export const getUserById = async (userId: string, token: string) => {
     throw error
   }
 }
-
 export const getUsers = async (token: string) => {
   try {
     const data = await apiFetch("/users", {
@@ -72,13 +71,13 @@ export const getUsers = async (token: string) => {
         Authorization: `Bearer ${token}`,
       },
     })
-    return data as Arra[]
+    return data as {
       _id: string
       name: string
       username?: string
       avatar?: string
       email?: string
-    }>
+    }[]
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi lấy thông tin người dùng!"
     Alert.alert("Lỗi", msg)
@@ -94,7 +93,7 @@ export const searchUsers = async (
   token: string,
   friendsOnly: boolean = false,
 ) => {
-  try {[]
+  try {
     const params = new URLSearchParams()
     if (q) params.append("q", q)
     if (friendsOnly) params.append("friendsOnly", "true")
@@ -104,12 +103,12 @@ export const searchUsers = async (
         Authorization: `Bearer ${token}`,
       },
     })
-    return data as Array<{
+    return data as {
       _id: string
       name: string
       username?: string
       avatar?: string
-    }>
+    }[]
   } catch (error: any) {
     const msg = error?.message || "Đã xảy ra lỗi khi tìm kiếm người dùng!"
     Alert.alert("Lỗi", msg)

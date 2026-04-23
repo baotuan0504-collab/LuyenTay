@@ -83,12 +83,9 @@ export const useStories = () => {
       let videoUrl = undefined
 
       if (videoUri) {
-        console.log("Uploading story thumbnail...")
         imageUrl = await uploadStoryImage(user.id, imageUri)
-        console.log("Uploading story video...")
         videoUrl = await uploadStoryVideo(user.id, videoUri)
       } else {
-        console.log("Uploading story image...")
         imageUrl = await uploadStoryImage(user.id, imageUri)
       }
 
