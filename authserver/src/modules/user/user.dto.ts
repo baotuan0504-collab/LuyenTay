@@ -15,7 +15,7 @@ export class UpdateProfileDto {
     this.onboardingCompleted = data.onboardingCompleted
   }
 }
-
+ 
 export class UserResponseDto {
   id: string
   name: string

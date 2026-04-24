@@ -52,7 +52,7 @@ export function CommentInput({
       onCommented?.()
 
     } catch (error: unknown) {
-      console.error("❌ Send comment error:", error)
+      console.error("Send comment error:", error)
     } finally {
       setLoading(false)
     }
@@ -130,7 +130,7 @@ export function CommentInput({
           onPress={handleSend}
           disabled={!canSend}
           style={{
-            backgroundColor: canSend ? "#007aff" : "#ccc",
+            backgroundColor: canSend ? "black" : "#ccc",
             paddingVertical: 12,
             paddingHorizontal: 18,
             borderRadius: 24,

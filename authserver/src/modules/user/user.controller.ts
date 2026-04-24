@@ -27,11 +27,17 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 
 export const checkUsername = async (req: AuthRequest, res: Response) => {
   try {
-    const { username } = req.params
+    const usernameParam = req.params.username
+
+    if (typeof usernameParam !== "string") {
+      return res.status(400).json({ message: "Invalid username" })
+    }
+
     const available = await userService.checkUsernameAvailability(
-      username,
+      usernameParam,
       req.userId,
     )
+
     res.json({ available })
   } catch (error: any) {
     res.status(500).json({ message: error.message })
@@ -40,8 +46,13 @@ export const checkUsername = async (req: AuthRequest, res: Response) => {
 
 export const getUserById = async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.params
-    const result = await userService.findById(userId)
+    const userIdParam = req.params.userId
+
+    if (typeof userIdParam !== "string") {
+      return res.status(400).json({ message: "Invalid userId" })
+    }
+
+    const result = await userService.findById(userIdParam)
     res.json(result)
   } catch (error: any) {
     const status = error.message === "User not found" ? 404 : 500
