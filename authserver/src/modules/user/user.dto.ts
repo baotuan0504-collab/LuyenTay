@@ -29,7 +29,7 @@ export class UserResponseDto {
     this.id = user._id.toString()
     this.name = user.name
     this.username = user.username
-    this.email = user.email
+    this.email = user.email 
     this.avatar = user.avatar
     this.onboardingCompleted = user.onboardingCompleted
     this.createdAt = user.createdAt
