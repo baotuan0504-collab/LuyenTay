@@ -66,11 +66,19 @@ export const initializeSocket = (httpServer: HttpServer) => {
     socket.join(`user:${userId}`)
 
     socket.on("join-chat", (chatId: string) => {
-      socket.join(`chat:${chatId}`)
+      try {
+        socket.join(`chat:${chatId}`)
+      } catch (error) {
+        console.error("Error in join-chat socket event:", error)
+      }
     })
 
     socket.on("leave-chat", (chatId: string) => {
-      socket.leave(`chat:${chatId}`)
+      try {
+        socket.leave(`chat:${chatId}`)
+      } catch (error) {
+        console.error("Error in leave-chat socket event:", error)
+      }
     })
 
     // handle sending messages
@@ -111,23 +119,24 @@ export const initializeSocket = (httpServer: HttpServer) => {
             io.to(`user:${participantId}`).emit("new-message", message)
           }
         } catch (error) {
+          console.error("Error in send-message socket event:", error)
           socket.emit("socket-error", { message: "Failed to send message" })
         }
       },
     )
 
     socket.on("typing", async (data: { chatId: string; isTyping: boolean }) => {
-      const typingPayload = {
-        userId,
-        chatId: data.chatId,
-        isTyping: data.isTyping,
-      }
-
-      // emit to chat room (for users inside the chat)
-      socket.to(`chat:${data.chatId}`).emit("typing", typingPayload)
-
-      // also emit to other participant's personal room (for chat list view)
       try {
+        const typingPayload = {
+          userId,
+          chatId: data.chatId,
+          isTyping: data.isTyping,
+        }
+
+        // emit to chat room (for users inside the chat)
+        socket.to(`chat:${data.chatId}`).emit("typing", typingPayload)
+
+        // also emit to other participant's personal room (for chat list view)
         const chat = await Chat.findById(data.chatId)
         if (chat) {
           const otherParticipantId = chat.participants.find(
@@ -140,15 +149,20 @@ export const initializeSocket = (httpServer: HttpServer) => {
           }
         }
       } catch (error) {
+        console.error("Error in typing socket event:", error)
         // silently fail - typing indicator is not critical
       }
     })
 
     socket.on("disconnect", () => {
-      onlineUsers.delete(userId)
+      try {
+        onlineUsers.delete(userId)
 
-      // notify others
-      socket.broadcast.emit("user-offline", { userId })
+        // notify others
+        socket.broadcast.emit("user-offline", { userId })
+      } catch (error) {
+        console.error("Error in disconnect socket event:", error)
+      }
     })
   })
 

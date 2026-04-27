@@ -105,5 +105,6 @@ export async function verifySignature(
     })
   }
 
+  console.log(`[DEBUG] Signature verification successful for ${path}, passing to next middleware`)
   next()
 }

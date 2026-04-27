@@ -4,10 +4,9 @@ import { ChatController } from "../modules/chat/controller/chat.controller"
 
 const router = Router()
 
-router.use(protectRoute)
+console.log("[DEBUG] ChatRoutes loaded")
 
-router.get("/", ChatController.getChatsByUser)
-// If you have a getOrCreateChat method in the new ChatController, map it here:
-// router.post("/with/:participantId", ChatController.getOrCreateChat);
+router.get("/", protectRoute, ChatController.getChatsByUser)
+router.post("/with/:participantId", protectRoute, ChatController.getOrCreateChat)
 
 export default router

@@ -56,14 +56,24 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", message: "Server is running" })
 })
 
-app.use("/api/auth", authRoutes)
 app.use("/api/chats", chatRoutes)
+app.use("/api/auth", authRoutes)
 app.use("/api/comments", commentRoutes)
 app.use("/api/messages", messageRoutes)
 app.use("/api/posts", postRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/stories", storyRoutes)
 app.use("/api/reactions", reactionRoutes)
+
+// Catch-all for unmatched api routes
+app.use("/api", (req, res, next) => {
+  // If headers were already sent, it means a route was already matched and handled
+  if (res.headersSent) return next();
+  
+  console.log(`[404] Unmatched API request: ${req.method} ${req.originalUrl}`)
+  res.status(404).json({ message: `Route ${req.method} ${req.originalUrl} not found` })
+})
+
 // error handlers must come after all the routes and other middlewares so they can catch errors passed with next(err) or thrown inside async handlers.
 app.use(errorHandler)
 

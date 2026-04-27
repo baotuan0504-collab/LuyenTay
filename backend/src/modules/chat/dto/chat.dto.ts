@@ -4,8 +4,9 @@ export interface CreateChatDto {
 
 export interface ChatResponseDto {
   _id: string
-  participants: string[]
-  lastMessage?: string
+  participants: any[]
+  participant: any
+  lastMessage?: any
   lastMessageAt?: string
   createdAt: string
   updatedAt: string

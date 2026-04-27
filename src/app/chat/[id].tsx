@@ -31,6 +31,8 @@ export default function ChatRoomScreen() {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const flatListRef = useRef<FlatList>(null);
 
 
@@ -39,7 +41,7 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     if (accessToken && chatId) {
-      loadMessages();
+      loadInitialMessages();
       joinChat(chatId as string);
     }
 
@@ -64,9 +66,10 @@ export default function ChatRoomScreen() {
 
       if (messageChatId === chatId) {
         setMessages((prev) => {
-            // Check if message already exists (to avoid duplicates if we also fetch)
+            // Check if message already exists
             if (prev.find(m => m._id === message._id)) return prev;
-            return [...prev, message];
+            // With inverted list, newest message goes to the beginning of the array
+            return [message, ...prev];
         });
       }
     };
@@ -79,10 +82,12 @@ export default function ChatRoomScreen() {
   }, [socket, chatId]);
 
 
-  const loadMessages = async () => {
+  const loadInitialMessages = async () => {
+    setIsLoading(true);
     try {
-      const data = await messageService.getMessages(chatId as string, accessToken!);
+      const data = await messageService.getMessages(chatId as string, 20);
       setMessages(data as any);
+      setHasMore(data.length === 20);
     } catch (error) {
       if (isUnauthorizedError(error)) {
         await signOut();
@@ -92,6 +97,32 @@ export default function ChatRoomScreen() {
       console.error("Error loading messages:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+
+  const loadMoreMessages = async () => {
+    if (isRefreshing || !hasMore || messages.length === 0) return;
+    
+    setIsRefreshing(true);
+    try {
+      const oldestMessage = messages[messages.length - 1];
+      const data = await messageService.getMessages(
+        chatId as string, 
+        20, 
+        oldestMessage.createdAt
+      );
+      
+      if (data.length > 0) {
+        setMessages((prev) => [...prev, ...(data as any)]);
+        setHasMore(data.length === 20);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more messages:", error);
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -151,13 +182,20 @@ export default function ChatRoomScreen() {
             <FlatList
               ref={flatListRef}
               data={messages}
+              inverted
               renderItem={({ item }) => {
                   const senderId = typeof item.sender === 'string' ? item.sender : item.sender._id;
                   return <MessageBubble message={item} isFromMe={senderId === user?.id} />
               }}
               keyExtractor={(item) => item._id}
               contentContainerStyle={styles.listContent}
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+              onEndReached={loadMoreMessages}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={() => 
+                isRefreshing ? (
+                  <ActivityIndicator style={{ marginVertical: 10 }} color="#007AFF" />
+                ) : null
+              }
             />
           )}
         </View>

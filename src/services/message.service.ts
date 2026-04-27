@@ -12,6 +12,12 @@ export interface MessageResponse {
 
 export const getMessages = async (
   chatId: string,
+  limit: number = 20,
+  before?: string,
 ): Promise<MessageResponse[]> => {
-  return apiFetch(`/messages/chat/${chatId}`)
+  let url = `/messages/chat/${chatId}?limit=${limit}`
+  if (before) {
+    url += `&before=${encodeURIComponent(before)}`
+  }
+  return apiFetch(url)
 }
