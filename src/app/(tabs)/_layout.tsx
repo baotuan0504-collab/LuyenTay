@@ -77,12 +77,12 @@ export default function TabsLayout() {
           />
 
           <Tabs.Screen
-            name="profile"
+            name="friends"
             options={{
-              title: "Profile",
+              title: "Bạn bè",
               tabBarIcon: ({ color, size, focused }) => (
                 <Ionicons
-                  name={focused ? "person" : "person-outline"}
+                  name={focused ? "people" : "people-outline"}
                   color={color}
                   size={size}
                 />
