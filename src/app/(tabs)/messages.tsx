@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -16,6 +17,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+
+const { width } = Dimensions.get('window');
 
 export default function MessagesScreen() {
   const [chats, setChats] = useState<chatService.ChatResponse[]>([])
@@ -64,6 +67,7 @@ export default function MessagesScreen() {
 
     return (
       <TouchableOpacity
+        activeOpacity={0.7}
         style={styles.chatItem}
         onPress={() =>
           router.push({
@@ -76,7 +80,7 @@ export default function MessagesScreen() {
             },
           })
         }>
-        <View style={styles.avatarContainer}>
+        <View style={styles.avatarWrapper}>
           {item.participant?.avatar ? (
             <Image
               source={{ uri: item.participant.avatar }}
@@ -89,40 +93,36 @@ export default function MessagesScreen() {
               </Text>
             </View>
           )}
-
           {isOnline && <View style={styles.onlineBadge} />}
         </View>
 
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
-            <Text style={styles.username}>{item.participant?.name}</Text>
-
+            <Text style={styles.username} numberOfLines={1}>
+              {item.participant?.name}
+            </Text>
             {item.lastMessageAt && (
-              <View>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={styles.time}>
-                    {new Date(item.lastMessageAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-
-                  <Ionicons
-                    name="ellipsis-horizontal"
-                    size={16}
-                    color="#999"
-                    style={{ marginLeft: 10 }}
-                  />
-                </View>
-              </View>
+              <Text style={styles.time}>
+                {new Date(item.lastMessageAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </Text>
             )}
           </View>
 
-          <Text
-            style={[styles.lastMessage, isTyping && styles.typingText]}
-            numberOfLines={1}>
-            {"No messages yet"}
-          </Text>
+          <View style={styles.lastMessageRow}>
+            <Text
+              style={[styles.lastMessage, isTyping && styles.typingText]} 
+              numberOfLines={1}>
+              {isTyping ? "đang soạn tin..." : (item.lastMessage?.text || "Bắt đầu cuộc trò chuyện ngay")}
+            </Text>
+            {item.unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
       </TouchableOpacity>
     )
@@ -130,12 +130,10 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
+
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator
-            size="large"
-            color="#000"
-          />
+          <ActivityIndicator size="large" color="#0066FF" />
         </View>
       ) : (
         <FlatList
@@ -143,34 +141,31 @@ export default function MessagesScreen() {
           renderItem={renderChat}
           keyExtractor={item => item._id}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
+              tintColor="#0066FF"
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons
-                name="chatbubbles-outline"
-                size={64}
-                color="#ccc"
-              />
-              <Text style={styles.emptyText}>No conversations yet</Text>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="chatbubbles-outline" size={40} color="#0066FF" />
+              </View>
+              <Text style={styles.emptyTitle}>Chưa có tin nhắn</Text>
+              <Text style={styles.emptySubtitle}>Hãy bắt đầu trò chuyện với bạn bè ngay!</Text>
             </View>
           }
         />
       )}
 
-      {/* Floating New Chat Button */}
       <TouchableOpacity
         style={styles.fab}
+        activeOpacity={0.8}
         onPress={() => router.push("/chat/new")}>
-        <Ionicons
-          name="create"
-          size={24}
-          color="#fff"
-        />
+        <Ionicons name="create" size={26} color="#fff" />
       </TouchableOpacity>
     </View>
   )
@@ -179,48 +174,76 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F8F9FB",
   },
-
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#FFF',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    letterSpacing: -0.5,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+  },
+  headerIconButton: {
+    marginLeft: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F3F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-
   listContent: {
-    flexGrow: 1,
-    paddingTop: 20,
+    paddingHorizontal: 16,
+    marginTop: 16
   },
-
   chatItem: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    padding: 14,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    marginBottom: 10,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 2,
   },
-
-  avatarContainer: {
+  avatarWrapper: {
     position: "relative",
   },
-
   avatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
+    borderWidth: 2,
+    borderColor: '#F8F9FB',
   },
-
   avatarPlaceholder: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#E1E8FF",
     justifyContent: "center",
     alignItems: "center",
   },
-
   avatarText: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#666",
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#0066FF",
   },
-
   onlineBadge: {
     position: "absolute",
     bottom: 2,
@@ -228,73 +251,101 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#34C759", // Modern Apple Green
     borderWidth: 2,
     borderColor: "#fff",
   },
-
   chatInfo: {
     flex: 1,
     marginLeft: 15,
   },
-
   chatHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 4,
+    alignItems: 'center',
   },
-
   username: {
     fontSize: 17,
-    fontWeight: "600",
-    color: "#000",
+    fontWeight: "700",
+    color: "#1A1A1A",
+    maxWidth: '70%',
   },
-
   time: {
     fontSize: 12,
-    color: "#999",
+    color: "#8E8E93",
+    fontWeight: '500',
   },
-
+  lastMessageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   lastMessage: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#666",
+    flex: 1,
+    marginRight: 10,
   },
-
   typingText: {
-    color: "#F4A261",
-    fontStyle: "italic",
+    color: "#0066FF",
+    fontWeight: '500',
   },
-
+  unreadBadge: {
+    backgroundColor: '#FF3B30',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 100,
+    paddingHorizontal: 40,
   },
-
-  emptyText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#999",
+  emptyIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E1E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  /* Floating Button */
-
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1A1A1A",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#8E8E93",
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
   fab: {
     position: "absolute",
-    bottom: 20,
-    right: 20,
-    backgroundColor: "#000",
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: 30,
+    right: 25,
+    backgroundColor: "#0066FF",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    elevation: 8,
+    shadowColor: "#0066FF",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
   },
 })

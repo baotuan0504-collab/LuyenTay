@@ -11,8 +11,13 @@ export interface ChatParticipant {
 export interface ChatResponse {
   _id: string
   participant: ChatParticipant | null
-  lastMessage?: any
-  lastMessageAt: string
+  lastMessage?: {
+    text: string
+    sender: string
+    createdAt: string
+  }
+  lastMessageAt?: string
+  unreadCount: number
   createdAt: string
 }
 
