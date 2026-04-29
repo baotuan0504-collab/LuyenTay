@@ -100,4 +100,30 @@ export class ChatController {
       res.status(403).json({ message: error.message })
     }
   }
+
+  static async updateChat(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as AuthRequest).userId
+      const chatId = req.params.chatId as string
+      const { name, avatar, nicknames } = req.body
+      
+      const chat = await ChatService.updateChat(chatId, userId, { name, avatar, nicknames })
+      res.json(chat)
+    } catch (error: any) {
+      res.status(403).json({ message: error.message })
+    }
+  }
+
+  static async addParticipants(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as AuthRequest).userId
+      const chatId = req.params.chatId as string
+      const { participants } = req.body
+      
+      const chat = await ChatService.addParticipants(chatId, userId, participants)
+      res.json(chat)
+    } catch (error: any) {
+      res.status(403).json({ message: error.message })
+    }
+  }
 }

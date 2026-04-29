@@ -6,13 +6,13 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -102,10 +102,14 @@ export default function SignUpScreen() {
         throw new Error("User not authenticated");
       }
       // Check if username exists
-      const {available} = await checkUsernameService(username, accessToken!);
+      const res = await checkUsernameService(username);
       
+      if (!res) {
+        setIsLoading(false);
+        return; // Lỗi đã được xử lý bằng Alert bên trong service
+      }
 
-      if (!available) {
+      if (!res.available) {
         Alert.alert(
           "Error",
           "This username is already taken. Please choose another one.",

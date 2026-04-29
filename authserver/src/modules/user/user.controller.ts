@@ -28,11 +28,9 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 export const checkUsername = async (req: AuthRequest, res: Response) => {
   try {
     const usernameParam = req.params.username
-
     if (typeof usernameParam !== "string") {
       return res.status(400).json({ message: "Invalid username" })
     }
-
     const available = await userService.checkUsernameAvailability(
       usernameParam,
       req.userId,
@@ -47,7 +45,6 @@ export const checkUsername = async (req: AuthRequest, res: Response) => {
 export const getUserById = async (req: AuthRequest, res: Response) => {
   try {
     const userIdParam = req.params.userId
-
     if (typeof userIdParam !== "string") {
       return res.status(400).json({ message: "Invalid userId" })
     }

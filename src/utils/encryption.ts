@@ -6,8 +6,8 @@ import { toByteArray as decodeBase64, fromByteArray as encodeBase64 } from 'base
  * tweetnacl requires a way to generate random bytes.
  */
 const getRandomValues = (x: Uint8Array) => {
-  if (typeof global !== 'undefined' && global.crypto && global.crypto.getRandomValues) {
-    return global.crypto.getRandomValues(x);
+  if (typeof global !== 'undefined' && (global as any).crypto && (global as any).crypto.getRandomValues) {
+    return (global as any).crypto.getRandomValues(x);
   }
   // Fallback if needed, though react-native-get-random-values should provide the above
   throw new Error('No secure random number generator found. Ensure react-native-get-random-values is imported.');

@@ -11,7 +11,10 @@ export interface ChatParticipant {
 export interface ChatResponse {
   _id: string
   participant: ChatParticipant | null
+  participants?: ChatParticipant[]
   type: 'PRIVATE' | 'GROUP'
+  name?: string
+  avatar?: string
   lastMessage?: {
     text: string
     sender: string
@@ -20,6 +23,7 @@ export interface ChatResponse {
   lastMessageAt?: string
   unreadCount: number
   creator?: string
+  nicknames?: Record<string, string>
   createdAt: string
 }
 
@@ -49,5 +53,22 @@ export const createGroupChat = async (participants: string[], name: string): Pro
 export const deleteChat = async (chatId: string): Promise<void> => {
   return apiFetch(`/chats/${chatId}`, {
     method: "DELETE",
+  })
+}
+
+export const updateChat = async (
+  chatId: string, 
+  data: { name?: string, avatar?: string, nicknames?: Record<string, string> }
+): Promise<ChatResponse> => {
+  return apiFetch(`/chats/${chatId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  })
+}
+
+export const addParticipants = async (chatId: string, participants: string[]): Promise<ChatResponse> => {
+  return apiFetch(`/chats/${chatId}/participants`, {
+    method: "POST",
+    body: JSON.stringify({ participants }),
   })
 }

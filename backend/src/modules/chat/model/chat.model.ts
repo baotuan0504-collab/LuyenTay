@@ -6,6 +6,7 @@ export interface IChat extends Document {
   creator?: mongoose.Types.ObjectId
   name?: string
   avatar?: string
+  nicknames?: Map<string, string>
   lastMessage?: mongoose.Types.ObjectId
   lastMessageAt?: Date
   createdAt: Date
@@ -38,6 +39,11 @@ const ChatSchema = new Schema<IChat>(
     avatar: {
       type: String,
       default: null,
+    },
+    nicknames: {
+      type: Map,
+      of: String,
+      default: {},
     },
     lastMessage: {
       type: Schema.Types.ObjectId,

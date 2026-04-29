@@ -11,5 +11,7 @@ router.get("/:chatId", protectRoute, ChatController.getChatById)
 router.post("/with/:participantId", protectRoute, ChatController.getOrCreateChat)
 router.post("/group", protectRoute, ChatController.createGroupChat)
 router.delete("/:chatId", protectRoute, ChatController.deleteChat)
+router.patch("/:chatId", protectRoute, ChatController.updateChat)
+router.post("/:chatId/participants", protectRoute, ChatController.addParticipants)
 
 export default router

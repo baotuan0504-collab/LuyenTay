@@ -38,8 +38,9 @@ export async function isNetworkAvailable(): Promise<boolean> {
     }
 
     // 4. Quyết định cuối cùng: 
-    // Nếu isInternetReachable là null (đang check/Simulator cũ), ta tạm tin vào isConnected.
-    return state.isConnected !== false
+    // Nếu đến được đây nghĩa là ping thất bại nhưng kết nối vật lý vẫn có (hoặc đang check).
+    // Ta trả về true để không chặn người dùng khi Simulator báo null.
+    return true
   } catch {
     // Fail-safe: Nếu gặp lỗi trong lúc check, hãy cho phép tiếp tục để không chặn người dùng oan uổng
     return true

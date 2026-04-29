@@ -79,7 +79,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
     try {
       if (myReaction === type) {
         // Bỏ reaction
-        await removeReaction(post.id, "post", accessToken)
+        await removeReaction(post.id, "post")
         setMyReaction(undefined)
         setReactionCounts(c => ({
           ...c,
@@ -87,7 +87,7 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         }))
       } else {
         // Thả hoặc đổi reaction
-        await upsertReaction(post.id, "post", type, accessToken)
+        await upsertReaction(post.id, "post", type)
         setMyReaction(type)
         setReactionCounts(c => ({
           ...c,

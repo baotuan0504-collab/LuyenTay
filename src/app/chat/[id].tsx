@@ -41,6 +41,7 @@ export default function ChatRoomScreen() {
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [chatCreator, setChatCreator] = useState<string | null>(null);
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
   const flatListRef = useRef<FlatList>(null);
 
 
@@ -142,8 +143,9 @@ export default function ChatRoomScreen() {
         const chat = await chatService.getChatById(chatId as string);
         console.log('DEBUG: Chat details from getChatById:', chat);
         
-        // Save creator for group management
+        // Save creator and nicknames for group management
         if (chat.creator) setChatCreator(chat.creator);
+        if (chat.nicknames) setNicknames(chat.nicknames);
 
         if (chat && chat.participant && chat.participant.publicKey && chat.participant.publicKey.length > 0) {
           setParticipantPublicKey(chat.participant.publicKey);
@@ -340,7 +342,10 @@ export default function ChatRoomScreen() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.headerAction}>
+        <TouchableOpacity 
+          style={styles.headerAction}
+          onPress={() => router.push(`/chat/settings/${chatId}`)}
+        >
           <Ionicons name="information-circle-outline" size={24} color="#1A1A1A" />
         </TouchableOpacity>
       </View>
@@ -363,9 +368,16 @@ export default function ChatRoomScreen() {
               inverted
               renderItem={({ item }) => {
                 const senderId = typeof item.sender === 'string' ? item.sender : item.sender._id;
+                
+                // Resolve name: Nickname > Real Name
+                let displayName = typeof item.sender === 'object' ? item.sender.name : 'Unknown';
+                if (nicknames[senderId]) {
+                  displayName = nicknames[senderId];
+                }
+
                 return (
                   <MessageBubble 
-                    message={item} 
+                    message={{...item, sender: { ...(typeof item.sender === 'object' ? item.sender : {}), name: displayName } as any}} 
                     isFromMe={senderId === user?.id} 
                     showSenderName={isGroup === "true"} 
                   />

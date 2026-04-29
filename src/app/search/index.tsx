@@ -157,7 +157,7 @@ const SearchItem = React.memo(({ item, router, accessToken }: any) => {
         onPress={async () => {
           if (!accessToken) return
 
-          const chat = await chatService.getOrCreateChat(item._id, accessToken)
+          const chat = await chatService.getOrCreateChat(item._id)
 
           router.push({
             pathname: "/chat/[id]",
