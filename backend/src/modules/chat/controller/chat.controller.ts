@@ -12,6 +12,26 @@ export class ChatController {
     }
   }
 
+  static async createGroupChat(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as AuthRequest).userId
+      const { participants, name, avatar } = req.body
+      
+      // Ensure current user is in participants
+      const allParticipants = Array.from(new Set([...participants, userId]))
+      
+      const chat = await ChatService.createGroupChat({
+        participants: allParticipants,
+        name,
+        avatar,
+        creator: userId as string
+      })
+      res.status(201).json(chat)
+    } catch (error) {
+      next(error)
+    }
+  }
+
   static async getChatsByUser(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = (req as AuthRequest).userId
@@ -66,6 +86,18 @@ export class ChatController {
       res.json(chat)
     } catch (error) {
       next(error)
+    }
+  }
+
+  static async deleteChat(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as AuthRequest).userId
+      const chatId = req.params.chatId as string
+      
+      await ChatService.deleteChat(chatId, userId)
+      res.json({ message: "Chat deleted successfully" })
+    } catch (error: any) {
+      res.status(403).json({ message: error.message })
     }
   }
 }

@@ -30,8 +30,10 @@ export default function NewChatScreen() {
 
   const loadUsers = async () => {
     try {
-      const data = await userService.getUsers(accessToken!);
-      setUsers(data);
+      const data = await userService.getUsers();
+      if (data) {
+        setUsers(data);
+      }
     } catch (error) {
       if (isUnauthorizedError(error)) {
         await signOut();
@@ -48,7 +50,7 @@ export default function NewChatScreen() {
     if (!accessToken) return;
     setStartingChatId(participantId);
     try {
-      const chat = await chatService.getOrCreateChat(participantId, accessToken);
+      const chat = await chatService.getOrCreateChat(participantId);
       router.push({
         pathname: "/chat/[id]",
         params: {
@@ -76,9 +78,20 @@ export default function NewChatScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.title}>New Chat</Text>
+        <Text style={styles.title}>Bắt đầu chat</Text>
         <View style={{ width: 24 }} />
       </View>
+
+      <TouchableOpacity
+        style={styles.newGroupButton}
+        onPress={() => router.push("/chat/new-group")}
+      >
+        <View style={styles.newGroupIcon}>
+          <Ionicons name="people" size={24} color="#0066FF" />
+        </View>
+        <Text style={styles.newGroupText}>Tạo nhóm mới</Text>
+        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+      </TouchableOpacity>
 
       {loading ? (
         <View style={styles.centered}>
@@ -207,5 +220,28 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: "#999",
+  },
+  newGroupButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F5",
+  },
+  newGroupIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#E1E8FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  newGroupText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1A1A1A",
   },
 });

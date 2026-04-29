@@ -19,9 +19,12 @@ export interface MessageData {
 interface MessageBubbleProps {
   message: MessageData;
   isFromMe: boolean;
+  showSenderName?: boolean;
 }
 
-export const MessageBubble = ({ message, isFromMe }: MessageBubbleProps) => {
+export const MessageBubble = ({ message, isFromMe, showSenderName }: MessageBubbleProps) => {
+  const senderName = typeof message.sender === 'object' ? message.sender.name : 'Unknown';
+
   return (
     <View style={[styles.wrapper, isFromMe ? styles.myWrapper : styles.otherWrapper]}>
       <View
@@ -30,6 +33,9 @@ export const MessageBubble = ({ message, isFromMe }: MessageBubbleProps) => {
           isFromMe ? styles.myBubble : styles.otherBubble,
         ]}
       >
+        {showSenderName && !isFromMe && (
+          <Text style={styles.senderName}>{senderName}</Text>
+        )}
         <Text style={[styles.text, isFromMe ? styles.myText : styles.otherText]}>
           {message.text}
         </Text>
@@ -105,9 +111,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.65)',
   },
   otherTime: {
-    color: '#8E8E93',
+    color: "#8E8E93",
+  },
+  senderName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0066FF',
+    marginBottom: 4,
   },
 });
-
-
-

@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 
 export default function ChatRoomScreen() {
-  const { id: chatId, name, avatar, participantId } = useLocalSearchParams();
+  const { id: chatId, name, avatar, participantId, isGroup } = useLocalSearchParams();
   const { user, accessToken, signOut } = useAuth();
   const { joinChat, leaveChat, sendMessage, sendTyping, isConnected, typingUsers, socket } = useChat();
   const { decryptFromUser, isReady: isEncryptionReady } = useEncryption();
@@ -40,6 +40,7 @@ export default function ChatRoomScreen() {
   const [participantPublicKey, setParticipantPublicKey] = useState<string | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [chatCreator, setChatCreator] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
 
@@ -123,6 +124,8 @@ export default function ChatRoomScreen() {
 
 
   const loadParticipantInfo = async () => {
+    if (isGroup === "true") return null; // Skip for groups for now
+    
     try {
       // 1. If we have participantId, try fetching user directly
       if (participantId) {
@@ -138,6 +141,10 @@ export default function ChatRoomScreen() {
       if (chatId) {
         const chat = await chatService.getChatById(chatId as string);
         console.log('DEBUG: Chat details from getChatById:', chat);
+        
+        // Save creator for group management
+        if (chat.creator) setChatCreator(chat.creator);
+
         if (chat && chat.participant && chat.participant.publicKey && chat.participant.publicKey.length > 0) {
           setParticipantPublicKey(chat.participant.publicKey);
           return chat.participant.publicKey;
@@ -269,6 +276,36 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!chatId) return;
+    
+    const confirm = await new Promise((resolve) => {
+      if (Platform.OS === 'web') {
+        resolve(window.confirm("Bạn có chắc chắn muốn xóa nhóm này không?"));
+      } else {
+        const { Alert } = require('react-native');
+        Alert.alert(
+          "Xóa nhóm",
+          "Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa nhóm này?",
+          [
+            { text: "Hủy", onPress: () => resolve(false), style: "cancel" },
+            { text: "Xóa", onPress: () => resolve(true), style: "destructive" }
+          ]
+        );
+      }
+    });
+
+    if (!confirm) return;
+
+    try {
+      await chatService.deleteChat(chatId as string);
+      router.replace("/(tabs)/messages");
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      alert("Lỗi khi xóa nhóm.");
+    }
+  };
+
 
   const handleTyping = (text: string) => {
     setInputText(text);
@@ -297,8 +334,14 @@ export default function ChatRoomScreen() {
           </View>
         </View>
 
+        {isGroup === "true" && chatCreator === user?.id && (
+          <TouchableOpacity style={styles.headerAction} onPress={handleDeleteGroup}>
+            <Ionicons name="trash-outline" size={24} color="#FF3B30" />
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.headerAction}>
-          <Ionicons name="information-circle-outline" size={24} color="#000" />
+          <Ionicons name="information-circle-outline" size={24} color="#1A1A1A" />
         </TouchableOpacity>
       </View>
 
@@ -320,7 +363,13 @@ export default function ChatRoomScreen() {
               inverted
               renderItem={({ item }) => {
                 const senderId = typeof item.sender === 'string' ? item.sender : item.sender._id;
-                return <MessageBubble message={item} isFromMe={senderId === user?.id} />
+                return (
+                  <MessageBubble 
+                    message={item} 
+                    isFromMe={senderId === user?.id} 
+                    showSenderName={isGroup === "true"} 
+                  />
+                );
               }}
               keyExtractor={(item) => item._id}
               contentContainerStyle={styles.listContent}

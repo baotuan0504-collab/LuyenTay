@@ -9,10 +9,29 @@ export class ChatService {
         participants: data.participants.map(
           id => new mongoose.Types.ObjectId(id),
         ),
+        type: data.type || 'PRIVATE',
+        name: data.name,
+        avatar: data.avatar,
       })
       return await chat.save()
     } catch (error) {
       console.error("Error in createChat:", error)
+      throw error
+    }
+  }
+
+  static async createGroupChat(data: { participants: string[], name: string, avatar?: string, creator: string }) {
+    try {
+      const chat = new Chat({
+        participants: data.participants.map(id => new mongoose.Types.ObjectId(id)),
+        type: 'GROUP',
+        creator: new mongoose.Types.ObjectId(data.creator),
+        name: data.name,
+        avatar: data.avatar,
+      })
+      return await chat.save()
+    } catch (error) {
+      console.error("Error in createGroupChat:", error)
       throw error
     }
   }
@@ -29,6 +48,19 @@ export class ChatService {
 
       return chats.map(chat => {
         const chatObj = chat.toObject() as any
+        
+        if (chatObj.type === 'GROUP') {
+          return {
+            ...chatObj,
+            participant: {
+              name: chatObj.name,
+              avatar: chatObj.avatar,
+              _id: chatObj._id, // Group ID
+              isGroup: true
+            }
+          }
+        }
+
         const otherParticipant = chatObj.participants.find(
           (p: any) => p._id.toString() !== userId,
         )
@@ -98,6 +130,26 @@ export class ChatService {
       )
     } catch (error) {
       console.error("Error in addMessageToChat:", error)
+      throw error
+    }
+  }
+
+  static async deleteChat(chatId: string, userId: string) {
+    try {
+      const chat = await Chat.findById(chatId);
+      if (!chat) throw new Error("Chat not found");
+      
+      // Only creator can delete GROUP chats
+      if (chat.type === 'GROUP' && chat.creator?.toString() !== userId) {
+        throw new Error("Only group creator can delete this chat");
+      }
+      
+      // For PRIVATE chats, we might want a different logic, but for now let's allow either participant? 
+      // User requested "creator can delete group", so let's stick to that.
+      
+      return await Chat.findByIdAndDelete(chatId);
+    } catch (error) {
+      console.error("Error in deleteChat:", error)
       throw error
     }
   }

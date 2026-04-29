@@ -1,5 +1,8 @@
 export interface CreateChatDto {
   participants: string[]
+  type?: 'PRIVATE' | 'GROUP'
+  name?: string
+  avatar?: string
 }
 
 export interface ChatResponseDto {
