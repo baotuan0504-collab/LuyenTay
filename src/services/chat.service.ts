@@ -5,6 +5,7 @@ export interface ChatParticipant {
   name: string
   username: string
   avatar: string
+  publicKey?: string
 }
 
 export interface ChatResponse {
@@ -25,4 +26,8 @@ export const getOrCreateChat = async (
   return apiFetch(`/chats/with/${participantId}`, {
     method: "POST",
   })
+}
+
+export const getChatById = async (chatId: string): Promise<ChatResponse> => {
+  return apiFetch(`/chats/${chatId}`)
 }

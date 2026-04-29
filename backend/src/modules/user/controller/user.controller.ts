@@ -18,7 +18,7 @@ export async function searchUsers(
         { name: { $regex: q, $options: "i" } },
       ],
     })
-      .select("name email avatar username")
+      .select("name email avatar username publicKey")
       .limit(20)
     res.json(users)
   } catch (error) {
@@ -35,7 +35,7 @@ export async function getUsers(
   try {
     const userId = req.userId
     const users = await User.find({ _id: { $ne: userId } })
-      .select("name email avatar")
+      .select("name email avatar publicKey")
       .limit(50)
     res.json(users)
   } catch (error) {
@@ -86,6 +86,33 @@ export async function checkUsername(
   }
 }
 
+export async function updatePublicKey(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.userId
+    const { publicKey } = req.body
+    if (!publicKey) {
+      return res.status(400).json({ message: "Missing publicKey" })
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { publicKey } },
+      { new: true },
+    ).select("-password")
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+    console.log(`[UserController] Updated publicKey for user ${userId}`);
+    res.json(user)
+  } catch (error) {
+    res.status(500)
+    next(error)
+  }
+}
+
 export async function getUserById(
   req: AuthRequest,
   res: Response,
@@ -94,7 +121,7 @@ export async function getUserById(
   try {
     const { userId } = req.params
     const user = await User.findById(userId).select(
-      "name email avatar username createdAt",
+      "name email avatar username publicKey createdAt",
     )
     if (!user) {
       res.status(404).json({ message: "User not found" })

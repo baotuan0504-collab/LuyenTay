@@ -1,8 +1,10 @@
+import "react-native-get-random-values"
+import "fast-text-encoding"
 import { AuthProvider, useAuth } from "@/context/AuthContext"
 import { ChatProvider } from "@/context/ChatContext"
+import { EncryptionProvider } from "@/context/EncryptionContext"
 import { Stack } from "expo-router"
 import { ActivityIndicator, View } from "react-native"
-import "react-native-get-random-values"
 
 function RootStack() {
   const { user, isRestoring } = useAuth()
@@ -25,9 +27,11 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <ChatProvider>
-        <RootStack />
-      </ChatProvider>
+      <EncryptionProvider>
+        <ChatProvider>
+          <RootStack />
+        </ChatProvider>
+      </EncryptionProvider>
     </AuthProvider>
   )
 }

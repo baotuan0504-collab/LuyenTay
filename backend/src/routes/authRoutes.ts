@@ -105,4 +105,18 @@ router.post("/verify-login-otp", async (req, res) => {
   }
 })
 
+// Proxy logout
+router.post("/logout", async (req, res) => {
+  try {
+    const response = await axios.post(
+      `${AUTHSERVER_URL}/api/auth/logout`,
+      req.body,
+      { headers: getProxyHeaders(req) },
+    )
+    res.status(response.status).json(response.data)
+  } catch (error) {
+    handleAxiosError(error, res)
+  }
+})
+
 export default router

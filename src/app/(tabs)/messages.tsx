@@ -121,9 +121,7 @@ export default function MessagesScreen() {
           <Text
             style={[styles.lastMessage, isTyping && styles.typingText]}
             numberOfLines={1}>
-            {isTyping
-              ? "typing..."
-              : item.lastMessage?.text || "No messages yet"}
+            {"No messages yet"}
           </Text>
         </View>
       </TouchableOpacity>

@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { useEncryption } from './EncryptionContext';
 const SOCKET_URL = "http://127.0.0.1:5201";
 
 // const SOCKET_URL = "http://192.168.38.103:5201";
@@ -16,7 +17,7 @@ type ChatContextValue = {
   typingUsers: Map<string, string>; // chatId -> userId
   joinChat: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
-  sendMessage: (chatId: string, text: string) => void;
+  sendMessage: (chatId: string, text: string, recipientPublicKey?: string) => void;
   sendTyping: (chatId: string, isTyping: boolean) => void;
 };
 
@@ -26,6 +27,7 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 export function ChatProvider({ children }: PropsWithChildren<{}>) {
   const { accessToken, refreshAccessToken, signOut } = useAuth();
+  const { encryptForUser } = useEncryption();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -153,8 +155,21 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
   };
 
 
-  const sendMessage = (chatId: string, text: string) => {
-    socketRef.current?.emit("send-message", { chatId, text });
+  const sendMessage = (chatId: string, text: string, recipientPublicKey?: string) => {
+    let messageText = text;
+    if (recipientPublicKey) {
+      console.log('Encrypting message for recipient:', recipientPublicKey);
+      const encrypted = encryptForUser(text, recipientPublicKey);
+      if (encrypted) {
+        messageText = encrypted;
+        console.log('Message encrypted successfully');
+      } else {
+        console.warn('Encryption failed, sending plain text');
+      }
+    } else {
+      console.warn('No recipient public key provided, sending plain text');
+    }
+    socketRef.current?.emit("send-message", { chatId, text: messageText });
   };
 
 

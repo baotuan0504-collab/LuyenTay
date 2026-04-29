@@ -20,7 +20,7 @@ export class ChatService {
   static async getChatsByUser(userId: string) {
     try {
       const chats = await Chat.find({ participants: userId })
-        .populate("participants", "name username avatar")
+        .populate("participants", "name username avatar publicKey")
         .populate({
           path: "lastMessage",
           populate: { path: "sender", select: "name" },
@@ -47,7 +47,7 @@ export class ChatService {
     try {
       return await Chat.findById(chatId).populate(
         "participants",
-        "name username avatar",
+        "name username avatar publicKey",
       )
     } catch (error) {
       console.error("Error in getChatById:", error)
@@ -60,7 +60,7 @@ export class ChatService {
       let chat = await Chat.findOne({
         participants: { $all: [userId1, userId2] },
       })
-        .populate("participants", "name username avatar")
+        .populate("participants", "name username avatar publicKey")
         .populate("lastMessage")
 
       if (!chat) {
@@ -71,7 +71,7 @@ export class ChatService {
           ],
         })
         await chat.save()
-        await chat.populate("participants", "name username avatar")
+        await chat.populate("participants", "name username avatar publicKey")
       }
 
       const chatObj = chat.toObject() as any

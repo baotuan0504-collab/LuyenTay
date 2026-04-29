@@ -7,7 +7,7 @@ import {
   register,
   verifyLoginOtp as verifyLoginOtpService,
 } from "@/services/auth.service"
-import { updateProfile as updateProfileService } from "@/services/user.service"
+import { updateProfile as updateProfileService, getUserById as getUserByIdService } from "@/services/user.service"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
 import type { PropsWithChildren } from "react"
@@ -20,6 +20,7 @@ type AuthUser = {
   email: string
   avatar?: string
   onboardingCompleted?: boolean
+  publicKey?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
     return {
       ...userData,
       id: userData.id || userData._id,
+      publicKey: userData.publicKey || "",
     }
   }
 
@@ -198,6 +200,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       data.accessToken ?? null,
       data.refreshToken ?? null,
     )
+    setGlobalIsLoggedOut(false)
   }
 
   const signIn = async (email: string, password: string) => {
@@ -214,6 +217,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       data.accessToken ?? null,
       data.refreshToken ?? null,
     )
+    setGlobalIsLoggedOut(false)
     return data
   }
 
@@ -232,6 +236,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
       data.accessToken ?? null,
       data.refreshToken ?? null,
     )
+    setGlobalIsLoggedOut(false)
     return data
   }
 

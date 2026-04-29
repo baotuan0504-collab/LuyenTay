@@ -59,14 +59,17 @@ export const apiFetch = async (
   endpoint: string,
   options: RequestInit = {},
 ): Promise<any> => {
-  if (globalIsLoggedOut) {
-    throw new ApiError("User is logged out", 401)
-  }
-  const url = BASE_URL(endpoint) + endpoint
+  const isAuthRequest = endpoint.startsWith("/auth")
   const isAuthNoToken =
     endpoint === "/auth/login" ||
     endpoint === "/auth/register" ||
     endpoint === "/auth/refresh"
+
+  if (globalIsLoggedOut && !isAuthRequest) {
+    throw new ApiError("User is logged out", 401)
+  }
+
+  const url = BASE_URL(endpoint) + endpoint
 
   const getHeaders = async (customToken?: string, customPath?: string) => {
     let token: string | undefined = customToken

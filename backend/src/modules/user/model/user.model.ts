@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string
   avatar: string
   onboardingCompleted?: boolean
+  publicKey?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -43,6 +44,10 @@ const UserSchema = new Schema<IUser>(
     onboardingCompleted: {
       type: Boolean,
       default: false,
+    },
+    publicKey: {
+      type: String,
+      default: "",
     },
   },
   {
