@@ -8,6 +8,7 @@ import authRoutes from "./routes/authRoutes"
 import chatRoutes from "./routes/chatRoutes"
 import commentRoutes from "./routes/commentRoutes"
 import messageRoutes from "./routes/messageRoutes"
+import friendRoutes from "./routes/friendRoutes"
 import postRoutes from "./routes/postRoutes"
 import reactionRoutes from "./routes/reactionRoutes"
 import storyRoutes from "./routes/storyRoutes"
@@ -64,6 +65,7 @@ app.use("/api/posts", postRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/stories", storyRoutes)
 app.use("/api/reactions", reactionRoutes)
+app.use("/api/friends", friendRoutes)
 
 // Catch-all for unmatched api routes
 app.use("/api", (req, res, next) => {
