@@ -53,9 +53,13 @@ export async function getPosts(
 ) {
   try {
     const userId = req.userId
-    // Fetch all posts, including multiple posts per user
-    const posts = await Post.find({})
-      .populate("user", "name username avatar")
+    const targetUserId = req.query.userId as string | undefined
+
+    const filter = targetUserId ? { user: targetUserId } : {}
+
+    // Fetch all posts, optionally filtered by user, including multiple posts per user
+    const posts = await Post.find(filter)
+      .populate("user", "name username avatar coverPhoto")
       .sort({ createdAt: -1 })
 
     // Lấy reactionCounts và myReaction cho mỗi post

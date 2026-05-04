@@ -5,7 +5,7 @@ export interface INotification extends Document {
   sender: mongoose.Types.ObjectId;
   type: 'REACTION' | 'COMMENT' | 'FRIEND_REQUEST' | 'FRIEND_ACCEPT';
   referenceId?: mongoose.Types.ObjectId;
-  referenceType?: 'POST' | 'COMMENT' | 'USER';
+  referenceType?: 'POST' | 'COMMENT' | 'USER' | 'STORY';
   isRead: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -17,7 +17,7 @@ const notificationSchema = new Schema(
     sender: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: { type: String, enum: ['REACTION', 'COMMENT', 'FRIEND_REQUEST', 'FRIEND_ACCEPT'], required: true },
     referenceId: { type: Schema.Types.ObjectId },
-    referenceType: { type: String, enum: ['POST', 'COMMENT', 'USER'] },
+    referenceType: { type: String, enum: ['POST', 'COMMENT', 'USER', 'STORY'] },
     isRead: { type: Boolean, default: false },
   },
   { timestamps: true }

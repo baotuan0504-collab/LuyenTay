@@ -85,6 +85,8 @@ export interface ReactionBarProps {
   >
   onCommentPress?: () => void // thêm prop này để xử lý sự kiện bình luận
   commentLabel?: string // tuỳ chọn: label cho nút bình luận
+  layout?: "horizontal" | "vertical" // layout cho Reels/Story
+  onPickerVisibilityChange?: (visible: boolean) => void // Để StoryViewer pause
 }
 
 
@@ -95,8 +97,15 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
   onShowReactors,
   reactionUsers,
   onCommentPress,
+  layout,
+  onPickerVisibilityChange,
 }) => {
   const [pickerVisible, setPickerVisible] = useState(false)
+  
+  const handleSetPickerVisible = (visible: boolean) => {
+    setPickerVisible(visible);
+    onPickerVisibilityChange && onPickerVisibilityChange(visible);
+  }
   const selectedReaction =
     REACTIONS.find(reaction => reaction.type === selected) ?? REACTIONS[0]
   const totalCount = Object.values(counts ?? {}).reduce(
@@ -110,37 +119,39 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
     onShowReactors && onShowReactors(reactionType)
   }
   const router = useRouter()
-
+  const isVertical = layout === "vertical"
 
   return (
-    <View style={styles.row}>
-      <View style={styles.left}>
+    <View style={isVertical ? styles.verticalRow : styles.row}>
+      <View style={isVertical ? styles.verticalLeft : styles.left}>
         <TouchableOpacity
-          style={styles.mainButton}
+          style={isVertical ? styles.verticalMainButton : styles.mainButton}
           onPress={() => onSelect(selectedReaction.type)}
-          onLongPress={() => setPickerVisible(true)}>
-          {selectedReaction.icon(selected ? selectedReaction.color : "#444")}
-          <Text
-            style={[
-              styles.mainLabel,
-              selected && { color: selectedReaction.color },
-            ]}>
-            {selected ? selectedReaction.type : ""}
-          </Text>
+          onLongPress={() => handleSetPickerVisible(true)}>
+          {selectedReaction.icon(selected ? selectedReaction.color : isVertical ? "#fff" : "#444")}
+          {!isVertical && (
+            <Text
+              style={[
+                styles.mainLabel,
+                selected && { color: selectedReaction.color },
+              ]}>
+              {selected ? selectedReaction.type : ""}
+            </Text>
+          )}
           <TouchableOpacity
-            style={styles.mainCountBtn}
+            style={isVertical ? styles.verticalCountBtn : styles.mainCountBtn}
             onPress={() => handleShowReactors()}>
-            <Text style={styles.mainCount}>{totalCount || 0}</Text>
+            <Text style={isVertical ? styles.verticalCount : styles.mainCount}>{totalCount || 0}</Text>
           </TouchableOpacity>
         </TouchableOpacity>
         {pickerVisible && (
-          <View style={styles.picker}>
+          <View style={isVertical ? styles.verticalPicker : styles.picker}>
             {REACTIONS.map(reaction => (
               <TouchableOpacity
                 key={reaction.type}
                 style={styles.pickerButton}
                 onPress={() => {
-                  setPickerVisible(false)
+                  handleSetPickerVisible(false)
                   onSelect(reaction.type)
                 }}
                 onLongPress={() => handleShowReactors(reaction.type)}>
@@ -160,20 +171,18 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
           </View>
         )}
       </View>
-      <TouchableOpacity
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginRight: 16,
-        }}
-        onPress={onCommentPress}>
-        <Ionicons
-          name="chatbubble-ellipses-outline"
-          size={20}
-          color="#888"
-          style={{ marginRight: 4 }}
-        />
-      </TouchableOpacity>
+      {onCommentPress && (
+        <TouchableOpacity
+          style={isVertical ? styles.verticalCommentBtn : styles.commentBtn}
+          onPress={onCommentPress}>
+          <Ionicons
+            name="chatbubble-ellipses-outline"
+            size={isVertical ? 32 : 20}
+            color={isVertical ? "#fff" : "#888"}
+            style={!isVertical ? { marginRight: 4 } : {}}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
@@ -234,9 +243,59 @@ const styles = StyleSheet.create({
   pickerButton: {
     marginHorizontal: 6,
   },
-  commentButton: {
-    marginLeft: "auto",
-    padding: 8,
+  commentBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  // Vertical styles for Story/Reels layout
+  verticalRow: {
+    alignItems: "flex-end", // align items to the right side
+    justifyContent: "flex-end",
+    paddingRight: 8,
+    paddingBottom: 20,
+  },
+  verticalLeft: {
+    alignItems: "center",
+    position: "relative",
+  },
+  verticalMainButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 12,
+  },
+  verticalCountBtn: {
+    marginTop: 4,
+    alignItems: "center",
+  },
+  verticalCount: {
+    fontSize: 14,
+    color: "#fff",
+    fontWeight: "bold",
+    textShadowColor: "rgba(0, 0, 0, 0.7)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  verticalPicker: {
+    position: "absolute",
+    right: 60, // pop out to the left
+    bottom: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(255,255,255,0.98)",
+    borderRadius: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  verticalCommentBtn: {
+    alignItems: "center",
+    marginVertical: 12,
+    marginRight: 0,
   },
 })
 

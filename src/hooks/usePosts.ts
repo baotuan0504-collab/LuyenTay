@@ -36,12 +36,12 @@ export const usePosts = () => {
     }
   }, [accessToken])
 
-  const loadPosts = async () => {
+  const loadPosts = async (targetUserId?: string) => {
     if (!accessToken) return
 
     setIsLoading(true)
     try {
-      const postsData = await postService.getPosts()
+      const postsData = await postService.getPosts(targetUserId)
       if (!postsData) {
         setPosts([])
         setIsLoading(false)
@@ -114,8 +114,8 @@ export const usePosts = () => {
     await loadPosts()
   }
 
-  const refreshPosts = async () => {
-    await loadPosts()
+  const refreshPosts = async (targetUserId?: string) => {
+    await loadPosts(targetUserId)
   }
 
   return { createPost, posts, refreshPosts, isLoading }

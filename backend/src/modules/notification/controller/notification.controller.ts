@@ -38,6 +38,8 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
         (notif as any).postId = postId;
       } else if (notif.referenceType === "POST" && notif.referenceId) {
         (notif as any).postId = notif.referenceId;
+      } else if (notif.referenceType === "STORY" && notif.referenceId) {
+        (notif as any).storyId = notif.referenceId;
       }
     }
       

@@ -18,6 +18,11 @@ export default function NotificationsScreen() {
     }
 
     if (notification.type === 'REACTION' || notification.type === 'COMMENT') {
+      if (notification.referenceType === 'STORY') {
+        router.push(`/`); // Fallback for story
+        return;
+      }
+
       const targetPostId = notification.postId || (notification.referenceType === 'POST' ? notification.referenceId : null);
       if (targetPostId) {
         router.push(`/post/${targetPostId}`);
@@ -33,7 +38,7 @@ export default function NotificationsScreen() {
     const name = notification.sender?.name || 'Someone';
     switch (notification.type) {
       case 'REACTION':
-        return <Text><Text style={styles.bold}>{name}</Text> đã bày tỏ cảm xúc về {notification.referenceType === 'COMMENT' ? 'bình luận' : 'bài viết'} của bạn.</Text>;
+        return <Text><Text style={styles.bold}>{name}</Text> đã bày tỏ cảm xúc về {notification.referenceType === 'COMMENT' ? 'bình luận' : notification.referenceType === 'STORY' ? 'tin' : 'bài viết'} của bạn.</Text>;
       case 'COMMENT':
         return <Text><Text style={styles.bold}>{name}</Text> đã bình luận về {notification.referenceType === 'COMMENT' ? 'bình luận' : 'bài viết'} của bạn.</Text>;
       case 'FRIEND_REQUEST':

@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import React, { useEffect, useRef, useState } from "react";
+import { ReactionBar } from "./ReactionBar";
+import { getMyReaction, getReactionCounts, upsertReaction, removeReaction, getReactionUsers } from "@/services/reaction.service";
 import {
   Animated,
   Dimensions,
@@ -35,6 +37,22 @@ export const StoryViewer = ({
   const [index, setIndex] = useState(initialIndex);
   const progress = useRef(new Animated.Value(0)).current;
   const currentStory = stories[index];
+  
+  // Reaction states
+  const [myReaction, setMyReaction] = useState<string | undefined>();
+  const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
+  const [showReactors, setShowReactors] = useState(false);
+  const [reactors, setReactors] = useState<any[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const progressValue = useRef(0);
+  
+  // Track progress value
+  useEffect(() => {
+    const listener = progress.addListener(({ value }) => {
+      progressValue.current = value;
+    });
+    return () => progress.removeListener(listener);
+  }, [progress]);
  
   // Initialize player with a stable null source to prevent recreation crashes
   const player = useVideoPlayer(null, (player) => {
@@ -75,23 +93,44 @@ export const StoryViewer = ({
     };
   }, [index, visible, currentStory?.video_url, player]);
 
+  // Reset progress when index or visibility changes
+  useEffect(() => {
+    if (visible && currentStory) {
+      progressValue.current = 0;
+      progress.setValue(0);
+      setIsPaused(false);
+    }
+  }, [index, visible, currentStory]);
+
   useEffect(() => {
     if (!visible || !currentStory) return;
 
-    progress.setValue(0);
-   
-    // For videos, we could ideally get duration, but for now let's use a safe STORY_DURATION
-    // unless we want to implement player.duration listener.
-    const duration = STORY_DURATION;
-   
+    if (isPaused) {
+      progress.stopAnimation();
+      // Pause video if applicable
+      try {
+        if (currentStory.video_url) player.pause();
+      } catch (e) {}
+      return;
+    }
+
+    // Resume video if applicable
+    try {
+      if (currentStory.video_url) player.play();
+    } catch (e) {}
+
+    // Calculate remaining duration
+    const remainingTime = STORY_DURATION * (1 - progressValue.current);
+    if (remainingTime <= 0) return;
+
     const animation = Animated.timing(progress, {
       toValue: 1,
-      duration: duration,
+      duration: remainingTime,
       useNativeDriver: false,
     });
 
     animation.start(({ finished }) => {
-      if (finished) {
+      if (finished && !isPaused) {
         handleNext();
       }
     });
@@ -99,7 +138,59 @@ export const StoryViewer = ({
     return () => {
       animation.stop();
     };
+  }, [index, visible, currentStory, isPaused]);
+
+  useEffect(() => {
+    if (!visible || !currentStory) return;
+
+    // Fetch reactions for current story
+    const fetchReactions = async () => {
+      try {
+        const myReact = await getMyReaction(currentStory.id, "story");
+        setMyReaction(myReact?.reactionType);
+
+        const counts = await getReactionCounts(currentStory.id, "story");
+        const obj: any = {};
+        if (Array.isArray(counts)) {
+          counts.forEach((r: any) => {
+            obj[r._id] = r.count;
+          });
+        }
+        setReactionCounts(obj);
+      } catch (e) {
+        console.error("Error fetching story reactions:", e);
+      }
+    };
+    fetchReactions();
   }, [index, visible, currentStory]);
+
+  const handleReaction = async (type: string) => {
+    if (!currentStory) return;
+    try {
+      if (myReaction === type) {
+        // Remove reaction
+        await removeReaction(currentStory.id, "story");
+        setMyReaction(undefined);
+        setReactionCounts(c => ({
+          ...c,
+          [type]: Math.max((c[type] || 1) - 1, 0),
+        }));
+      } else {
+        // Upsert reaction
+        await upsertReaction(currentStory.id, "story", type);
+        setMyReaction(type);
+        setReactionCounts(c => ({
+          ...c,
+          [type]: (c[type] || 0) + 1,
+          ...(myReaction
+            ? { [myReaction]: Math.max((c[myReaction] || 1) - 1, 0) }
+            : {}),
+        }));
+      }
+    } catch (error) {
+      console.error("Story reaction request failed:", error);
+    }
+  };
 
   const handleNext = () => {
     if (index < stories.length - 1) {
@@ -201,6 +292,19 @@ export const StoryViewer = ({
             <Text style={styles.description}>{currentStory.description}</Text>
           </View>
         ) : null}
+
+        {/* Reaction Bar */}
+        <View style={styles.reactionOverlay}>
+          <ReactionBar
+            layout="vertical"
+            selected={myReaction}
+            onSelect={handleReaction}
+            counts={reactionCounts}
+            onShowReactors={() => {}}
+            onCommentPress={undefined}
+            onPickerVisibilityChange={(pickerVisible) => setIsPaused(pickerVisible)}
+          />
+        </View>
       </SafeAreaView>
     </Modal>
   );
@@ -274,11 +378,16 @@ const styles = StyleSheet.create({
   },
   bottomOverlay: {
     position: "absolute",
-    bottom: 40,
+    bottom: 90, // Push up to make room for reaction bar
     left: 0,
     right: 0,
     paddingHorizontal: 20,
     alignItems: "center",
+  },
+  reactionOverlay: {
+    position: "absolute",
+    bottom: 20,
+    right: 10,
   },
   description: {
     color: "#fff",

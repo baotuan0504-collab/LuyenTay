@@ -32,12 +32,12 @@ export const useStories = () => {
     }
   }, [accessToken])
 
-  const loadStories = async () => {
+  const loadStories = async (targetUserId?: string) => {
     if (!accessToken) return
 
     setIsLoading(true)
     try {
-      const storiesData = await storyService.getStories()
+      const storiesData = await storyService.getStories(targetUserId)
       if (!storiesData) {
         setStories([])
         setIsLoading(false)
@@ -103,8 +103,8 @@ export const useStories = () => {
     await loadStories()
   }
 
-  const refreshStories = async () => {
-    await loadStories()
+  const refreshStories = async (targetUserId?: string) => {
+    await loadStories(targetUserId)
   }
 
   return { createStory, stories, refreshStories, isLoading }

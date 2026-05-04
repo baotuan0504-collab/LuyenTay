@@ -8,6 +8,7 @@ export interface PostResponse {
     name: string
     username: string
     avatar: string
+    coverPhoto?: string
   }
   imageUrl: string
   videoUrl?: string
@@ -45,9 +46,10 @@ export const createPost = async (postData: {
   }
 }
 
-export const getPosts = async (): Promise<PostResponse[] | null> => {
+export const getPosts = async (userId?: string): Promise<PostResponse[] | null> => {
   try {
-    const data = await apiFetch("/posts", {
+    const url = userId ? `/posts?userId=${userId}` : "/posts";
+    const data = await apiFetch(url, {
       method: "GET",
     })
     return data as PostResponse[]

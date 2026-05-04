@@ -7,6 +7,7 @@ export interface StoryResponse {
     name: string
     username: string
     avatar: string
+    coverPhoto?: string
   }
   imageUrl: string
   videoUrl?: string
@@ -42,9 +43,10 @@ export const createStory = async (storyData: {
   }
 }
 
-export const getStories = async (): Promise<StoryResponse[] | null> => {
+export const getStories = async (userId?: string): Promise<StoryResponse[] | null> => {
   try {
-    const data = await apiFetch("/stories", {
+    const url = userId ? `/stories?userId=${userId}` : "/stories";
+    const data = await apiFetch(url, {
       method: "GET",
     })
     return data as StoryResponse[]

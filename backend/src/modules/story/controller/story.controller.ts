@@ -65,11 +65,19 @@ export async function getStories(
   next: NextFunction,
 ) {
   try {
-    const stories = await Story.find({
+    const targetUserId = req.query.userId as string | undefined
+
+    const filter: any = {
       isActive: true,
       expiresAt: { $gt: new Date() },
-    })
-      .populate("user", "name username avatar")
+    }
+    
+    if (targetUserId) {
+      filter.user = targetUserId;
+    }
+
+    const stories = await Story.find(filter)
+      .populate("user", "name username avatar coverPhoto")
       .sort({ createdAt: -1 })
     res.json(stories)
   } catch (error) {

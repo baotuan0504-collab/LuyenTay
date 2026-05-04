@@ -4,6 +4,7 @@ import type { AuthRequest } from "../../../middleware/auth"
 import { Reaction } from "../model/reaction.model"
 import { Post } from "../../post/model/post.model"
 import { Comment } from "../../comment/model/comment.model"
+import { Story } from "../../story/model/story.model"
 import { Notification } from "../../notification/model/notification.model"
 import { getIO } from "../../../utils/socket"
 
@@ -101,6 +102,9 @@ export const upsertReaction = async (req: AuthRequest, res: Response) => {
       } else if (targetType === "COMMENT" || targetType === "comment") {
         const comment = await Comment.findById(targetId);
         if (comment) recipientId = comment.user;
+      } else if (targetType === "STORY" || targetType === "story") {
+        const story = await Story.findById(targetId);
+        if (story) recipientId = story.user;
       }
 
       if (recipientId && recipientId.toString() !== user) {
@@ -109,7 +113,8 @@ export const upsertReaction = async (req: AuthRequest, res: Response) => {
           sender: user,
           type: "REACTION",
           referenceId: targetId,
-          referenceType: targetType === "POST" || targetType === "post" ? "POST" : "COMMENT",
+          referenceType: targetType === "POST" || targetType === "post" ? "POST" : 
+                         targetType === "COMMENT" || targetType === "comment" ? "COMMENT" : "STORY",
         });
         await notification.save();
         await notification.populate("sender", "name username avatar");

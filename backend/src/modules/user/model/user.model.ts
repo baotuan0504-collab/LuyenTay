@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string
   password: string
   avatar: string
+  coverPhoto?: string
   onboardingCompleted?: boolean
   publicKey?: string
   createdAt: Date
@@ -38,6 +39,10 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     avatar: {
+      type: String,
+      default: "",
+    },
+    coverPhoto: {
       type: String,
       default: "",
     },
