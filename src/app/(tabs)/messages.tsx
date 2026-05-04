@@ -86,7 +86,8 @@ export default function MessagesScreen() {
     );
   };
 
-  const renderRightActions = (chatId: string, itemType: string, creatorId?: string) => {
+  const renderRightActions = (chatId: string, itemType: string, creator?: string | { _id: string }) => {
+    const creatorId = typeof creator === 'string' ? creator : creator?._id;
     // Only allow delete if PRIVATE chat OR current user is GROUP creator
     const canDelete = itemType === 'PRIVATE' || (itemType === 'GROUP' && creatorId === user?.id);
     

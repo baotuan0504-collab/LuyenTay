@@ -6,16 +6,29 @@ import {
   decryptMessage,
   encodeEncryptedMessage,
   encryptMessage,
-  generateKeyPair
+  generateKeyPair,
+  getSharedSecret as deriveSharedSecret,
+  encrypt as symmetricEncrypt,
+  decrypt as symmetricDecrypt,
+  generateGroupKey,
+  encryptWithGroupKey,
+  decryptWithGroupKey
 } from '../utils/encryption';
+import * as chatService from '../services/chat.service';
+import * as userService from '../services/user.service';
 import { useAuth } from './AuthContext';
-
-const API_URL = "http://127.0.0.1:5201/api"; // Same as in your other services
 
 interface EncryptionContextValue {
   publicKey: string | null;
   encryptForUser: (message: string, recipientPublicKey: string) => string | null;
   decryptFromUser: (encodedMessage: string, senderPublicKey: string) => string | null;
+  getSharedSecret: (otherPublicKey: string) => string | null;
+  encryptMessage: (text: string, otherPublicKey: string) => any;
+  decryptMessage: (encrypted: any, otherPublicKey: string) => string | null;
+  getGroupKey: (chatId: string) => Promise<string | null>;
+  setupGroupKey: (chatId: string, participants: any[]) => Promise<string>;
+  encryptGroupMessage: (text: string, chatId: string) => Promise<any>;
+  decryptGroupMessage: (encrypted: any, chatId: string) => Promise<string | null>;
   isReady: boolean;
 }
 
@@ -42,13 +55,10 @@ export function EncryptionProvider({ children }: PropsWithChildren<{}>) {
 
   const initializeKeys = async () => {
     try {
-      // 1. Try to load existing keys from SecureStore
       let storedPrivKey = await SecureStore.getItemAsync(PRIVATE_KEY_STORAGE_KEY);
       let storedPubKey = await SecureStore.getItemAsync(PUBLIC_KEY_STORAGE_KEY);
 
       if (!storedPrivKey || !storedPubKey) {
-        // 2. Generate new keys if not found
-        console.log('Generating new E2EE keys...');
         const keys = generateKeyPair();
         await SecureStore.setItemAsync(PRIVATE_KEY_STORAGE_KEY, keys.privateKey);
         await SecureStore.setItemAsync(PUBLIC_KEY_STORAGE_KEY, keys.publicKey);
@@ -58,9 +68,7 @@ export function EncryptionProvider({ children }: PropsWithChildren<{}>) {
 
       setPrivateKey(storedPrivKey);
       setPublicKey(storedPubKey);
-      console.log('Encryption keys initialized. Public key:', storedPubKey);
 
-      // 3. Sync public key with server if necessary
       if (user && user.publicKey !== storedPubKey) {
         await uploadPublicKey(storedPubKey);
       }
@@ -76,41 +84,97 @@ export function EncryptionProvider({ children }: PropsWithChildren<{}>) {
       await apiFetch('/users/public-key', {
         method: 'PUT',
         body: JSON.stringify({ publicKey: key }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
-      console.log('Public key uploaded to server');
     } catch (error) {
       console.error('Failed to upload public key:', error);
     }
   };
 
   const encryptForUser = (message: string, recipientPublicKey: string): string | null => {
-    if (!privateKey) {
-      console.warn('Encryption failed: Local privateKey is missing');
-      return null;
-    }
-    if (!recipientPublicKey) {
-      console.warn('Encryption failed: recipientPublicKey is missing');
-      return null;
-    }
+    if (!privateKey) return null;
     const encrypted = encryptMessage(message, recipientPublicKey, privateKey);
     return encodeEncryptedMessage(encrypted);
   };
 
   const decryptFromUser = (encodedMessage: string, senderPublicKey: string): string | null => {
-    if (!privateKey) {
-      console.warn('Decryption failed: Local privateKey is missing');
-      return null;
-    }
-    if (!senderPublicKey) {
-      console.warn('Decryption failed: senderPublicKey is missing');
-      return null;
-    }
+    if (!privateKey) return null;
     const encryptedObj = decodeEncryptedMessage(encodedMessage);
-    if (!encryptedObj) return null; // Not an encrypted message
+    if (!encryptedObj) return null;
     return decryptMessage(encryptedObj, senderPublicKey, privateKey);
+  };
+
+  const getGroupKey = async (chatId: string): Promise<string | null> => {
+    try {
+      const localKey = await SecureStore.getItemAsync(`group_key_${chatId}`);
+      if (localKey) return localKey;
+
+      const chat = await chatService.getChatById(chatId);
+      const myKeyInfo = chat.encryptedGroupKeys?.find((k: any) => k.userId === user?.id || k.userId?._id === user?.id);
+      if (!myKeyInfo || !chat.creator || !privateKey) return null;
+
+      const creatorId = typeof chat.creator === 'string' ? chat.creator : (chat.creator as any)._id;
+      const creator = await userService.getUserById(creatorId);
+      if (!creator.publicKey || !privateKey) return null;
+
+      const secret = deriveSharedSecret(creator.publicKey, privateKey);
+      if (!secret) return null;
+
+      const decryptedGroupKey = symmetricDecrypt({
+        ciphertext: myKeyInfo.encryptedKey,
+        nonce: myKeyInfo.nonce
+      }, secret);
+
+      if (decryptedGroupKey) {
+        await SecureStore.setItemAsync(`group_key_${chatId}`, decryptedGroupKey);
+        return decryptedGroupKey;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting group key:", error);
+      return null;
+    }
+  };
+
+  const setupGroupKey = async (chatId: string, participants: any[]): Promise<string> => {
+    if (!privateKey) throw new Error("Private key missing");
+    const newKey = generateGroupKey();
+    const encryptedKeys = [];
+    for (const p of participants) {
+      if (p.publicKey) {
+        const secret = deriveSharedSecret(p.publicKey, privateKey);
+        if (secret) {
+          const encrypted = symmetricEncrypt(newKey, secret);
+          encryptedKeys.push({
+            userId: p._id,
+            encryptedKey: encrypted.ciphertext,
+            nonce: encrypted.nonce
+          });
+        }
+      }
+    }
+    await chatService.updateChat(chatId, { encryptedGroupKeys: encryptedKeys as any });
+    await SecureStore.setItemAsync(`group_key_${chatId}`, newKey);
+    return newKey;
+  };
+
+  const encryptGroupMessage = async (text: string, chatId: string) => {
+    let key = await getGroupKey(chatId);
+    if (!key) {
+      const chat = await chatService.getChatById(chatId);
+      if (chat.creator === user?.id || (chat.creator as any)?._id === user?.id) {
+        key = await setupGroupKey(chatId, chat.participants || []);
+      } else {
+        throw new Error("Group key not found and you are not the creator");
+      }
+    }
+    return encryptWithGroupKey(text, key);
+  };
+
+  const decryptGroupMessage = async (encrypted: any, chatId: string) => {
+    const key = await getGroupKey(chatId);
+    if (!key) return null;
+    return decryptWithGroupKey(encrypted, key);
   };
 
   return (
@@ -119,6 +183,21 @@ export function EncryptionProvider({ children }: PropsWithChildren<{}>) {
         publicKey,
         encryptForUser,
         decryptFromUser,
+        getSharedSecret: (pk) => (privateKey ? deriveSharedSecret(pk, privateKey) : null),
+        encryptMessage: (text, pk) => {
+          if (!privateKey) return null;
+          const secret = deriveSharedSecret(pk, privateKey);
+          return secret ? symmetricEncrypt(text, secret) : null;
+        },
+        decryptMessage: (enc, pk) => {
+          if (!privateKey) return null;
+          const secret = deriveSharedSecret(pk, privateKey);
+          return secret ? symmetricDecrypt(enc, secret) : null;
+        },
+        getGroupKey,
+        setupGroupKey,
+        encryptGroupMessage,
+        decryptGroupMessage,
         isReady
       }}
     >

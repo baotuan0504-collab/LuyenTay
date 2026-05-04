@@ -75,12 +75,37 @@ export class ChatService {
     }
   }
 
-  static async getChatById(chatId: string) {
+  static async getChatById(chatId: string, userId: string) {
     try {
-      return await Chat.findById(chatId).populate(
+      const chat = await Chat.findById(chatId).populate(
         "participants",
         "name username avatar publicKey",
       )
+      
+      if (!chat) return null
+
+      const chatObj = chat.toObject() as any
+      
+      if (chatObj.type === 'GROUP') {
+        return {
+          ...chatObj,
+          participant: {
+            name: chatObj.name,
+            avatar: chatObj.avatar,
+            _id: chatObj._id,
+            isGroup: true
+          }
+        }
+      }
+
+      const otherParticipant = chatObj.participants.find(
+        (p: any) => p._id.toString() !== userId,
+      )
+      
+      return {
+        ...chatObj,
+        participant: otherParticipant || null,
+      }
     } catch (error) {
       console.error("Error in getChatById:", error)
       throw error

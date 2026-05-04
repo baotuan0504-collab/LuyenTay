@@ -77,11 +77,12 @@ export class ChatController {
 
   static async getChatById(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = (req as AuthRequest).userId
       const chatId = req.params.chatId as string
       if (!chatId) {
         return res.status(400).json({ message: "Chat ID is required" })
       }
-      const chat = await ChatService.getChatById(chatId)
+      const chat = await ChatService.getChatById(chatId, userId)
       if (!chat) return res.status(404).json({ message: "Chat not found" })
       res.json(chat)
     } catch (error) {

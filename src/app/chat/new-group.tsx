@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import { useEncryption } from "@/context/EncryptionContext";
 import { isUnauthorizedError } from "@/services/api";
 import * as chatService from "@/services/chat.service";
 import * as userService from "@/services/user.service";
@@ -20,7 +21,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NewGroupScreen() {
-  const { accessToken, signOut } = useAuth();
+  const { accessToken, signOut, user } = useAuth();
+  const { setupGroupKey } = useEncryption();
   const router = useRouter();
   const [users, setUsers] = useState<Array<{ _id: string; name: string; avatar?: string }>>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -64,6 +66,16 @@ export default function NewGroupScreen() {
     setCreating(true);
     try {
       const chat = await chatService.createGroupChat(selectedUsers, groupName.trim());
+      
+      try {
+        const allParticipants = await Promise.all(
+          [...selectedUsers, user?.id].map(uid => userService.getUserById(uid as string))
+        );
+        await setupGroupKey(chat._id, allParticipants);
+      } catch (e) {
+        console.error("Failed to initialize group E2EE:", e);
+      }
+
       router.push({
         pathname: "/chat/[id]",
         params: {

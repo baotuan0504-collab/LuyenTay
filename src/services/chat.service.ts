@@ -14,16 +14,21 @@ export interface ChatResponse {
   participants?: ChatParticipant[]
   type: 'PRIVATE' | 'GROUP'
   name?: string
-  avatar?: string
   lastMessage?: {
     text: string
     sender: string
     createdAt: string
   }
   lastMessageAt?: string
-  unreadCount: number
-  creator?: string
+  avatar?: string
+  creator?: string | { _id: string; name: string; avatar?: string; publicKey?: string }
   nicknames?: Record<string, string>
+  encryptedGroupKeys?: Array<{
+    userId: string
+    encryptedKey: string
+    nonce: string
+  }>
+  unreadCount: number
   createdAt: string
 }
 
@@ -58,7 +63,16 @@ export const deleteChat = async (chatId: string): Promise<void> => {
 
 export const updateChat = async (
   chatId: string, 
-  data: { name?: string, avatar?: string, nicknames?: Record<string, string> }
+  data: { 
+    name?: string, 
+    avatar?: string, 
+    nicknames?: Record<string, string>,
+    encryptedGroupKeys?: Array<{
+      userId: string,
+      encryptedKey: string,
+      nonce: string
+    }>
+  }
 ): Promise<ChatResponse> => {
   return apiFetch(`/chats/${chatId}`, {
     method: "PATCH",

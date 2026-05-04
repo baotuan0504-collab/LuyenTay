@@ -28,7 +28,7 @@ export default function ChatRoomScreen() {
   const { id: chatId, name, avatar, participantId, isGroup } = useLocalSearchParams();
   const { user, accessToken, signOut } = useAuth();
   const { joinChat, leaveChat, sendMessage, sendTyping, isConnected, typingUsers, socket } = useChat();
-  const { decryptFromUser, isReady: isEncryptionReady } = useEncryption();
+  const { encryptMessage, decryptMessage, encryptGroupMessage, decryptGroupMessage, isReady: isEncryptionReady } = useEncryption();
   const router = useRouter();
 
 
@@ -53,7 +53,9 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     const initChat = async () => {
-      if (accessToken && chatId) {
+      if (user && accessToken && chatId && isEncryptionReady) {
+        setMessages([]); // Clear previous messages
+        setIsLoading(true);
         // Load key first, then messages to prevent flash
         const key = await loadParticipantInfo();
         await loadInitialMessages(key);
@@ -68,7 +70,7 @@ export default function ChatRoomScreen() {
         leaveChat(chatId as string);
       }
     };
-  }, [chatId, accessToken]);
+  }, [chatId, accessToken, isEncryptionReady]);
 
 
   // Listen for new messages via socket
@@ -76,42 +78,61 @@ export default function ChatRoomScreen() {
     if (!socket) return;
 
 
-    const handleNewMessage = (message: any) => {
+    const handleNewMessage = async (message: any) => {
       const messageChatId = typeof message.chat === "string"
         ? message.chat
         : message.chat?._id ?? String(message.chat);
 
       if (messageChatId === chatId) {
-        setMessages((prev) => {
-          const senderId = typeof message.sender === 'string' ? message.sender : message.sender._id;
-          
-          // 1. Decrypt the incoming message first (if it's encrypted)
-          let decryptedText = message.text;
-          if (message.text.startsWith('{"ciphertext"') && participantPublicKey) {
-            const decrypted = decryptFromUser(message.text, participantPublicKey);
-            if (decrypted) {
-              decryptedText = decrypted;
-            }
-          }
+        let decryptedText = message.text;
+        try {
+            const content = message.text;
+            if (content) {
+                let encryptedObj = null;
+                if (typeof content === 'string' && content.includes('"ciphertext":')) {
+                    encryptedObj = JSON.parse(content);
+                } else if (typeof content === 'object' && content.ciphertext) {
+                    encryptedObj = content;
+                }
 
-          // 2. Now check for duplicates using the DECRYPTED text
+                if (encryptedObj) {
+                    if (isGroup === "true") {
+                        decryptedText = await decryptGroupMessage(encryptedObj, chatId as string);
+                    } else if (participantPublicKey) {
+                        decryptedText = decryptMessage(encryptedObj, participantPublicKey);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error decrypting incoming message", e);
+        }
+
+        setMessages((prev) => {
+          const senderId = typeof message.sender === 'string' ? message.sender : (message.sender._id || message.sender.id);
+          const isMe = String(senderId) === String(user?.id);
+          
+          // Check for duplicates (match by ID or by recent content/sender)
           const isDuplicate = prev.some(m => 
             m._id === message._id || 
-            (m.sender === senderId && m.text === decryptedText && Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 15000)
+            (isMe && m._id.startsWith('temp-') && Math.abs(new Date(m.createdAt).getTime() - new Date(message.createdAt).getTime()) < 15000)
           );
           
           if (isDuplicate) {
-            // Update the temp message with real data from server
+            // Update the temp message with real data from server but KEEP the decrypted/plain text
             return prev.map(m => {
-              if (m._id.startsWith('temp-') && m.sender === senderId && m.text === decryptedText) {
-                return { ...message, text: decryptedText };
+              const isTemp = m._id === message._id || (isMe && m._id.startsWith('temp-'));
+              if (isTemp && isMe) {
+                // It's my own message, keep my local plain text but update the ID and status
+                // Only keep local text if it's not JSON (meaning it's already plain)
+                const localTextIsPlain = typeof m.text === 'string' && !m.text.includes('"ciphertext":');
+                return { ...message, text: localTextIsPlain ? m.text : (decryptedText || message.text) }; 
               }
+              if (m._id === message._id) return { ...message, text: decryptedText || message.text };
               return m;
             });
           }
           
-          // 3. Not a duplicate, add as new message
-          return [{ ...message, text: decryptedText }, ...prev];
+          return [{ ...message, text: decryptedText || message.text }, ...prev];
         });
       }
     };
@@ -125,41 +146,44 @@ export default function ChatRoomScreen() {
 
 
   const loadParticipantInfo = async () => {
-    if (isGroup === "true") return null; // Skip for groups for now
+    if (isGroup === "true") return null; 
     
     try {
-      // 1. If we have participantId, try fetching user directly
+      // 1. Try to get chat info first
+      if (chatId) {
+        const chat = await chatService.getChatById(chatId as string);
+        if (chat.creator) {
+          const creatorId = typeof chat.creator === 'string' ? chat.creator : chat.creator._id;
+          setChatCreator(creatorId);
+        }
+        if (chat.nicknames) setNicknames(chat.nicknames);
+
+        // Try 'participant' field
+        if (chat && chat.participant && chat.participant.publicKey) {
+          setParticipantPublicKey(chat.participant.publicKey);
+          return chat.participant.publicKey;
+        }
+        
+        // Search in 'participants' array
+        if (chat && chat.participants && Array.isArray(chat.participants)) {
+          const myId = String(user?.id);
+          const other = chat.participants.find((p: any) => String(p._id || p.id) !== myId);
+          if (other && other.publicKey) {
+            setParticipantPublicKey(other.publicKey);
+            return other.publicKey;
+          }
+        }
+      }
+
+      // 2. Fallback to search params
       if (participantId) {
         const data = await userService.getUserById(participantId as string);
-        console.log('DEBUG: Participant user data from getUserById:', data);
         if (data && data.publicKey && data.publicKey.length > 0) {
           setParticipantPublicKey(data.publicKey);
           return data.publicKey;
         }
       }
 
-      // 2. If no participantId or no publicKey, fetch chat details
-      if (chatId) {
-        const chat = await chatService.getChatById(chatId as string);
-        console.log('DEBUG: Chat details from getChatById:', chat);
-        
-        // Save creator and nicknames for group management
-        if (chat.creator) setChatCreator(chat.creator);
-        if (chat.nicknames) setNicknames(chat.nicknames);
-
-        if (chat && chat.participant && chat.participant.publicKey && chat.participant.publicKey.length > 0) {
-          setParticipantPublicKey(chat.participant.publicKey);
-          return chat.participant.publicKey;
-        } else if (chat && chat.participant) {
-          // Re-fetch user just in case
-          const user = await userService.getUserById(chat.participant._id);
-          console.log('DEBUG: Participant user data from re-fetch:', user);
-          if (user && user.publicKey && user.publicKey.length > 0) {
-            setParticipantPublicKey(user.publicKey);
-            return user.publicKey;
-          }
-        }
-      }
       return null;
     } catch (error) {
       console.error("Error loading participant info:", error);
@@ -172,22 +196,57 @@ export default function ChatRoomScreen() {
     setIsLoading(true);
     try {
       const data = await messageService.getMessages(chatId as string, 20);
-      
-      // Use override key or current state key
-      const activeKey = keyOverride !== undefined ? keyOverride : participantPublicKey;
-      
-      let processedData = data;
-      if (activeKey) {
-        processedData = data.map((msg: any) => {
-          if (msg.text.startsWith('{"ciphertext"')) {
-            const decrypted = decryptFromUser(msg.text, activeKey);
-            return decrypted ? { ...msg, text: decrypted } : msg;
-          }
-          return msg;
-        });
+      let pk = keyOverride || participantPublicKey;
+
+      // If we found encrypted messages but have no key, try one last time to get the key
+      if (!pk && isGroup !== "true" && data.some(m => m.text?.includes('"ciphertext":'))) {
+        console.log("[DEBUG] Found encrypted messages but no key, retrying loadParticipantInfo...");
+        pk = await loadParticipantInfo();
       }
       
-      setMessages(processedData);
+      const decryptedData = await Promise.all(data.map(async (msg: any) => {
+        try {
+          const content = msg.text;
+          if (!content) return msg;
+
+          let encryptedObj = null;
+          if (typeof content === 'string' && content.includes('"ciphertext":')) {
+            encryptedObj = JSON.parse(content);
+          } else if (typeof content === 'object' && content.ciphertext) {
+            encryptedObj = content;
+          }
+
+          if (encryptedObj) {
+            if (isGroup === "true") {
+              const text = await decryptGroupMessage(encryptedObj, chatId as string);
+              return { ...msg, text: text || "🔒 [Lỗi giải mã nhóm]" };
+            } else if (pk) {
+              const decryptedText = decryptMessage(encryptedObj, pk);
+              if (decryptedText) {
+                return { ...msg, text: decryptedText };
+              } else {
+                return { ...msg, text: "🔒 [Không thể giải mã tin nhắn]" };
+              }
+            } else {
+              return { ...msg, text: "⌛ Đang giải mã..." };
+            }
+          }
+        } catch (e) {
+          console.error("Error decrypting message on load:", e);
+        }
+        return msg;
+      }));
+      
+      const hasEncrypted = decryptedData.some(m => 
+        m.text && typeof m.text === 'string' && (m.text.includes('"ciphertext":') || m.text === "⌛ Đang giải mã...")
+      );
+      
+      setMessages(decryptedData);
+      
+      // Only stop loading if we have no encrypted messages left or we have a key and failed
+      if (!hasEncrypted || pk) {
+        setIsLoading(false);
+      }
     } catch (error) {
       if (isUnauthorizedError(error)) {
         await signOut();
@@ -195,27 +254,47 @@ export default function ChatRoomScreen() {
         return;
       }
       console.error("Error loading messages:", error);
-    } finally {
       setIsLoading(false);
     }
   };
 
-  // Re-decrypt messages when participantPublicKey becomes available
+  // Re-decrypt messages when keys or chat changes
   useEffect(() => {
-    if (participantPublicKey && messages.length > 0) {
-      // Only update if there are messages that NEED decryption
-      const hasEncrypted = messages.some(msg => msg.text.startsWith('{"ciphertext"'));
-      if (!hasEncrypted) return;
-
-      setMessages(prev => prev.map(msg => {
-        if (msg.text.startsWith('{"ciphertext"')) {
-          const decrypted = decryptFromUser(msg.text, participantPublicKey);
-          return decrypted ? { ...msg, text: decrypted } : msg;
+    const decryptAll = async () => {
+      if (messages.length === 0) return;
+      
+      const decryptedData = await Promise.all(messages.map(async (msg) => {
+        if (msg.text.includes('"ciphertext":')) {
+          try {
+            const encryptedObj = JSON.parse(msg.text);
+            if (isGroup === "true") {
+              const text = await decryptGroupMessage(encryptedObj, chatId as string);
+              return text ? { ...msg, text } : msg;
+            } else if (participantPublicKey) {
+              const text = decryptMessage(encryptedObj, participantPublicKey);
+              return text ? { ...msg, text } : msg;
+            }
+          } catch (e) { return msg; }
         }
         return msg;
       }));
-    }
-  }, [participantPublicKey]); // Only run when key changes
+
+      const isDifferent = decryptedData.some((m, i) => m.text !== messages[i].text);
+      if (isDifferent) {
+        setMessages(decryptedData);
+      }
+
+      // If everything is now decrypted, we can stop loading
+      const stillEncrypted = decryptedData.some(m => 
+        m.text && typeof m.text === 'string' && (m.text.includes('"ciphertext":') || m.text === "⌛ Đang giải mã...")
+      );
+      if (!stillEncrypted && messages.length > 0) {
+        setIsLoading(false);
+      }
+    };
+
+    decryptAll();
+  }, [participantPublicKey, chatId, isEncryptionReady]);
 
 
   const loadMoreMessages = async () => {
@@ -231,13 +310,24 @@ export default function ChatRoomScreen() {
       );
 
       if (data.length > 0) {
-        const decryptedData = data.map((msg: any) => {
-          if (participantPublicKey) {
-            const decrypted = decryptFromUser(msg.text, participantPublicKey);
-            return decrypted ? { ...msg, text: decrypted } : msg;
+        const pk = participantPublicKey;
+        const decryptedData = await Promise.all(data.map(async (msg: any) => {
+          try {
+            if (msg.text.includes('"ciphertext":')) {
+              const encryptedObj = JSON.parse(msg.text);
+              if (isGroup === "true") {
+                const text = await decryptGroupMessage(encryptedObj, chatId as string);
+                return { ...msg, text: text || "🔒 [Lỗi giải mã nhóm]" };
+              } else if (pk) {
+                const decryptedText = decryptMessage(encryptedObj, pk);
+                return { ...msg, text: decryptedText || "🔒 [Không thể giải mã tin nhắn]" };
+              }
+            }
+          } catch (e) {
+            console.error("Error decrypting more messages:", e);
           }
           return msg;
-        });
+        }));
 
         setMessages((prev) => [...prev, ...decryptedData]);
         setHasMore(data.length === 20);
@@ -259,17 +349,37 @@ export default function ChatRoomScreen() {
     setIsSending(true);
     
     try {
+      let finalContent = textToSend;
+      
+      if (isGroup === "true") {
+        const encrypted = await encryptGroupMessage(textToSend, chatId as string);
+        if (!encrypted) {
+          console.error("Group encryption failed");
+          setIsSending(false);
+          return;
+        }
+        finalContent = JSON.stringify(encrypted);
+      } else if (participantPublicKey) {
+        const encrypted = encryptMessage(textToSend, participantPublicKey);
+        if (!encrypted) {
+          console.error("P2P encryption failed");
+          setIsSending(false);
+          return;
+        }
+        finalContent = JSON.stringify(encrypted);
+      }
+
       // Add message locally for instant feedback
       const tempId = `temp-${Date.now()}`;
       const tempMessage: MessageData = {
           _id: tempId,
-          text: textToSend,
+          text: textToSend, // Show plain text locally
           sender: user?.id || "",
           createdAt: new Date().toISOString()
       };
       setMessages(prev => [tempMessage, ...prev]);
 
-      sendMessage(chatId as string, textToSend, participantPublicKey || undefined);
+      sendMessage(chatId as string, finalContent, participantPublicKey || undefined);
       setInputText("");
       sendTyping(chatId as string, false);
     } finally {
@@ -411,9 +521,9 @@ export default function ChatRoomScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            style={[styles.sendButton, (!inputText.trim() || !isEncryptionReady || isSending) && styles.sendButtonDisabled]}
             onPress={handleSend}
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || !isEncryptionReady || isSending}
           >
             <Ionicons name="arrow-up" size={20} color="#fff" />
           </TouchableOpacity>

@@ -122,3 +122,96 @@ export const decodeEncryptedMessage = (encoded: string): EncryptedMessage | null
     return null;
   }
 };
+
+/**
+ * Computes a shared secret between our private key and their public key.
+ */
+export const getSharedSecret = (theirPublicKey: string, ourPrivateKey: string): string | null => {
+  try {
+    const theirPubKeyUint8 = decodeBase64(theirPublicKey);
+    const ourPrivKeyUint8 = decodeBase64(ourPrivateKey);
+    const sharedSecret = nacl.box.before(theirPubKeyUint8, ourPrivKeyUint8);
+    return encodeBase64(sharedSecret);
+  } catch (error) {
+    console.error('Error computing shared secret:', error);
+    return null;
+  }
+};
+
+/**
+ * Encrypts a message using a precomputed shared secret.
+ */
+export const encrypt = (message: string, sharedSecretBase64: string): EncryptedMessage => {
+  const sharedSecret = decodeBase64(sharedSecretBase64);
+  const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+  const messageUint8 = new TextEncoder().encode(message);
+  
+  const encrypted = nacl.secretbox(messageUint8, nonce, sharedSecret);
+  
+  return {
+    ciphertext: encodeBase64(encrypted),
+    nonce: encodeBase64(nonce)
+  };
+};
+
+/**
+ * Decrypts a message using a precomputed shared secret.
+ */
+export const decrypt = (encrypted: EncryptedMessage, sharedSecretBase64: string): string | null => {
+  try {
+    const sharedSecret = decodeBase64(sharedSecretBase64);
+    const ciphertext = decodeBase64(encrypted.ciphertext);
+    const nonce = decodeBase64(encrypted.nonce);
+    
+    const decrypted = nacl.secretbox.open(ciphertext, nonce, sharedSecret);
+    if (!decrypted) return null;
+    
+    return new TextDecoder().decode(decrypted);
+  } catch (error) {
+    console.error('Error decrypting with shared secret:', error);
+    return null;
+  }
+};
+
+/**
+ * Generates a random 32-byte symmetric key for group encryption.
+ */
+export const generateGroupKey = (): string => {
+  const key = nacl.randomBytes(nacl.secretbox.keyLength);
+  return encodeBase64(key);
+};
+
+/**
+ * Encrypts a message using a 32-byte symmetric group key.
+ */
+export const encryptWithGroupKey = (message: string, groupKeyBase64: string): EncryptedMessage => {
+  const groupKey = decodeBase64(groupKeyBase64);
+  const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+  const messageUint8 = new TextEncoder().encode(message);
+  
+  const encrypted = nacl.secretbox(messageUint8, nonce, groupKey);
+  
+  return {
+    ciphertext: encodeBase64(encrypted),
+    nonce: encodeBase64(nonce)
+  };
+};
+
+/**
+ * Decrypts a message using a 32-byte symmetric group key.
+ */
+export const decryptWithGroupKey = (encrypted: EncryptedMessage, groupKeyBase64: string): string | null => {
+  try {
+    const groupKey = decodeBase64(groupKeyBase64);
+    const ciphertext = decodeBase64(encrypted.ciphertext);
+    const nonce = decodeBase64(encrypted.nonce);
+    
+    const decrypted = nacl.secretbox.open(ciphertext, nonce, groupKey);
+    if (!decrypted) return null;
+    
+    return new TextDecoder().decode(decrypted);
+  } catch (error) {
+    console.error("Error decrypting with group key:", error);
+    return null;
+  }
+};
