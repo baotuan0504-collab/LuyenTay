@@ -18,10 +18,12 @@ export default function NotificationsScreen() {
     }
 
     if (notification.type === 'REACTION' || notification.type === 'COMMENT') {
-      // Note: Assumes referenceId points to the post.
-      // If referenceType is COMMENT, we still need to go to the post, but for now we route to a generic or handled link.
-      // Ideally you'd route to `/post/${notification.referenceId}`
-      router.push(`/`); // Temporary fallback, change to post detail if it exists
+      const targetPostId = notification.postId || (notification.referenceType === 'POST' ? notification.referenceId : null);
+      if (targetPostId) {
+        router.push(`/post/${targetPostId}`);
+      } else {
+        router.push(`/`); // Fallback if postId is somehow missing
+      }
     } else if (notification.type === 'FRIEND_REQUEST' || notification.type === 'FRIEND_ACCEPT') {
       router.push(`/profile/${notification.sender._id}`);
     }

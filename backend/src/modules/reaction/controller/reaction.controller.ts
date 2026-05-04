@@ -114,9 +114,27 @@ export const upsertReaction = async (req: AuthRequest, res: Response) => {
         await notification.save();
         await notification.populate("sender", "name username avatar");
 
+        const payload = notification.toObject() as any;
+        
+        let rootPostId = targetType === "POST" || targetType === "post" ? targetId : null;
+        if (!rootPostId && (targetType === "COMMENT" || targetType === "comment")) {
+          let currentCommentId = targetId;
+          while (currentCommentId) {
+            const comment = await Comment.findById(currentCommentId);
+            if (!comment) break;
+            if (comment.targetType === "post") {
+              rootPostId = comment.targetId;
+              break;
+            } else {
+              currentCommentId = comment.targetId;
+            }
+          }
+        }
+        payload.postId = rootPostId;
+
         try {
           const io = getIO();
-          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", payload);
         } catch (e) {
           console.error("Socket emit failed", e);
         }

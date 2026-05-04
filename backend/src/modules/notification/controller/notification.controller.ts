@@ -1,6 +1,7 @@
 import type { Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
 import { Notification } from "../model/notification.model"
+import { Comment } from "../../comment/model/comment.model"
 import mongoose from "mongoose"
 
 export const getNotifications = async (req: AuthRequest, res: Response) => {
@@ -17,6 +18,28 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
       .populate("sender", "name username avatar")
       .sort({ createdAt: -1 })
       .limit(50) // Limit to latest 50 for performance
+      .lean()
+
+    // Attach postId for routing
+    for (const notif of notifications) {
+      if (notif.referenceType === "COMMENT" && notif.referenceId) {
+        let currentCommentId = notif.referenceId;
+        let postId = null;
+        while (currentCommentId) {
+          const comment = await Comment.findById(currentCommentId);
+          if (!comment) break;
+          if (comment.targetType === "post") {
+            postId = comment.targetId;
+            break;
+          } else {
+            currentCommentId = comment.targetId;
+          }
+        }
+        (notif as any).postId = postId;
+      } else if (notif.referenceType === "POST" && notif.referenceId) {
+        (notif as any).postId = notif.referenceId;
+      }
+    }
       
     console.log(`[Notification API] Found ${notifications.length} notifications for user ${user}`);
 

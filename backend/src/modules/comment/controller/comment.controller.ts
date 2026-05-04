@@ -43,9 +43,27 @@ export default class CommentController {
         await notification.save();
         await notification.populate("sender", "name username avatar");
 
+        const payload = notification.toObject() as any;
+        
+        let rootPostId = targetType === "post" || targetType === "POST" ? targetId : null;
+        if (!rootPostId && (targetType === "comment" || targetType === "COMMENT")) {
+          let currentCommentId = targetId;
+          while (currentCommentId) {
+            const currentComment = await Comment.findById(currentCommentId);
+            if (!currentComment) break;
+            if (currentComment.targetType === "post") {
+              rootPostId = currentComment.targetId;
+              break;
+            } else {
+              currentCommentId = currentComment.targetId;
+            }
+          }
+        }
+        payload.postId = rootPostId;
+
         try {
           const io = getIO();
-          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", payload);
         } catch (e) {
           console.error("Socket emit failed", e);
         }
@@ -90,9 +108,25 @@ export default class CommentController {
         await notification.save();
         await notification.populate("sender", "name username avatar");
 
+        const payload = notification.toObject() as any;
+        
+        let rootPostId = null;
+        let currentCommentId = parentComment;
+        while (currentCommentId) {
+          const currentComment = await Comment.findById(currentCommentId);
+          if (!currentComment) break;
+          if (currentComment.targetType === "post") {
+            rootPostId = currentComment.targetId;
+            break;
+          } else {
+            currentCommentId = currentComment.targetId;
+          }
+        }
+        payload.postId = rootPostId;
+
         try {
           const io = getIO();
-          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", payload);
         } catch (e) {
           console.error("Socket emit failed", e);
         }
