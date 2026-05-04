@@ -99,7 +99,18 @@ export default function ChatRoomScreen() {
                     if (isGroup === "true") {
                         decryptedText = await decryptGroupMessage(encryptedObj, chatId as string);
                     } else if (participantPublicKey) {
-                        decryptedText = decryptMessage(encryptedObj, participantPublicKey);
+                        let text = decryptMessage(encryptedObj, participantPublicKey);
+                        // Fix for previously double-encrypted messages
+                        if (text && text.includes('"ciphertext":')) {
+                            try {
+                                const innerObj = JSON.parse(text);
+                                if (innerObj.ciphertext) {
+                                    const innerDec = decryptMessage(innerObj, participantPublicKey);
+                                    if (innerDec) text = innerDec;
+                                }
+                            } catch (e) {}
+                        }
+                        decryptedText = text;
                     }
                 }
             }
@@ -221,14 +232,25 @@ export default function ChatRoomScreen() {
               const text = await decryptGroupMessage(encryptedObj, chatId as string);
               return { ...msg, text: text || "🔒 [Lỗi giải mã nhóm]" };
             } else if (pk) {
-              const decryptedText = decryptMessage(encryptedObj, pk);
+              let decryptedText = decryptMessage(encryptedObj, pk);
+              // Fix for previously double-encrypted messages
+              if (decryptedText && decryptedText.includes('"ciphertext":')) {
+                  try {
+                      const innerObj = JSON.parse(decryptedText);
+                      if (innerObj.ciphertext) {
+                          const innerDec = decryptMessage(innerObj, pk);
+                          if (innerDec) decryptedText = innerDec;
+                      }
+                  } catch (e) {}
+              }
               if (decryptedText) {
                 return { ...msg, text: decryptedText };
               } else {
                 return { ...msg, text: "🔒 [Không thể giải mã tin nhắn]" };
               }
             } else {
-              return { ...msg, text: "⌛ Đang giải mã..." };
+              // Return original msg so decryptAll can process it later
+              return msg;
             }
           }
         } catch (e) {
@@ -264,14 +286,24 @@ export default function ChatRoomScreen() {
       if (messages.length === 0) return;
       
       const decryptedData = await Promise.all(messages.map(async (msg) => {
-        if (msg.text.includes('"ciphertext":')) {
+        if (msg.text && typeof msg.text === 'string' && msg.text.includes('"ciphertext":')) {
           try {
             const encryptedObj = JSON.parse(msg.text);
             if (isGroup === "true") {
               const text = await decryptGroupMessage(encryptedObj, chatId as string);
               return text ? { ...msg, text } : msg;
             } else if (participantPublicKey) {
-              const text = decryptMessage(encryptedObj, participantPublicKey);
+              let text = decryptMessage(encryptedObj, participantPublicKey);
+              // Fix for previously double-encrypted messages
+              if (text && text.includes('"ciphertext":')) {
+                  try {
+                      const innerObj = JSON.parse(text);
+                      if (innerObj.ciphertext) {
+                          const innerDec = decryptMessage(innerObj, participantPublicKey);
+                          if (innerDec) text = innerDec;
+                      }
+                  } catch (e) {}
+              }
               return text ? { ...msg, text } : msg;
             }
           } catch (e) { return msg; }
@@ -288,13 +320,13 @@ export default function ChatRoomScreen() {
       const stillEncrypted = decryptedData.some(m => 
         m.text && typeof m.text === 'string' && (m.text.includes('"ciphertext":') || m.text === "⌛ Đang giải mã...")
       );
-      if (!stillEncrypted && messages.length > 0) {
+      if (!stillEncrypted && decryptedData.length > 0) {
         setIsLoading(false);
       }
     };
 
     decryptAll();
-  }, [participantPublicKey, chatId, isEncryptionReady]);
+  }, [participantPublicKey, chatId, isEncryptionReady, messages]);
 
 
   const loadMoreMessages = async () => {
@@ -319,7 +351,17 @@ export default function ChatRoomScreen() {
                 const text = await decryptGroupMessage(encryptedObj, chatId as string);
                 return { ...msg, text: text || "🔒 [Lỗi giải mã nhóm]" };
               } else if (pk) {
-                const decryptedText = decryptMessage(encryptedObj, pk);
+                let decryptedText = decryptMessage(encryptedObj, pk);
+                // Fix for previously double-encrypted messages
+                if (decryptedText && decryptedText.includes('"ciphertext":')) {
+                    try {
+                        const innerObj = JSON.parse(decryptedText);
+                        if (innerObj.ciphertext) {
+                            const innerDec = decryptMessage(innerObj, pk);
+                            if (innerDec) decryptedText = innerDec;
+                        }
+                    } catch (e) {}
+                }
                 return { ...msg, text: decryptedText || "🔒 [Không thể giải mã tin nhắn]" };
               }
             }
@@ -379,7 +421,7 @@ export default function ChatRoomScreen() {
       };
       setMessages(prev => [tempMessage, ...prev]);
 
-      sendMessage(chatId as string, finalContent, participantPublicKey || undefined);
+      sendMessage(chatId as string, finalContent);
       setInputText("");
       sendTyping(chatId as string, false);
     } finally {
