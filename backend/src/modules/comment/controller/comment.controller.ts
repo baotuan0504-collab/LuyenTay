@@ -1,6 +1,10 @@
 import type { Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
 import CommentService from "../service/comment.service"
+import { Post } from "../../post/model/post.model"
+import { Comment } from "../model/comment.model"
+import { Notification } from "../../notification/model/notification.model"
+import { getIO } from "../../../utils/socket"
 
 export default class CommentController {
   static async createComment(req: AuthRequest, res: Response) {
@@ -17,6 +21,36 @@ export default class CommentController {
         content,
         parentId,
       })
+
+      // Emit Notification
+      let recipientId;
+      if (targetType === "post" || targetType === "POST") {
+        const post = await Post.findById(targetId);
+        if (post) recipientId = post.user;
+      } else if (targetType === "comment" || targetType === "COMMENT") {
+        const parentCom = await Comment.findById(targetId);
+        if (parentCom) recipientId = parentCom.user;
+      }
+
+      if (recipientId && recipientId.toString() !== user) {
+        const notification = new Notification({
+          recipient: recipientId,
+          sender: user,
+          type: "COMMENT",
+          referenceId: comment._id,
+          referenceType: "COMMENT",
+        });
+        await notification.save();
+        await notification.populate("sender", "name username avatar");
+
+        try {
+          const io = getIO();
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+        } catch (e) {
+          console.error("Socket emit failed", e);
+        }
+      }
+
       res.status(201).json(comment)
     } catch (err: any) {
       res
@@ -39,6 +73,31 @@ export default class CommentController {
         parentComment,
         content,
       })
+
+      // Emit Notification
+      let recipientId;
+      const parentCom = await Comment.findById(parentComment);
+      if (parentCom) recipientId = parentCom.user;
+
+      if (recipientId && recipientId.toString() !== user) {
+        const notification = new Notification({
+          recipient: recipientId,
+          sender: user,
+          type: "COMMENT",
+          referenceId: comment._id,
+          referenceType: "COMMENT",
+        });
+        await notification.save();
+        await notification.populate("sender", "name username avatar");
+
+        try {
+          const io = getIO();
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+        } catch (e) {
+          console.error("Socket emit failed", e);
+        }
+      }
+
       res.status(201).json(comment)
     } catch (err: any) {
       res

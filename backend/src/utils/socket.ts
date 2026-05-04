@@ -9,6 +9,15 @@ import { verifyToken } from "../utils/auth"
 // store online users in memory: userId -> socketId
 export const onlineUsers: Map<string, string> = new Map()
 
+let globalIO: SocketServer | null = null;
+
+export const getIO = () => {
+  if (!globalIO) {
+    throw new Error("Socket.io not initialized!");
+  }
+  return globalIO;
+};
+
 export const initializeSocket = (httpServer: HttpServer) => {
   const allowedOrigins = [
     "http://127.0.0.1:8081", // Expo mobile
@@ -25,6 +34,7 @@ export const initializeSocket = (httpServer: HttpServer) => {
       : { origin: allowedOrigins }
 
   const io = new SocketServer(httpServer, { cors: corsOptions })
+  globalIO = io;
 
   // verify socket connection - if the user is authenticated, we will store the user id in the socket
 

@@ -65,9 +65,7 @@ export const apiFetch = async (
     endpoint === "/auth/register" ||
     endpoint === "/auth/refresh"
 
-  if (globalIsLoggedOut && !isAuthRequest) {
-    throw new ApiError("User is logged out", 401)
-  }
+  // Removed globalIsLoggedOut check to prevent HMR block
 
   const url = BASE_URL(endpoint) + endpoint
 
@@ -233,9 +231,7 @@ export const apiFetch = async (
         processQueue(err, null)
         isRefreshing = false
 
-        if (globalIsLoggedOut) {
-          throw new ApiError("User is logged out", 401)
-        }
+        // Removed globalIsLoggedOut check to prevent HMR block
         throw new ApiError("Session Expired", 401)
       }
     }

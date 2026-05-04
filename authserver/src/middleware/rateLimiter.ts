@@ -21,9 +21,9 @@ export async function globalRateLimiter(
       await redis.expire(key, 30) // Window 30 giây
     }
 
-    // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (30) để load trang Home dễ dàng
-    // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 10 để bảo mật
-    const limit = method === "GET" ? 20 : 10
+    // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (50) để load trang Home dễ dàng
+    // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 40 để bảo mật
+    const limit = method === "GET" ? 50 : 40
 
     if (current > limit) {
       return res.status(429).json({

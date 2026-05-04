@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { FriendService } from "../service/friend.service";
 import { AuthRequest } from "../../../middleware/auth";
+import { Notification } from "../../notification/model/notification.model";
+import { getIO } from "../../../utils/socket";
 import { 
   SendFriendRequestDto, 
   FriendResponseDto, 
@@ -18,6 +20,27 @@ export class FriendController {
       if (!requesterId) return res.status(401).json({ message: "Unauthorized" });
 
       const request = await FriendService.sendRequest(requesterId, recipientId);
+
+      // Emit Notification
+      if (recipientId && recipientId !== requesterId) {
+        const notification = new Notification({
+          recipient: recipientId,
+          sender: requesterId,
+          type: "FRIEND_REQUEST",
+          referenceId: requesterId,
+          referenceType: "USER",
+        });
+        await notification.save();
+        await notification.populate("sender", "name username avatar");
+
+        try {
+          const io = getIO();
+          io.to(`user:${recipientId}`).emit("new-notification", notification);
+        } catch (e) {
+          console.error("Socket emit failed", e);
+        }
+      }
+
       res.status(201).json(request);
     } catch (error) {
       next(error);
@@ -35,6 +58,27 @@ export class FriendController {
       }
 
       const friendship = await FriendService.acceptRequest(recipientId, requesterId);
+
+      // Emit Notification
+      if (requesterId && requesterId !== recipientId) {
+        const notification = new Notification({
+          recipient: requesterId,
+          sender: recipientId,
+          type: "FRIEND_ACCEPT",
+          referenceId: recipientId,
+          referenceType: "USER",
+        });
+        await notification.save();
+        await notification.populate("sender", "name username avatar");
+
+        try {
+          const io = getIO();
+          io.to(`user:${requesterId}`).emit("new-notification", notification);
+        } catch (e) {
+          console.error("Socket emit failed", e);
+        }
+      }
+
       res.json(friendship);
     } catch (error) {
       next(error);

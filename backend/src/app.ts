@@ -10,6 +10,7 @@ import commentRoutes from "./routes/commentRoutes"
 import messageRoutes from "./routes/messageRoutes"
 import friendRoutes from "./routes/friendRoutes"
 import postRoutes from "./routes/postRoutes"
+import notificationRoutes from "./routes/notificationRoutes"
 import reactionRoutes from "./routes/reactionRoutes"
 import storyRoutes from "./routes/storyRoutes"
 import userRoutes from "./routes/userRoutes"
@@ -66,6 +67,7 @@ app.use("/api/users", userRoutes)
 app.use("/api/stories", storyRoutes)
 app.use("/api/reactions", reactionRoutes)
 app.use("/api/friends", friendRoutes)
+app.use("/api/notifications", notificationRoutes)
 
 // Catch-all for unmatched api routes
 app.use("/api", (req, res, next) => {

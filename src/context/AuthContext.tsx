@@ -83,6 +83,7 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   useEffect(() => {
     const restoreAuth = async () => {
       console.log("[AuthContext] restoreAuth starting...");
+      setGlobalIsLoggedOut(false);
       setIsRestoring(true);
       try {
         const [storedUser, storedAccessToken, storedRefreshToken] =
@@ -117,6 +118,10 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
         if (storedRefreshToken) {
           console.log("[AuthContext] Setting refresh token");
           setRefreshToken(storedRefreshToken);
+        }
+
+        if (storedUser && storedAccessToken) {
+          setGlobalIsLoggedOut(false);
         }
 
         /**

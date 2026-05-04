@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons"
 import { Tabs, useRouter } from "expo-router"
-import { StyleSheet, TouchableOpacity, View } from "react-native"
+import { StyleSheet, TouchableOpacity, View, Text } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
+import { useNotification } from "@/context/NotificationContext"
 
 function AppHeader() {
   const router = useRouter()
+  const { unreadCount } = useNotification()
 
   return (
     <View style={styles.header}>
@@ -31,12 +33,24 @@ function AppHeader() {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.headerIcon}>
-          <Ionicons
-            name="notifications-outline"
-            size={24}
-            color="#000"
-          />
+        <TouchableOpacity 
+          style={styles.headerIcon}
+          onPress={() => router.push("/notifications")}
+        >
+          <View>
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color="#000"
+            />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -166,5 +180,24 @@ const styles = StyleSheet.create({
 
   tabs: {
     flex: 1,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 })

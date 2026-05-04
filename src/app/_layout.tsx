@@ -3,6 +3,7 @@ import "fast-text-encoding"
 import { AuthProvider, useAuth } from "@/context/AuthContext"
 import { ChatProvider } from "@/context/ChatContext"
 import { EncryptionProvider } from "@/context/EncryptionContext"
+import { NotificationProvider } from "@/context/NotificationContext"
 import { Stack } from "expo-router"
 import { ActivityIndicator, View } from "react-native"
 
@@ -29,7 +30,9 @@ export default function RootLayout() {
     <AuthProvider>
       <EncryptionProvider>
         <ChatProvider>
-          <RootStack />
+          <NotificationProvider>
+            <RootStack />
+          </NotificationProvider>
         </ChatProvider>
       </EncryptionProvider>
     </AuthProvider>

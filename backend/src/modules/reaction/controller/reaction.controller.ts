@@ -2,6 +2,10 @@ import type { Response } from "express"
 import mongoose from "mongoose"
 import type { AuthRequest } from "../../../middleware/auth"
 import { Reaction } from "../model/reaction.model"
+import { Post } from "../../post/model/post.model"
+import { Comment } from "../../comment/model/comment.model"
+import { Notification } from "../../notification/model/notification.model"
+import { getIO } from "../../../utils/socket"
 
 // Get the current user's reaction for a target
 export const getMyReaction = async (req: AuthRequest, res: Response) => {
@@ -80,13 +84,48 @@ export const upsertReaction = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(401).json({ message: "Unauthorized" })
     }
+    const isNew = !await Reaction.findOne({ user, targetId, targetType });
+
     const updated = await Reaction.findOneAndUpdate(
       { user, targetId, targetType },
       { reactionType },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     )
+
+    if (isNew) {
+      // Find recipient
+      let recipientId;
+      if (targetType === "POST" || targetType === "post") {
+        const post = await Post.findById(targetId);
+        if (post) recipientId = post.user;
+      } else if (targetType === "COMMENT" || targetType === "comment") {
+        const comment = await Comment.findById(targetId);
+        if (comment) recipientId = comment.user;
+      }
+
+      if (recipientId && recipientId.toString() !== user) {
+        const notification = new Notification({
+          recipient: recipientId,
+          sender: user,
+          type: "REACTION",
+          referenceId: targetId,
+          referenceType: targetType === "POST" || targetType === "post" ? "POST" : "COMMENT",
+        });
+        await notification.save();
+        await notification.populate("sender", "name username avatar");
+
+        try {
+          const io = getIO();
+          io.to(`user:${recipientId.toString()}`).emit("new-notification", notification);
+        } catch (e) {
+          console.error("Socket emit failed", e);
+        }
+      }
+    }
+
     res.status(200).json(updated)
   } catch (error) {
+    console.error("Error upserting reaction:", error);
     res.status(500).json({ message: "Error upserting reaction" })
   }
 }

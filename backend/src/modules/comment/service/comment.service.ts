@@ -33,7 +33,8 @@ export default class CommentService {
     if (parentId) {
       commentData.parentComment = new mongoose.Types.ObjectId(parentId)
     }
-    const comment = await Comment.create(commentData)
+    const comment = new Comment(commentData)
+    await comment.save()
     if (targetType === "post") {
       await Post.findByIdAndUpdate(targetId, { $inc: { commentCount: 1 } })
     }
@@ -53,13 +54,14 @@ export default class CommentService {
     parentComment: string
     content: string
   }) {
-    const comment = await Comment.create({
+    const comment = new Comment({
       user: new mongoose.Types.ObjectId(user),
       targetId: new mongoose.Types.ObjectId(targetId),
       targetType,
       parentComment: new mongoose.Types.ObjectId(parentComment),
       content,
     })
+    await comment.save()
     if (targetType === "post") {
       await Post.findByIdAndUpdate(targetId, { $inc: { commentCount: 1 } })
     }
