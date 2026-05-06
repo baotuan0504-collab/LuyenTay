@@ -46,12 +46,15 @@ const processQueue = (error: any, token: string | null = null) => {
 }
 
 export class ApiError extends Error {
-  readonly status: number
+  status: number
   handled: boolean = false
+
   constructor(message: string, status: number) {
     super(message)
     this.name = "ApiError"
     this.status = status
+    // Đảm bảo instanceof hoạt động đúng trong TS/ES6
+    Object.setPrototypeOf(this, ApiError.prototype)
   }
 }
 
@@ -141,7 +144,11 @@ export const apiFetch = async (
 
   const handleResponse = (response: Response, data: any) => {
     if (!response.ok) {
-      const message = data?.message || response.statusText || "Request failed"
+      // Ưu tiên lấy message từ data.message (cấu trúc mới) hoặc data (cấu trúc cũ)
+      const message =
+        data?.message ||
+        (typeof data === "string" ? data : response.statusText) ||
+        "Request failed"
       console.log(`[API Error] ${response.status} - ${message} for ${endpoint}`)
       const error = new ApiError(message, response.status)
       if (response.status === 429) {
@@ -149,6 +156,12 @@ export const apiFetch = async (
       }
       throw error
     }
+
+    // Nếu là ApiResponse chuẩn (có success và data), bóc tách để trả về data cho FE
+    if (data && typeof data.success === "boolean" && data.data !== undefined) {
+      return data.data
+    }
+
     return data
   }
 
@@ -198,9 +211,15 @@ export const apiFetch = async (
 
         if (!refreshRes.ok) throw new Error("Refresh Failed")
 
-        const refreshData = await refreshRes.json()
+        const rawData = await refreshRes.json()
+        // Bóc tách từ cấu trúc ApiResponse mới
+        const refreshData =
+          rawData && rawData.data !== undefined ? rawData.data : rawData
+
         const newToken = refreshData.accessToken
         const newRefreshToken = refreshData.refreshToken
+
+        if (!newToken || !newRefreshToken) throw new Error("Invalid Token Response")
 
         // Lưu vào SecureStore
         await SecureStore.setItemAsync("auth_accessToken", newToken)
@@ -227,11 +246,24 @@ export const apiFetch = async (
         // Thực hiện lại request ban đầu với token mới
         const retry = await executeRequest(newToken)
         return handleResponse(retry.response, retry.data)
-      } catch (err) {
+      } catch (err: any) {
         processQueue(err, null)
         isRefreshing = false
 
-        // Removed globalIsLoggedOut check to prevent HMR block
+        // Khi refresh thất bại, xóa sạch token cũ để tránh loop
+        await SecureStore.deleteItemAsync("auth_accessToken")
+        await SecureStore.deleteItemAsync("auth_refreshToken")
+        await SecureStore.deleteItemAsync("auth_user")
+
+        // Thông báo cho AuthContext cập nhật state về null
+        if (tokenUpdateListener) {
+          tokenUpdateListener({
+            accessToken: null,
+            refreshToken: null,
+            user: null,
+          })
+        }
+
         throw new ApiError("Session Expired", 401)
       }
     }

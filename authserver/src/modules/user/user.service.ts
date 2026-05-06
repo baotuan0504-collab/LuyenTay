@@ -1,56 +1,62 @@
-import { User } from "../../models/User"
+import { IUserRepository, UserRepository } from "../../repositories/UserRepository"
 import { UpdateProfileDto, UserResponseDto } from "./user.dto"
+import { IUserService } from "./user.interface"
 
-export class UserService {
-  async getAllExcept(userId: string) {
-    const users = await User.find({ _id: { $ne: userId } })
-      .select("name email avatar")
-      .limit(50)
+export class UserService implements IUserService {
+  private userRepository: IUserRepository
+
+  constructor(userRepository: IUserRepository = new UserRepository()) {
+    this.userRepository = userRepository
+  }
+
+  async getAllExcept(userId: string): Promise<UserResponseDto[]> {
+    const users = await this.userRepository.findManyExcept(userId, 50)
     return users.map((u) => new UserResponseDto(u))
   }
 
-  async findById(userId: string) {
-    const user = await User.findById(userId).select(
-      "name email avatar username createdAt",
-    )
+  async findById(userId: string): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(userId)
     if (!user) throw new Error("User not found")
     return new UserResponseDto(user)
   }
 
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
-    const updateData: any = {}
+  async updateProfile(
+    userId: string,
+    dto: UpdateProfileDto,
+  ): Promise<UserResponseDto> {
+    const updateData: Record<string, unknown> = {}
     if (dto.name !== undefined) updateData.name = dto.name
     if (dto.username !== undefined) updateData.username = dto.username
     if (dto.avatar !== undefined) updateData.avatar = dto.avatar
     if (dto.onboardingCompleted !== undefined)
       updateData.onboardingCompleted = dto.onboardingCompleted
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true },
-    ).select("-password")
-
+    const user = await this.userRepository.updateById(userId, updateData)
     if (!user) throw new Error("User not found")
+
     return new UserResponseDto(user)
   }
 
-  async checkUsernameAvailability(username: string, excludeUserId?: string) {
-    const existingUser = await User.findOne({
-      username: username,
-      _id: { $ne: excludeUserId },
-    })
+  async checkUsernameAvailability(
+    username: string,
+    excludeUserId?: string,
+  ): Promise<boolean> {
+    const filter: Record<string, unknown> = {
+      username: username.toLowerCase(),
+    }
+    if (excludeUserId) {
+      filter._id = { $ne: excludeUserId }
+    }
+
+    const existingUser = await this.userRepository.findOne(filter)
     return !existingUser
   }
 
-  async searchUsers(query: string, excludeUserId: string) {
-    const searchRegex = query ? { $regex: query, $options: "i" } : { $exists: true }
-    const users = await User.find({
-      _id: { $ne: excludeUserId },
-      $or: [{ name: searchRegex }, { username: searchRegex }],
-    })
-      .select("name username avatar")
-      .limit(50)
-    return users.map((u) => new UserResponseDto(u))
+  async searchUsers(
+    query: string,
+    excludeUserId: string,
+  ): Promise<UserResponseDto[]> {
+    const users = await this.userRepository.search(query, excludeUserId, 50)
+    return users.map((u) => new UserResponseDto(u as any))
   }
 }

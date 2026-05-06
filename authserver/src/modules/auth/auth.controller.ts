@@ -1,174 +1,179 @@
 import { Request, Response } from "express"
+import { ApiResponse } from "../../utils/ApiResponse"
 import {
   ForgotPasswordSendOtpDto,
   ForgotPasswordVerifyOtpDto,
   LoginRequestDto,
+  RefreshTokenDto,
   RegisterRequestDto,
   ResetPasswordDto,
+  TrustDeviceDto,
   VerifyLoginOtpDto,
   VerifyTokenRequestDto,
 } from "./auth.dto"
+import { IAuthService } from "./auth.interface"
 import { AuthService } from "./auth.service"
 
-const authService = new AuthService()
-
-export const getMe = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId
-    const result = await authService.getMe(userId)
-    res.json(result)
-  } catch (err: any) {
-    const status = err.message === "User not found" ? 404 : 500
-    res.status(status).json({ message: err.message })
-  }
+interface AuthRequest extends Request {
+  userId: string
 }
 
-export const refreshToken = async (req: Request, res: Response) => {
-  try {
-    const { refreshToken: rt } = req.body
-    if (!rt) return res.status(400).json({ message: "Missing refreshToken" })
-    const result = await authService.refreshToken(rt)
-    // Always return both tokens for FE to store
-    res.json({
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      user: result.user,
-    })
-  } catch (err: any) {
-    res.status(401).json({ message: err.message })
-  }
-}
+export class AuthController {
+  private authService: IAuthService
 
-export const login = async (req: Request, res: Response) => {
-  try {
-    const deviceId = req.headers["x-device-id"] as string
-    const dto = new LoginRequestDto({ ...req.body, deviceId })
-    const result = await authService.login(dto)
-    // If OTP is required, return OTP response
-    if ("requireOtp" in result) {
-      res.json(result)
-    } else {
-      // Always return both tokens for FE to store
-      res.json({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        user: result.user,
-      })
+  constructor(authService: IAuthService = new AuthService()) {
+    this.authService = authService
+  }
+
+  getMe = async (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthRequest
+      const userId = authReq.userId
+      const result = await this.authService.getMe(userId)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      const status = message === "User not found" ? 404 : 500
+      res.status(status).json(ApiResponse.error(message))
     }
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
   }
-}
 
-export const register = async (req: Request, res: Response) => {
-  try {
-    const { step } = req.body
-    if (step === 3) {
-      const dto = new RegisterRequestDto(req.body)
-      const result = await authService.register(dto)
-      // Always return both tokens for FE to store
-      res.json({
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-        user: result.user || null,
+  refreshToken = async (req: Request, res: Response) => {
+    try {
+      const dto = new RefreshTokenDto(req.body as Record<string, string>)
+      const result = await this.authService.refreshToken(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(401).json(ApiResponse.error(message))
+    }
+  }
+
+  login = async (req: Request, res: Response) => {
+    try {
+      const deviceId = (req.headers["x-device-id"] as string) || ""
+      const dto = new LoginRequestDto({
+        ...(req.body as Record<string, string>),
+        deviceId,
       })
-    } else {
-      const { email } = req.body
-      if (step === 2) {
-        const result = await authService.sendForgotPasswordOtp(email)
-        res.json({ ...result, step: 2 })
+      const result = await this.authService.login(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
+  }
+
+  register = async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, string>
+      const step = parseInt(body.step || "0")
+      if (step === 3) {
+        const dto = new RegisterRequestDto(body)
+        const result = await this.authService.register(dto)
+        res.json(ApiResponse.success(result, "Registration successful"))
       } else {
-        res.json({ success: true, step: 1 })
+        const email = body.email
+        if (step === 2) {
+          const dto = new ForgotPasswordSendOtpDto({ email })
+          const result = await this.authService.sendForgotPasswordOtp(dto)
+          res.json(ApiResponse.success({ ...result, step: 2 }))
+        } else {
+          res.json(ApiResponse.success({ step: 1 }))
+        }
       }
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
     }
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
+  }
+
+  logout = async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, string>
+      const refreshToken =
+        body.refreshToken || (req.headers["x-refresh-token"] as string)
+      const dto = new RefreshTokenDto({ refreshToken })
+      await this.authService.logout(dto)
+      res.json(ApiResponse.success(null, "Logged out successfully"))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(500).json(ApiResponse.error(message))
+    }
+  }
+
+  verifyToken = async (req: Request, res: Response) => {
+    try {
+      const dto = new VerifyTokenRequestDto(req.body as Record<string, string>)
+      const result = await this.authService.verifyToken(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(401).json(ApiResponse.error(message))
+    }
+  }
+
+  forgotPasswordSendOtp = async (req: Request, res: Response) => {
+    try {
+      const dto = new ForgotPasswordSendOtpDto(
+        req.body as Record<string, string>,
+      )
+      const result = await this.authService.sendForgotPasswordOtp(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
+  }
+
+  forgotPasswordVerifyOtpOnly = async (req: Request, res: Response) => {
+    try {
+      const dto = new ForgotPasswordVerifyOtpDto(
+        req.body as Record<string, string>,
+      )
+      const result = await this.authService.verifyForgotPasswordOtpOnly(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
+  }
+
+  forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
+    try {
+      const dto = new ResetPasswordDto(req.body as Record<string, string>)
+      const result = await this.authService.resetPassword(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
+  }
+
+  verifyLoginOtp = async (req: Request, res: Response) => {
+    try {
+      const dto = new VerifyLoginOtpDto(req.body as Record<string, string>)
+      const result = await this.authService.verifyLoginOtp(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
+  }
+
+  trustDevice = async (req: Request, res: Response) => {
+    try {
+      const body = req.body as Record<string, string>
+      const email = body.email
+      const deviceId = (req.headers["x-device-id"] as string) || ""
+      const dto = new TrustDeviceDto({ email, deviceId })
+      const result = await this.authService.trustDevice(dto)
+      res.json(ApiResponse.success(result))
+    } catch (err: Error | unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      res.status(400).json(ApiResponse.error(message))
+    }
   }
 }
 
-export const logout = async (req: Request, res: Response) => {
-  try {
-    const token = req.body.refreshToken || req.headers["x-refresh-token"]
-    if (!token) return res.status(400).json({ message: "Missing token" })
-    await authService.logout(token)
-    res.json({ success: true, message: "Logged out" })
-  } catch (err: any) {
-    res.status(500).json({ message: err.message })
-  }
-}
 
-export const verifyToken = async (req: Request, res: Response) => {
-  try {
-    const { token } = req.body
-    console.log(
-      "[AuthServer] Verifying token:",
-      token?.substring(0, 20) + "...",
-    )
-
-    const dto = new VerifyTokenRequestDto(req.body)
-    const result = await authService.verifyToken(dto)
-
-    console.log("[AuthServer] Verify Success for userId:", result.userId)
-    res.json(result)
-  } catch (err: any) {
-    console.error("[AuthServer] Verify Failed:", err.message)
-    res.status(401).json({ message: err.message })
-  }
-}
-
-export const forgotPasswordSendOtp = async (req: Request, res: Response) => {
-  try {
-    const dto = new ForgotPasswordSendOtpDto(req.body)
-    const result = await authService.sendForgotPasswordOtp(dto.email)
-    res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-export const forgotPasswordVerifyOtpOnly = async (
-  req: Request,
-  res: Response,
-) => {
-  try {
-    const dto = new ForgotPasswordVerifyOtpDto(req.body)
-    const result = await authService.verifyForgotPasswordOtpOnly(
-      dto.email,
-      dto.otp,
-    )
-    res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-export const forgotPasswordVerifyOtp = async (req: Request, res: Response) => {
-  try {
-    const dto = new ResetPasswordDto(req.body)
-    const result = await authService.resetPassword(dto.email, dto.newPassword)
-    res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-export const verifyLoginOtp = async (req: Request, res: Response) => {
-  try {
-    const dto = new VerifyLoginOtpDto(req.body)
-    const result = await authService.verifyLoginOtp(dto.email, dto.otp)
-    res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}
-
-export const trustDevice = async (req: Request, res: Response) => {
-  try {
-    const { email } = req.body
-    const deviceId = req.headers["x-device-id"] as string
-    const result = await authService.trustDevice(email, deviceId)
-    res.json(result)
-  } catch (err: any) {
-    res.status(400).json({ message: err.message })
-  }
-}

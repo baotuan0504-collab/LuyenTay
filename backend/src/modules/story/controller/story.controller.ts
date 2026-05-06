@@ -1,5 +1,6 @@
 import type { NextFunction, Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
+import { ApiResponse } from "../../../utils/ApiResponse"
 import { Story } from "../model/story.model"
 
 export async function createStory(
@@ -18,8 +19,7 @@ export async function createStory(
     })
 
     if (!imageUrl) {
-      res.status(400).json({ message: "Image URL is required" })
-      return
+      return res.status(400).json(ApiResponse.error("Image URL is required"))
     }
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
@@ -41,20 +41,19 @@ export async function createStory(
       })
     } catch (saveError: any) {
       console.error("Story save error:", saveError.message)
-      res
+      return res
         .status(400)
-        .json({ message: `Failed to save story: ${saveError.message}` })
-      return
+        .json(ApiResponse.error(`Failed to save story: ${saveError.message}`))
     }
 
     const populatedStory = await Story.findById(story._id).populate(
       "user",
       "name username avatar",
     )
-    res.status(201).json(populatedStory)
+    res.status(201).json(ApiResponse.success(populatedStory))
   } catch (error: any) {
     console.error("Internal Story Controller Error:", error.message)
-    res.status(500).json({ message: error.message || "Internal Server Error" })
+    res.status(500).json(ApiResponse.error(error.message || "Internal Server Error"))
     next(error)
   }
 }
@@ -79,7 +78,7 @@ export async function getStories(
     const stories = await Story.find(filter)
       .populate("user", "name username avatar coverPhoto")
       .sort({ createdAt: -1 })
-    res.json(stories)
+    res.json(ApiResponse.success(stories))
   } catch (error) {
     res.status(500)
     next(error)

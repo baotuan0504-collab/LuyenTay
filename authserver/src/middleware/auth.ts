@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { User } from "../models/User";
+import { User } from "../entities/User";
 import { verifyToken } from "../utils/auth";
 
 export type AuthRequest = Request & {

@@ -1,10 +1,7 @@
 import type { NextFunction, Request, Response } from "express"
 import redis from "../config/redis"
 
-/**
- * Middleware giới hạn tốc độ gọi API chung (Global Rate Limiter)
- * Mặc định: 30 request / 30 giây cho mỗi IP mỗi endpoint
- */
+
 export async function globalRateLimiter(
   req: Request,
   res: Response,
@@ -18,11 +15,9 @@ export async function globalRateLimiter(
   try {
     const current = await redis.incr(key)
     if (current === 1) {
-      await redis.expire(key, 30) // Window 30 giây
+      await redis.expire(key, 30)
     }
 
-    // Nếu là lệnh lấy dữ liệu (GET), cho phép cao hơn (50) để load trang Home dễ dàng
-    // Nếu là lệnh thao tác (POST/PUT/DELETE), giữ mức 40 để bảo mật
     const limit = method === "GET" ? 50 : 40
 
     if (current > limit) {
@@ -33,14 +28,11 @@ export async function globalRateLimiter(
     }
     next()
   } catch (err) {
-    // Nếu Redis lỗi, vẫn cho qua để không treo app khách hàng
     next()
   }
 }
 
-/**
- * Helper kiểm tra xem Email có đang bị khóa OTP hay không
- */
+
 export async function checkOtpLock(
   email: string,
 ): Promise<{ isLocked: boolean; remaining: number }> {
@@ -52,9 +44,6 @@ export async function checkOtpLock(
   }
 }
 
-/**
- * Helper xử lý khi nhập sai OTP: Tăng bộ đếm, nếu quá 3 lần thì khóa 1 giờ
- */
 export async function handleOtpFailure(
   email: string,
 ): Promise<{ fails: number; isLocked: boolean }> {
@@ -62,11 +51,10 @@ export async function handleOtpFailure(
   const lockKey = `otp_blocked:${email}`
 
   const fails = await redis.incr(failKey)
-  // Mỗi lần sai sẽ reset thời gian chờ của bộ đếm về 150s (khớp với thời gian sống của OTP)
   await redis.expire(failKey, 150)
 
   if (fails >= 3) {
-    await redis.set(lockKey, "true", "EX", 3600) // Khóa 1 giờ (3600s)
+    await redis.set(lockKey, "true", "EX", 3600)
     await redis.del(failKey)
     return { fails, isLocked: true }
   }

@@ -1,22 +1,21 @@
-import mongoose, { Schema } from "mongoose"
+import mongoose, { Schema, Document } from "mongoose"
 
-export interface IUser {
+export interface UserEntity extends Document {
+  _id: mongoose.Types.ObjectId
   name: string
-  username?: string
+  username: string
   email: string
   password: string
   avatar: string
-  onboardingCompleted?: boolean
-  requireOtp?: boolean
+  onboardingCompleted: boolean
+  requireOtp: boolean
   trustedDevices: string[]
-  lastAccessToken?: string
+  lastAccessToken: string
   createdAt: Date
   updatedAt: Date
-  _id: mongoose.Types.ObjectId
-  save: () => Promise<IUser>
 }
 
-const UserSchema = new Schema<IUser>(
+const UserSchema = new Schema<UserEntity>(
   {
     name: {
       type: String,

@@ -1,5 +1,6 @@
 import type { NextFunction, Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
+import { ApiResponse } from "../../../utils/ApiResponse"
 import { Reaction } from "../../reaction/model/reaction.model"
 import { Post } from "../model/post.model"
 
@@ -13,10 +14,9 @@ export async function createPost(
     const { imageUrl, videoUrl, description } = req.body
 
     if (!imageUrl && !videoUrl) {
-      res
+      return res
         .status(400)
-        .json({ message: "Either Image URL or Video URL is required" })
-      return
+        .json(ApiResponse.error("Either Image URL or Video URL is required"))
     }
 
     // Calculate expiration time (24 hours from now)
@@ -39,7 +39,7 @@ export async function createPost(
       "name username avatar",
     )
 
-    res.status(201).json(populatedPost)
+    res.status(201).json(ApiResponse.success(populatedPost))
   } catch (error) {
     res.status(500)
     next(error)
@@ -95,7 +95,7 @@ export async function getPosts(
       reactionCounts: reactionCountsMap[post._id.toString()] || {},
       myReaction: myReactionMap[post._id.toString()] || null,
     }))
-    res.json(result)
+    res.json(ApiResponse.success(result))
   } catch (error) {
     res.status(500)
     next(error)
@@ -114,11 +114,10 @@ export async function getPostById(
       "name username avatar",
     )
     if (!post) {
-      res.status(404).json({ message: "Post not found" })
-      return
+      return res.status(404).json(ApiResponse.error("Post not found"))
     }
-    res.json(post)
+    res.json(ApiResponse.success(post))
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" })
+    res.status(500).json(ApiResponse.error("Internal server error"))
   }
 }

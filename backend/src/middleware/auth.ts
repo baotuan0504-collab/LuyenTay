@@ -53,11 +53,14 @@ export async function protectRoute(
     })
     
     console.log("[protectRoute] AuthServer Response Status:", response.status)
-    console.log("[protectRoute] AuthServer Data:", response.data)
-    if (!response.data || !response.data.userId) {
-      return res.status(401).json({ message: "Unauthorized" })
+    const apiResult = response.data
+    
+    if (!apiResult || !apiResult.success || !apiResult.data || !apiResult.data.userId) {
+      console.error("[protectRoute] Auth verification failed:", apiResult?.message || "Invalid response structure")
+      return res.status(401).json({ message: apiResult?.message || "Unauthorized" })
     }
-    req.userId = response.data.userId
+
+    req.userId = apiResult.data.userId
     next()
   } catch (error: any) {
     console.error(

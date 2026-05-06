@@ -192,7 +192,7 @@ export default function FriendsScreen() {
     
     return (
       <View style={styles.itemContainer}>
-        <TouchableOpacity style={styles.itemMain} onPress={() => activeTab === 'friends' && startChat(user)}>
+        <TouchableOpacity style={styles.itemMain} onPress={() => router.push(`/profile/${user._id}`)}>
           {user.avatar ? (
             <Image source={{ uri: user.avatar }} style={styles.avatar} />
           ) : (

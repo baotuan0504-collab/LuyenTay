@@ -1,5 +1,6 @@
 import type { Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
+import { ApiResponse } from "../../../utils/ApiResponse"
 import { Notification } from "../model/notification.model"
 import { Comment } from "../../comment/model/comment.model"
 import mongoose from "mongoose"
@@ -8,7 +9,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.userId
     if (!user) {
-      return res.status(401).json({ message: "Unauthorized" })
+      return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
     
     // Fetch notifications sorted by newest first
@@ -45,10 +46,10 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
       
     console.log(`[Notification API] Found ${notifications.length} notifications for user ${user}`);
 
-    res.json(notifications)
+    res.json(ApiResponse.success(notifications))
   } catch (error) {
     console.error("Error fetching notifications:", error)
-    res.status(500).json({ message: "Error fetching notifications" })
+    res.status(500).json(ApiResponse.error("Error fetching notifications"))
   }
 }
 
@@ -56,13 +57,13 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.userId
     if (!user) {
-      return res.status(401).json({ message: "Unauthorized" })
+      return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
     
     const count = await Notification.countDocuments({ recipient: new mongoose.Types.ObjectId(user), isRead: false })
-    res.json({ unreadCount: count })
+    res.json(ApiResponse.success({ unreadCount: count }))
   } catch (error) {
-    res.status(500).json({ message: "Error fetching unread count" })
+    res.status(500).json(ApiResponse.error("Error fetching unread count"))
   }
 }
 
@@ -71,7 +72,7 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     const user = req.userId
     const { id } = req.params
     if (!user) {
-      return res.status(401).json({ message: "Unauthorized" })
+      return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
     
     const updated = await Notification.findOneAndUpdate(
@@ -79,9 +80,9 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
       { isRead: true },
       { new: true }
     )
-    res.json(updated)
+    res.json(ApiResponse.success(updated))
   } catch (error) {
-    res.status(500).json({ message: "Error marking notification as read" })
+    res.status(500).json(ApiResponse.error("Error marking notification as read"))
   }
 }
 
@@ -89,15 +90,15 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.userId
     if (!user) {
-      return res.status(401).json({ message: "Unauthorized" })
+      return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
     
     await Notification.updateMany(
       { recipient: user, isRead: false },
       { isRead: true }
     )
-    res.json({ message: "All notifications marked as read" })
+    res.json(ApiResponse.success(null, "All notifications marked as read"))
   } catch (error) {
-    res.status(500).json({ message: "Error marking all notifications as read" })
+    res.status(500).json(ApiResponse.error("Error marking all notifications as read"))
   }
 }

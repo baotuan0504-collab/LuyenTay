@@ -14,6 +14,3 @@ export const errorHandler = (err: Error, _req: Request, res: Response, _next: Ne
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };
-
-// if status code is 200 and we still hit the error handler that means it's an internal error
-// so we set the status code as 500
