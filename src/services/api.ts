@@ -1,6 +1,19 @@
-// Helper to check if error is unauthorized
 import * as SecureStore from "expo-secure-store"
 import { getDefaultApiHeaders } from "./apiHeaders"
+
+export class ApiError extends Error {
+  status: number
+  handled: boolean = false
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    // Đảm bảo instanceof hoạt động đúng trong TS/ES6
+    Object.setPrototypeOf(this, ApiError.prototype)
+  }
+}
+
 export const isUnauthorizedError = (error: unknown): error is ApiError => {
   return error instanceof ApiError && error.status === 401
 }
@@ -18,9 +31,8 @@ const BASE_URL = (endpoint: string): string => {
   return `${base}${endpoint}`
 }
 
-// Quản lý trạng thái refresh token
-let isRefreshing = false
-let failedQueue: any[] = []
+// Mutex dựa trên Promise — bất kỳ caller nào cũng đợi chung 1 promise, không bao giờ gọi 2 lần
+let refreshPromise: Promise<string> | null = null
 
 // Listener để thông báo cho AuthContext khi token thay đổi
 type TokenUpdateListener = (data: {
@@ -34,29 +46,95 @@ export const setTokenUpdateListener = (listener: TokenUpdateListener) => {
   tokenUpdateListener = listener
 }
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
-  failedQueue = []
-}
 
-export class ApiError extends Error {
-  status: number
-  handled: boolean = false
-
-  constructor(message: string, status: number) {
-    super(message)
-    this.name = "ApiError"
-    this.status = status
-    // Đảm bảo instanceof hoạt động đúng trong TS/ES6
-    Object.setPrototypeOf(this, ApiError.prototype)
+/**
+ * Refresh token dùng Promise mutex.
+ * Trả về accessToken mới. Được export để AuthContext và api interceptor dùng chung.
+ */
+export const performTokenRefresh = (): Promise<string> => {
+  if (refreshPromise) {
+    console.log("[API] Refresh already in progress, waiting for existing promise...")
+    return refreshPromise
   }
+
+  refreshPromise = (async () => {
+    const storedRefreshToken = await SecureStore.getItemAsync("auth_refreshToken")
+    if (!storedRefreshToken) {
+      throw new ApiError("Session Expired: No Refresh Token found", 401)
+    }
+
+    console.log("[API] Performing token refresh...")
+    const refreshUrl = BASE_URL("/auth/refresh")
+    const refreshBody = JSON.stringify({ refreshToken: storedRefreshToken })
+    const refreshHeaders = await getDefaultApiHeaders({
+      method: "POST",
+      path: "/auth/refresh",
+      body: refreshBody,
+      token: storedRefreshToken,
+    })
+
+    const refreshRes = await fetch(refreshUrl, {
+      method: "POST",
+      headers: refreshHeaders,
+      body: refreshBody,
+    })
+
+    if (!refreshRes.ok) {
+      let errBody: string | null = null
+      try { errBody = await refreshRes.text() } catch { /* ignore */ }
+      console.error(
+        `[API] Refresh token failed: HTTP ${refreshRes.status} ${refreshRes.statusText}.`,
+        `Body: ${errBody ?? "(empty)"}`
+      )
+      throw new ApiError(`Session Expired: Refresh rejected by server (${refreshRes.status})`, 401)
+    }
+
+    const rawData = await refreshRes.json()
+    const refreshData = rawData?.data !== undefined ? rawData.data : rawData
+
+    const newToken: string = refreshData.accessToken
+    const newRefreshToken: string = refreshData.refreshToken
+
+    if (!newToken || !newRefreshToken) {
+      throw new ApiError("Session Expired: Invalid Token Response", 401)
+    }
+
+    // Lưu vào SecureStore
+    await SecureStore.setItemAsync("auth_accessToken", newToken)
+    await SecureStore.setItemAsync("auth_refreshToken", newRefreshToken)
+    if (refreshData.user) {
+      await SecureStore.setItemAsync("auth_user", JSON.stringify(refreshData.user))
+    }
+
+    // Thông báo cho AuthContext cập nhật state
+    if (tokenUpdateListener) {
+      tokenUpdateListener({
+        accessToken: newToken,
+        refreshToken: newRefreshToken,
+        user: refreshData.user,
+      })
+    }
+
+    console.log("[API] Token refresh successful.")
+    return newToken
+  })()
+    .catch(async (err) => {
+      // Khi refresh thất bại: xóa sạch token, báo AuthContext logout
+      await SecureStore.deleteItemAsync("auth_accessToken")
+      await SecureStore.deleteItemAsync("auth_refreshToken")
+      await SecureStore.deleteItemAsync("auth_user")
+      if (tokenUpdateListener) {
+        tokenUpdateListener({ accessToken: null, refreshToken: null, user: null })
+      }
+      throw err
+    })
+    .finally(() => {
+      refreshPromise = null
+    })
+
+  return refreshPromise
 }
+
 
 export const apiFetch = async (
   endpoint: string,
@@ -168,111 +246,14 @@ export const apiFetch = async (
     let { response, data } = await executeRequest()
 
     // Tự động refresh token nếu gặp lỗi 401 (và không phải đang gọi API auth)
+    // Dùng performTokenRefresh() — promise mutex đảm bảo chỉ 1 request refresh thực sự được gọi
     if (response.status === 401 && !isAuthNoToken) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({
-            resolve: async (token: string) => {
-              try {
-                const retry = await executeRequest(token)
-                resolve(handleResponse(retry.response, retry.data))
-              } catch (err) {
-                reject(err)
-              }
-            },
-            reject: (err: any) => reject(err),
-          })
-        })
-      }
-
-      isRefreshing = true
-
       try {
-        const storedRefreshToken =
-          await SecureStore.getItemAsync("auth_refreshToken")
-        if (!storedRefreshToken) {
-          throw new ApiError("Session Expired: No Refresh Token found", 401)
-        }
-
-        // Gọi API refresh
-        const refreshUrl = BASE_URL("/auth/refresh")
-        const refreshBody = JSON.stringify({ refreshToken: storedRefreshToken })
-        const refreshHeaders = await getDefaultApiHeaders({
-          method: "POST",
-          path: "/auth/refresh",
-          body: refreshBody,
-          token: storedRefreshToken,
-        })
-
-        const refreshRes = await fetch(refreshUrl, {
-          method: "POST",
-          headers: refreshHeaders,
-          body: refreshBody,
-        })
-
-        if (!refreshRes.ok) {
-          let errBody: string | null = null
-          try { errBody = await refreshRes.text() } catch { /* ignore */ }
-          console.error(
-            `[API] Refresh token failed: HTTP ${refreshRes.status} ${refreshRes.statusText}.`,
-            `Body: ${errBody ?? "(empty)"}`
-          )
-          throw new ApiError(`Session Expired: Refresh rejected by server (${refreshRes.status})`, 401)
-        }
-
-        const rawData = await refreshRes.json()
-        // Bóc tách từ cấu trúc ApiResponse mới
-        const refreshData =
-          rawData && rawData.data !== undefined ? rawData.data : rawData
-
-        const newToken = refreshData.accessToken
-        const newRefreshToken = refreshData.refreshToken
-
-        if (!newToken || !newRefreshToken) throw new Error("Invalid Token Response")
-
-        // Lưu vào SecureStore
-        await SecureStore.setItemAsync("auth_accessToken", newToken)
-        await SecureStore.setItemAsync("auth_refreshToken", newRefreshToken)
-        if (refreshData.user) {
-          await SecureStore.setItemAsync(
-            "auth_user",
-            JSON.stringify(refreshData.user),
-          )
-        }
-
-        // Thông báo cho AuthContext cập nhật state
-        if (tokenUpdateListener) {
-          tokenUpdateListener({
-            accessToken: newToken,
-            refreshToken: newRefreshToken,
-            user: refreshData.user,
-          })
-        }
-
-        processQueue(null, newToken)
-        isRefreshing = false
-
+        const newToken = await performTokenRefresh()
         // Thực hiện lại request ban đầu với token mới
         const retry = await executeRequest(newToken)
         return handleResponse(retry.response, retry.data)
-      } catch (err: any) {
-        processQueue(err, null)
-        isRefreshing = false
-
-        // Khi refresh thất bại, xóa sạch token cũ để tránh loop
-        await SecureStore.deleteItemAsync("auth_accessToken")
-        await SecureStore.deleteItemAsync("auth_refreshToken")
-        await SecureStore.deleteItemAsync("auth_user")
-
-        // Thông báo cho AuthContext cập nhật state về null
-        if (tokenUpdateListener) {
-          tokenUpdateListener({
-            accessToken: null,
-            refreshToken: null,
-            user: null,
-          })
-        }
-
+      } catch (err) {
         throw new ApiError("Session Expired", 401)
       }
     }

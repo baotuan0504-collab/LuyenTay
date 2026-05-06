@@ -1,5 +1,5 @@
 "use client"
-import { setGlobalIsLoggedOut, setTokenUpdateListener } from "@/services/api"
+import { setGlobalIsLoggedOut, setTokenUpdateListener, performTokenRefresh } from "@/services/api"
 import {
   login,
   logout as logoutService,
@@ -297,25 +297,11 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   }
 
   const refreshAccessToken = async () => {
-    if (!refreshToken) {
-      throw new Error("No refresh token available")
-    }
-
-    try {
-      const data = await refreshTokenService(refreshToken)
-      setAccessToken(data.accessToken ?? null)
-      setRefreshToken(data.refreshToken ?? null)
-      const fUser = formatUser(data.user)
-      if (fUser) setUser(fUser)
-      await saveAuthState(
-        fUser || user,
-        data.accessToken ?? null,
-        data.refreshToken ?? null,
-      )
-    } catch (error) {
-      await signOut()
-      throw error
-    }
+    // Dùng performTokenRefresh() — shared promise mutex, tránh 2 luồng refresh chạy song song.
+    // State được cập nhật tự động qua tokenUpdateListener bên trong performTokenRefresh.
+    await performTokenRefresh()
+    // Lưu ý: nếu refresh thất bại, performTokenRefresh đã gửi null đến tokenUpdateListener,
+    // signOutRef sẽ xử lý logout — không cần gọi lại signOut() ở đây để tránh double call.
   }
 
   return (
