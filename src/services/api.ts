@@ -12,10 +12,10 @@ export const setGlobalIsLoggedOut = (val: boolean) => {
 }
 
 const BASE_URL = (endpoint: string): string => {
-  if (endpoint.startsWith("/auth")) {
-    return "http://127.0.0.1:7001/api"
-  }
-  return "http://127.0.0.1:5201/api"
+  const base = endpoint.startsWith("/auth")
+    ? "http://127.0.0.1:7001/api"
+    : "http://127.0.0.1:5201/api"
+  return `${base}${endpoint}`
 }
 
 // Quản lý trạng thái refresh token
@@ -70,7 +70,7 @@ export const apiFetch = async (
 
   // Removed globalIsLoggedOut check to prevent HMR block
 
-  const url = BASE_URL(endpoint) + endpoint
+  const url = BASE_URL(endpoint)
 
   const getHeaders = async (customToken?: string, customPath?: string) => {
     let token: string | undefined = customToken
@@ -161,7 +161,6 @@ export const apiFetch = async (
     if (data && typeof data.success === "boolean" && data.data !== undefined) {
       return data.data
     }
-
     return data
   }
 
@@ -191,10 +190,12 @@ export const apiFetch = async (
       try {
         const storedRefreshToken =
           await SecureStore.getItemAsync("auth_refreshToken")
-        if (!storedRefreshToken) throw new Error("No Refresh Token")
+        if (!storedRefreshToken) {
+          throw new ApiError("Session Expired: No Refresh Token found", 401)
+        }
 
         // Gọi API refresh
-        const refreshUrl = BASE_URL("/auth/refresh") + "/auth/refresh"
+        const refreshUrl = BASE_URL("/auth/refresh")
         const refreshBody = JSON.stringify({ refreshToken: storedRefreshToken })
         const refreshHeaders = await getDefaultApiHeaders({
           method: "POST",
@@ -209,7 +210,15 @@ export const apiFetch = async (
           body: refreshBody,
         })
 
-        if (!refreshRes.ok) throw new Error("Refresh Failed")
+        if (!refreshRes.ok) {
+          let errBody: string | null = null
+          try { errBody = await refreshRes.text() } catch { /* ignore */ }
+          console.error(
+            `[API] Refresh token failed: HTTP ${refreshRes.status} ${refreshRes.statusText}.`,
+            `Body: ${errBody ?? "(empty)"}`
+          )
+          throw new ApiError(`Session Expired: Refresh rejected by server (${refreshRes.status})`, 401)
+        }
 
         const rawData = await refreshRes.json()
         // Bóc tách từ cấu trúc ApiResponse mới

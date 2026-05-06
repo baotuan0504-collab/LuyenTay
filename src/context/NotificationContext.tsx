@@ -27,11 +27,15 @@ export function NotificationProvider({ children }: PropsWithChildren<{}>) {
     try {
       setIsLoading(true);
       const data = await notificationService.getNotifications();
-      console.log("[NotificationContext] Fetched data:", data);
       setNotifications(data || []);
       setUnreadCount((data || []).filter((n: any) => !n.isRead).length);
-    } catch (error) {
-      console.error("[NotificationContext] Failed to fetch notifications:", error);
+    } catch (error: any) {
+      // Nếu là lỗi 401 (session hết hạn), AuthContext sẽ xử lý logout — không cần log ồn
+      if (error?.status === 401 || error?.message?.includes("Session Expired")) {
+        console.warn("[NotificationContext] Session expired, skipping notification fetch.");
+      } else {
+        console.error("[NotificationContext] Failed to fetch notifications:", error);
+      }
     } finally {
       setIsLoading(false);
     }

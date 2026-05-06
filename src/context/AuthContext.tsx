@@ -11,7 +11,7 @@ import { updateProfile as updateProfileService, getUserById as getUserByIdServic
 import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
 import type { PropsWithChildren } from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useRef, useState } from "react"
 
 type AuthUser = {
   id: string
@@ -71,8 +71,32 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
   }
 
   // Đăng ký listener để nhận update từ api.ts khi token được refresh tự động
+  // Dùng ref để tránh stale closure
+  const signOutRef = useRef<() => Promise<void>>(async () => {})
+  useEffect(() => {
+    signOutRef.current = async () => {
+      console.log("[AuthContext] Session expired – signing out")
+      setIsLoggedOut(true)
+      setGlobalIsLoggedOut(true)
+      setUser(null)
+      setAccessToken(null)
+      setRefreshToken(null)
+      await Promise.all([
+        SecureStore.deleteItemAsync(STORAGE_KEYS.user),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.accessToken),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.refreshToken),
+      ])
+    }
+  })
+
   useEffect(() => {
     setTokenUpdateListener(({ accessToken, refreshToken, user }) => {
+      if (accessToken === null && refreshToken === null) {
+        // Refresh thất bại → logout toàn bộ
+        console.warn("[AuthContext] Refresh failed signal received – logging out")
+        signOutRef.current()
+        return
+      }
       console.log("[AuthContext] Syncing token update from API interceptor")
       if (accessToken) setAccessToken(accessToken)
       if (refreshToken) setRefreshToken(refreshToken)
