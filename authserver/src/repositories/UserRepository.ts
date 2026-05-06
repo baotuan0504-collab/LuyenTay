@@ -6,16 +6,9 @@ export interface IUserRepository {
   findByUsername(username: string): Promise<UserEntity | null>
   findOne(filter: Record<string, unknown>): Promise<UserEntity | null>
   findManyExcept(userId: string, limit: number): Promise<UserEntity[]>
-  search(
-    query: string,
-    excludeUserId: string,
-    limit: number,
-  ): Promise<UserEntity[]>
+  search(query: string,excludeUserId: string,limit: number): Promise<UserEntity[]>
   create(userData: Partial<UserEntity>): Promise<UserEntity>
-  updateById(
-    id: string,
-    update: Record<string, unknown>,
-  ): Promise<UserEntity | null>
+  updateById(id: string,update: Record<string, unknown>): Promise<UserEntity | null>
   save(user: UserEntity): Promise<UserEntity>
 }
 

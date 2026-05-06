@@ -16,10 +16,7 @@ authRootRouter.post("/verify", authController.verifyToken)
 // 2. Password Router: Luồng quên mật khẩu
 const authPasswordRouter = Router()
 authPasswordRouter.post("/send-otp", authController.forgotPasswordSendOtp)
-authPasswordRouter.post(
-  "/verify-otp-only",
-  authController.forgotPasswordVerifyOtpOnly,
-)
+authPasswordRouter.post("/verify-otp-only", authController.forgotPasswordVerifyOtpOnly)
 authPasswordRouter.post("/verify-otp", authController.forgotPasswordVerifyOtp)
 
 // 3. Verify Router: Các bước xác thực bổ trợ (OTP, Trust Device)

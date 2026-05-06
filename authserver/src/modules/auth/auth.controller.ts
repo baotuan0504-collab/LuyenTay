@@ -91,8 +91,7 @@ export class AuthController {
   logout = async (req: Request, res: Response) => {
     try {
       const body = req.body as Record<string, string>
-      const refreshToken =
-        body.refreshToken || (req.headers["x-refresh-token"] as string)
+      const refreshToken = body.refreshToken || (req.headers["x-refresh-token"] as string)
       const dto = new RefreshTokenDto({ refreshToken })
       await this.authService.logout(dto)
       res.json(ApiResponse.success(null, "Logged out successfully"))

@@ -1,3 +1,5 @@
+import { UserEntity } from "../../entities/User"
+
 export class LoginRequestDto {
   email: string
   password: string
@@ -33,8 +35,6 @@ export class RegisterRequestDto {
     this.otp = data.otp || ""
   }
 }
-
-import { UserEntity } from "../../entities/User"
 
 export class AuthResponseDto {
   accessToken: string
