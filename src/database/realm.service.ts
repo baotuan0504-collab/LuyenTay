@@ -32,6 +32,7 @@ export const savePostsToRealm = (realm: Realm, posts: any[]) => {
           expiresAt: post.expiresAt,
           isActive: post.isActive,
           user: user,
+          privacy: post.privacy || "public",
           reactionCounts: JSON.stringify(post.reactionCounts || {}),
           myReaction: post.myReaction,
         },

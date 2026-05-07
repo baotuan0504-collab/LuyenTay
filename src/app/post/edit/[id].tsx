@@ -1,9 +1,13 @@
+import { Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
+import * as ImagePicker from "expo-image-picker"
 import { useLocalSearchParams, useRouter } from "expo-router"
+import { VideoView, useVideoPlayer } from "expo-video"
+import * as VideoThumbnails from "expo-video-thumbnails"
 import React, { useEffect, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,17 +16,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
-import { Ionicons } from "@expo/vector-icons"
-import { Image } from "expo-image"
-import * as ImagePicker from "expo-image-picker"
-import { VideoView, useVideoPlayer } from "expo-video"
-import * as VideoThumbnails from "expo-video-thumbnails"
 
 import { useAuth } from "@/context/AuthContext"
 import { usePosts } from "@/hooks/usePosts"
-import { getPostDetail } from "@/services/post.service"
 import { compressImage, compressVideo } from "@/lib/media"
 import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage"
+import { getPostDetail } from "@/services/post.service"
 
 export default function EditPostScreen() {
   const { id } = useLocalSearchParams()
@@ -35,6 +34,7 @@ export default function EditPostScreen() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [previewVideo, setPreviewVideo] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [privacy, setPrivacy] = useState<"public" | "private">("public")
 
   const player = useVideoPlayer(previewVideo ?? null, p => {
     p.loop = true
@@ -49,6 +49,7 @@ export default function EditPostScreen() {
           setDescription(postData.description || "")
           setPreviewImage(postData.imageUrl || null)
           setPreviewVideo(postData.videoUrl || null)
+          setPrivacy(postData.privacy || "public")
         }
       } catch (error) {
         console.error("Error fetching post for edit:", error)
@@ -122,7 +123,7 @@ export default function EditPostScreen() {
         videoUrl = await uploadPostVideo(user!.id, previewVideo)
       }
 
-      await updatePost(id as string, description, imageUrl || undefined, videoUrl || undefined)
+      await updatePost(id as string, description, imageUrl || undefined, videoUrl || undefined, privacy)
       router.back()
     } catch (error) {
       console.error("Error saving post edit:", error)
@@ -155,7 +156,17 @@ export default function EditPostScreen() {
       <ScrollView>
         <View style={styles.userRow}>
           <Image source={{ uri: user?.avatar }} style={styles.avatar} />
-          <Text style={styles.name}>{user?.name || "Bạn"}</Text>
+          <View>
+            <Text style={styles.name}>{user?.name || "Bạn"}</Text>
+            <TouchableOpacity
+              style={styles.privacyRow}
+              onPress={() => setPrivacy(p => p === "public" ? "private" : "public")}
+            >
+              <Text style={styles.privacy}>
+                {privacy === "public" ? "🌍 Công khai" : "🔒 Chỉ mình tôi"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TextInput
@@ -205,6 +216,15 @@ const styles = StyleSheet.create({
   userRow: { flexDirection: "row", padding: 16, alignItems: "center" },
   avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
   name: { fontWeight: "600", fontSize: 15 },
+  privacyRow: { marginTop: 2 },
+  privacy: {
+    fontSize: 12,
+    backgroundColor: "#eee",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
   input: { padding: 16, fontSize: 18, minHeight: 120 },
   mediaBox: { width: "100%", height: 300, overflow: "hidden" },
   preview: { width: "100%", height: "100%" },

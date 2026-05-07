@@ -42,6 +42,7 @@ export class PostSchema extends Realm.Object<PostSchema> {
   expiresAt!: string;
   isActive!: boolean;
   user?: UserSchema;
+  privacy!: string;
   reactionCounts?: string; // Stored as JSON string
   myReaction?: string;
 
@@ -58,6 +59,7 @@ export class PostSchema extends Realm.Object<PostSchema> {
       expiresAt: "string",
       isActive: "bool",
       user: "User?",
+      privacy: { type: "string" as any, default: "public" },
       reactionCounts: "string?",
       myReaction: "string?",
     },

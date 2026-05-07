@@ -33,6 +33,7 @@ export default function NewPostScreen() {
   const [previewVideo, setPreviewVideo] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [privacy, setPrivacy] = useState<"public" | "private">("public")
 
 
   const player = useVideoPlayer(previewVideo ?? null, p => {
@@ -115,7 +116,7 @@ export default function NewPostScreen() {
 
     setIsUploading(true)
     try {
-      await createPost(previewImage, description, previewVideo || undefined)
+      await createPost(previewImage, description, previewVideo || undefined, privacy)
       events.emit("event:refresh")
       router.back()
     } catch {
@@ -177,9 +178,14 @@ export default function NewPostScreen() {
             <Text style={styles.name}>{user?.name || "Bạn"}</Text>
 
 
-            <View style={styles.privacyRow}>
-              <Text style={styles.privacy}>🌍 Công khai</Text>
-            </View>
+            <TouchableOpacity 
+              style={styles.privacyRow}
+              onPress={() => setPrivacy(p => p === "public" ? "private" : "public")}
+            >
+              <Text style={styles.privacy}>
+                {privacy === "public" ? "🌍 Công khai" : "🔒 Chỉ mình tôi"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 

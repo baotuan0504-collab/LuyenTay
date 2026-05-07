@@ -11,7 +11,7 @@ export async function createPost(
 ) {
   try {
     const userId = req.userId
-    const { imageUrl, videoUrl, description } = req.body
+    const { imageUrl, videoUrl, description, privacy } = req.body
 
     if (!imageUrl && !videoUrl) {
       return res
@@ -29,6 +29,7 @@ export async function createPost(
       description,
       expiresAt,
       isActive: true,
+      privacy: privacy || "public",
     })
 
     await post.save()
@@ -55,7 +56,22 @@ export async function getPosts(
     const userId = req.userId
     const targetUserId = req.query.userId as string | undefined
 
-    const filter = targetUserId ? { user: targetUserId } : {}
+    const filter: any = {}
+
+    if (targetUserId) {
+      filter.user = targetUserId
+      // Nếu không phải chính chủ xem trang cá nhân, chỉ hiện bài public
+      if (targetUserId !== userId?.toString()) {
+        filter.privacy = "public"
+      }
+    } else {
+      // Nếu xem bảng tin chung:
+      // Hiện bài (public) HOẶC (private của chính mình)
+      filter.$or = [
+        { privacy: "public" },
+        { user: userId, privacy: "private" }
+      ]
+    }
 
     // Fetch all posts, optionally filtered by user, including multiple posts per user
     const posts = await Post.find(filter)
@@ -130,7 +146,7 @@ export async function updatePost(
   try {
     const { id } = req.params
     const userId = req.userId
-    const { description, imageUrl, videoUrl, isActive } = req.body
+    const { description, imageUrl, videoUrl, isActive, privacy } = req.body
 
     const post = await Post.findById(id)
     if (!post) {
@@ -147,9 +163,10 @@ export async function updatePost(
     if (imageUrl !== undefined) post.imageUrl = imageUrl
     if (videoUrl !== undefined) post.videoUrl = videoUrl
     if (isActive !== undefined) post.isActive = isActive
+    if (privacy !== undefined) post.privacy = privacy
 
     await post.save()
-    
+
     const updatedPost = await Post.findById(id).populate("user", "name username avatar")
     res.json(ApiResponse.success(updatedPost))
   } catch (error) {

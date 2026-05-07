@@ -166,7 +166,15 @@ export const PostCard = ({ post, currentUserId, onShowReactors, onDelete, onUpda
             <Text style={styles.username}>
               {isOwnPost ? "You" : `@${postUser?.username}`}
             </Text>
-            <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
+              <Text style={styles.dot}> • </Text>
+              <Ionicons 
+                name={post.privacy === "public" ? "globe-outline" : "lock-closed-outline"} 
+                size={12} 
+                color="#666" 
+              />
+            </View>
           </View>
         </TouchableOpacity>
 
@@ -291,6 +299,14 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   timeAgo: {
+    fontSize: 12,
+    color: "#666",
+  },
+  timeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dot: {
     fontSize: 12,
     color: "#666",
   },

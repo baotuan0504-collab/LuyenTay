@@ -15,6 +15,7 @@ export interface PostResponse {
   description?: string
   expiresAt: string
   isActive: boolean
+  privacy: "public" | "private"
   createdAt: string
   updatedAt: string
   reactionCounts?: Record<string, number>
@@ -25,6 +26,7 @@ export const createPost = async (postData: {
   imageUrl?: string
   videoUrl?: string
   description?: string
+  privacy?: "public" | "private"
 }): Promise<PostResponse | null> => {
   try {
     const data = await apiFetch("/posts", {
@@ -91,7 +93,13 @@ export const getNestedCommentsByPost = async (postId: string) => {
 
 export const updatePost = async (
   postId: string,
-  postData: { description?: string; imageUrl?: string; videoUrl?: string; isActive?: boolean },
+  postData: { 
+    description?: string; 
+    imageUrl?: string; 
+    videoUrl?: string; 
+    isActive?: boolean;
+    privacy?: "public" | "private";
+  },
 ): Promise<PostResponse | null> => {
   try {
     const data = await apiFetch(`/posts/${postId}`, {

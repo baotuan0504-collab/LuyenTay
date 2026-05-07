@@ -23,6 +23,7 @@ export interface Post {
   created_at: string
   expires_at: string
   is_active: boolean
+  privacy: "public" | "private"
   profiles?: PostUser
   reactionCounts?: Record<string, number>
   myReaction?: string | null
@@ -40,9 +41,12 @@ export const usePosts = (targetUserId?: string) => {
       if (targetUserId) {
         return collection.filtered("user_id == $0", targetUserId).sorted("createdAt", true)
       }
-      return collection.sorted("createdAt", true)
+      // TRANG CHỦ: Chỉ hiện bài Public HOẶC bài Private của chính mình
+      return collection
+        .filtered("privacy == 'public' || user_id == $0", user?.id)
+        .sorted("createdAt", true)
     },
-    [targetUserId]
+    [targetUserId, user?.id]
   )
 
   // Map Realm objects to UI interface
@@ -56,6 +60,7 @@ export const usePosts = (targetUserId?: string) => {
       created_at: post.createdAt,
       expires_at: post.expiresAt,
       is_active: post.isActive,
+      privacy: (post.privacy as any) || "public",
       profiles: post.user
         ? {
             id: post.user._id,
@@ -102,7 +107,7 @@ export const usePosts = (targetUserId?: string) => {
     }
   }
 
-  const createPost = async (imageUri: string, description?: string, videoUri?: string) => {
+  const createPost = async (imageUri: string, description?: string, videoUri?: string, privacy: "public" | "private" = "public") => {
     if (!user || !accessToken) {
       Alert.alert("Lỗi", "Bạn chưa đăng nhập!")
       return
@@ -123,6 +128,7 @@ export const usePosts = (targetUserId?: string) => {
         imageUrl,
         videoUrl,
         description: description || "",
+        privacy,
       })
 
       if (result) {
@@ -149,8 +155,8 @@ export const usePosts = (targetUserId?: string) => {
     return success
   }
 
-  const handleUpdatePost = async (postId: string, description: string, imageUrl?: string, videoUrl?: string) => {
-    const result = await postService.updatePost(postId, { description, imageUrl, videoUrl })
+  const handleUpdatePost = async (postId: string, description: string, imageUrl?: string, videoUrl?: string, privacy?: "public" | "private") => {
+    const result = await postService.updatePost(postId, { description, imageUrl, videoUrl, privacy })
     if (result) {
       savePostsToRealm(realm, [result])
     }

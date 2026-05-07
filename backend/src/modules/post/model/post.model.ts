@@ -7,6 +7,7 @@ export interface IPost extends Document {
   description?: string
   expiresAt: Date
   isActive: boolean
+  privacy: "public" | "private"
   commentsCount?: number
   createdAt: Date
   updatedAt: Date
@@ -38,6 +39,11 @@ const PostSchema = new Schema<IPost>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    privacy: {
+      type: String,
+      enum: ["public", "private"],
+      default: "public",
     },
     commentsCount: {
       type: Number,

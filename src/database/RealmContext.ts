@@ -3,7 +3,7 @@ import { PostSchema, StorySchema, UserSchema } from "./schema";
 
 export const RealmContext = createRealmContext({
   schema: [UserSchema, PostSchema, StorySchema],
-  schemaVersion: 2,
+  schemaVersion: 3,
   deleteRealmIfMigrationNeeded: true,
 });
 
