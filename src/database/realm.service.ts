@@ -11,8 +11,8 @@ export const savePostsToRealm = (realm: Realm, posts: any[]) => {
         UserSchema,
         {
           _id: post.user._id,
-          name: post.user.name || "Unknown",
-          username: post.user.username || "user",
+          name: post.user.name,
+          username: post.user.username,
           avatar: post.user.avatar,
           coverPhoto: post.user.coverPhoto,
         },
@@ -52,8 +52,8 @@ export const saveStoriesToRealm = (realm: Realm, stories: any[]) => {
         UserSchema,
         {
           _id: story.user._id,
-          name: story.user.name || "Unknown",
-          username: story.user.username || "user",
+          name: story.user.name,
+          username: story.user.username,
           avatar: story.user.avatar,
           coverPhoto: story.user.coverPhoto,
         },

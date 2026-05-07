@@ -1,8 +1,8 @@
+import { useNotification } from "@/context/NotificationContext"
 import { Ionicons } from "@expo/vector-icons"
 import { Tabs, useRouter } from "expo-router"
-import { StyleSheet, TouchableOpacity, View, Text } from "react-native"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useNotification } from "@/context/NotificationContext"
 
 function AppHeader() {
   const router = useRouter()
@@ -18,8 +18,6 @@ function AppHeader() {
             color="#000"
           />
         </TouchableOpacity>
-
-        {/* <Text style={styles.headerTitle}>My App</Text> */}
       </View>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
