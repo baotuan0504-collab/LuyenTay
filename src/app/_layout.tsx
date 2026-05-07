@@ -6,6 +6,7 @@ import { EncryptionProvider } from "@/context/EncryptionContext"
 import { NotificationProvider } from "@/context/NotificationContext"
 import { Stack } from "expo-router"
 import { ActivityIndicator, View } from "react-native"
+import { RealmProvider } from "@/database/RealmContext"
 
 function RootStack() {
   const { user, isRestoring } = useAuth()
@@ -27,14 +28,16 @@ function RootStack() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <EncryptionProvider>
-        <ChatProvider>
-          <NotificationProvider>
-            <RootStack />
-          </NotificationProvider>
-        </ChatProvider>
-      </EncryptionProvider>
-    </AuthProvider>
+    <RealmProvider>
+      <AuthProvider>
+        <EncryptionProvider>
+          <ChatProvider>
+            <NotificationProvider>
+              <RootStack />
+            </NotificationProvider>
+          </ChatProvider>
+        </EncryptionProvider>
+      </AuthProvider>
+    </RealmProvider>
   )
 }

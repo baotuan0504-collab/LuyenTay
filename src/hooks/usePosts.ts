@@ -1,13 +1,16 @@
 import { useAuth } from "@/context/AuthContext"
+import { useQuery, useRealm } from "@/database/RealmContext"
+import { savePostsToRealm } from "@/database/realm.service"
+import { PostSchema } from "@/database/schema"
 import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage"
 import * as postService from "@/services/post.service"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Alert } from "react-native"
 
 export interface PostUser {
   id: string
   name: string
-  username: string
+  username?: string
   profile_image_url?: string
 }
 
@@ -25,97 +28,117 @@ export interface Post {
   myReaction?: string | null
 }
 
-export const usePosts = () => {
-  const [posts, setPosts] = useState<Post[]>([])
+export const usePosts = (targetUserId?: string) => {
+  const realm = useRealm()
   const [isLoading, setIsLoading] = useState(true)
   const { user, accessToken } = useAuth()
 
+  // Query posts from Realm
+  const realmPosts = useQuery(
+    PostSchema,
+    (collection) => {
+      if (targetUserId) {
+        return collection.filtered("user_id == $0", targetUserId).sorted("createdAt", true)
+      }
+      return collection.sorted("createdAt", true)
+    },
+    [targetUserId]
+  )
+
+  // Map Realm objects to UI interface
+  const posts = useMemo(() => {
+    return realmPosts.map((post) => ({
+      id: post._id,
+      user_id: post.user_id,
+      image_url: post.imageUrl,
+      video_url: post.videoUrl,
+      description: post.description,
+      created_at: post.createdAt,
+      expires_at: post.expiresAt,
+      is_active: post.isActive,
+      profiles: post.user
+        ? {
+            id: post.user._id,
+            name: post.user.name,
+            username: post.user.username || undefined,
+            profile_image_url: post.user.avatar || undefined,
+          }
+        : undefined,
+      reactionCounts: post.reactionCounts ? JSON.parse(post.reactionCounts) : {},
+      myReaction: post.myReaction || null,
+    }))
+  }, [realmPosts])
+
+  useEffect(() => {
+    if (realmPosts.length > 0) {
+      console.log(`[usePosts] Đang hiển thị ${realmPosts.length} bài viết từ Realm (Offline OK)`);
+    } else {
+      console.log("[usePosts] Realm chưa có dữ liệu bài viết.");
+    }
+  }, [realmPosts.length])
+
   useEffect(() => {
     if (accessToken) {
-      loadPosts()
+      loadPosts(targetUserId)
+    } else {
+      setIsLoading(false)
     }
-  }, [accessToken])
+  }, [accessToken, targetUserId])
 
-  const loadPosts = async (targetUserId?: string) => {
+  const loadPosts = async (tId?: string) => {
     if (!accessToken) return
 
     setIsLoading(true)
     try {
-      const postsData = await postService.getPosts(targetUserId)
-      if (!postsData) {
-        setPosts([])
-        setIsLoading(false)
-        return
+      const postsData = await postService.getPosts(tId)
+      if (postsData) {
+        console.log("[usePosts] API: Tải bài viết thành công. Đang cập nhật Realm...");
+        savePostsToRealm(realm, postsData)
       }
-      const formattedPosts: Post[] = postsData.map(post => ({
-        id: post._id,
-        user_id: post.user._id,
-        image_url: post.imageUrl,
-        video_url: post.videoUrl,
-        description: post.description,
-        created_at: post.createdAt,
-        expires_at: post.expiresAt,
-        is_active: post.isActive,
-        profiles: {
-          id: post.user._id,
-          name: post.user.name,
-          username: post.user.username,
-          profile_image_url: post.user.avatar,
-        },
-        reactionCounts: post.reactionCounts || {},
-        myReaction:
-          typeof post.myReaction === "undefined" ? null : post.myReaction,
-      }))
-      setPosts(formattedPosts)
+    } catch (error) {
+      console.warn("[usePosts] Lỗi kết nối. App đang sử dụng dữ liệu cũ từ Realm.");
     } finally {
       setIsLoading(false)
     }
   }
 
-  const createPost = async (
-    imageUri: string,
-    description?: string,
-    videoUri?: string,
-  ) => {
+  const createPost = async (imageUri: string, description?: string, videoUri?: string) => {
     if (!user || !accessToken) {
-      try {
-        Alert.alert("Lỗi", "Bạn chưa đăng nhập!")
-      } catch {
-        if (typeof window !== "undefined" && window.alert)
-          window.alert("Bạn chưa đăng nhập!")
-      }
+      Alert.alert("Lỗi", "Bạn chưa đăng nhập!")
       return
     }
 
     let imageUrl = ""
     let videoUrl = undefined
 
-    if (videoUri) {
-      // 1. Upload thumbnail (imageUri is the thumbnail here) and video
-      imageUrl = await uploadPostImage(user.id, imageUri)
-      videoUrl = await uploadPostVideo(user.id, videoUri)
-    } else {
-      // 1. Upload only image
-      imageUrl = await uploadPostImage(user.id, imageUri)
-    }
+    try {
+      if (videoUri) {
+        imageUrl = await uploadPostImage(user.id, imageUri)
+        videoUrl = await uploadPostVideo(user.id, videoUri)
+      } else {
+        imageUrl = await uploadPostImage(user.id, imageUri)
+      }
 
-    // 2. Save metadata to Backend
-    const result = await postService.createPost({
-      imageUrl,
-      videoUrl,
-      description: description || "",
-    })
-    if (!result) {
-      // Alert already shown in service
-      return
-    }
+      const result = await postService.createPost({
+        imageUrl,
+        videoUrl,
+        description: description || "",
+      })
 
-    // Refresh posts
-    await loadPosts()
+      if (result) {
+        await loadPosts(targetUserId)
+      }
+    } catch (error) {
+      console.warn("[usePosts] Lỗi tạo bài viết:", error)
+      Alert.alert(
+        "Không thể đăng bài",
+        "Có vẻ như bạn đang mất kết nối mạng hoặc đã có lỗi xảy ra. Vui lòng thử lại sau!"
+      )
+    }
   }
 
-  const refreshPosts = async (targetUserId?: string) => {
-    await loadPosts(targetUserId)
+  const refreshPosts = async (tId?: string) => {
+    await loadPosts(tId || targetUserId)
   }
 
   return { createPost, posts, refreshPosts, isLoading }

@@ -75,21 +75,29 @@ export function ChatProvider({ children }: PropsWithChildren<{}>) {
 
 
     newSocket.on("connect_error", async (error) => {
-      console.error("Socket connect error:", error);
+      // Dùng warn thay vì error để không bị hiện màn hình đỏ
+      console.warn(`[ChatContext] Socket connect error: ${error.message}`);
 
-      // If JWT expired, try to refresh token and reconnect
+      // Nếu JWT expired, tự động refresh (không cần báo Alert cho user chỗ này vì nó tự sửa được)
       if (error.message === "jwt expired" && !isRefreshingToken.current) {
-        console.log("JWT expired, attempting to refresh token...");
+        console.log("[ChatContext] JWT expired, disconnecting socket and refreshing token...");
+        newSocket.disconnect();
+        
         isRefreshingToken.current = true;
         try {
           await refreshAccessToken();
-          // The useEffect will trigger again with new accessToken
         } catch (refreshError) {
-          console.error("Failed to refresh token:", refreshError);
+          console.warn("[ChatContext] Failed to refresh token for socket:", refreshError);
+          const { Alert } = require("react-native");
+          Alert.alert("Phiên đăng nhập hết hạn", "Vui lòng đăng nhập lại để tiếp tục trò chuyện.");
           await signOut();
         } finally {
           isRefreshingToken.current = false;
         }
+      } else if (error.message !== "jwt expired") {
+        // Với các lỗi khác thì hiện Alert
+        const { Alert } = require("react-native");
+        Alert.alert("Lỗi kết nối Chat", `Không thể kết nối đến máy chủ chat: ${error.message}`);
       }
     });
 

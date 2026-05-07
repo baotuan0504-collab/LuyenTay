@@ -12,6 +12,7 @@ import * as chatService from "@/services/chat.service"
 import * as friendService from "@/services/friend.service"
 import { getReactionUsers } from "@/services/reaction.service"
 import * as userService from "@/services/user.service"
+import { useProfile } from "@/hooks/useProfile"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import React, { useEffect, useMemo, useState } from "react"
 import {
@@ -33,7 +34,7 @@ export default function PublicProfileScreen() {
   const { accessToken, user: currentUser, signOut } = useAuth()
   const router = useRouter()
 
-  const [profile, setProfile] = useState<any>(null)
+  const { profile, isLoading: profileLoading, refreshProfile } = useProfile(userId as string)
   const [isLoading, setIsLoading] = useState(true)
   const [isStartingChat, setIsStartingChat] = useState(false)
   const [friendshipStatus, setFriendshipStatus] = useState<string>("none")
@@ -47,8 +48,8 @@ export default function PublicProfileScreen() {
   const [isViewerVisible, setIsViewerVisible] = useState(false)
   const [selectedUserStories, setSelectedUserStories] = useState<Story[]>([])
 
-  const { posts, refreshPosts, isLoading: postsLoading } = usePosts()
-  const { stories, refreshStories, isLoading: storiesLoading } = useStories()
+  const { posts, refreshPosts, isLoading: postsLoading } = usePosts(userId as string)
+  const { stories, refreshStories, isLoading: storiesLoading } = useStories(userId as string)
 
   useEffect(() => {
     if (accessToken && userId) {
@@ -72,8 +73,7 @@ export default function PublicProfileScreen() {
 
   const loadProfile = async () => {
     try {
-      const data = await userService.getUserById(userId as string)
-      setProfile(data)
+      await refreshProfile()
     } catch (error) {
       if (isUnauthorizedError(error)) {
         await signOut()

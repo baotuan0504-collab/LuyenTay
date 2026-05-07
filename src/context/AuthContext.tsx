@@ -12,6 +12,8 @@ import { useNavigation, useRoute } from "@react-navigation/native"
 import * as SecureStore from "expo-secure-store"
 import type { PropsWithChildren } from "react"
 import React, { createContext, useContext, useEffect, useRef, useState } from "react"
+import { useRealm } from "@/database/RealmContext"
+import { saveUserProfileToRealm } from "@/database/realm.service"
 
 type AuthUser = {
   id: string
@@ -47,6 +49,7 @@ const AuthContext = createContext<
 >(undefined)
 
 export function AuthProvider({ children }: PropsWithChildren<{}>) {
+  const realm = useRealm()
   const navigation = useNavigation()
   const route = useRoute()
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -192,6 +195,8 @@ export function AuthProvider({ children }: PropsWithChildren<{}>) {
           STORAGE_KEYS.user,
           JSON.stringify(nextUser),
         )
+        // Persist to Realm for offline access
+        saveUserProfileToRealm(realm, nextUser)
       } else {
         await SecureStore.deleteItemAsync(STORAGE_KEYS.user)
       }

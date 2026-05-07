@@ -9,7 +9,7 @@ const getFileData = async (uri: string) => {
     const file = new File(uri);
     return await file.bytes();
   } catch (error) {
-    console.error("Error reading file data:", error);
+    console.warn("Error reading file data:", error);
     throw error;
   }
 };
@@ -53,7 +53,7 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
 
     return `${urlData.publicUrl}?t=${Date.now()}`;
   } catch (error) {
-    console.error("Error uploading profile image:", error);
+    console.warn("Error uploading profile image:", error);
     throw error;
   }
 };
@@ -97,7 +97,7 @@ export const uploadPostImage = async (userId: string, imageUri: string) => {
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Error uploading post image:", error);
+    console.warn("Error uploading post image:", error);
     throw error;
   }
 };
@@ -141,7 +141,7 @@ export const uploadPostVideo = async (userId: string, videoUri: string) => {
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Error uploading post video:", error);
+    console.warn("Error uploading post video:", error);
     throw error;
   }
 };
@@ -183,7 +183,7 @@ export const uploadStoryImage = async (userId: string, imageUri: string) => {
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Error uploading story image:", error);
+    console.warn("Error uploading story image:", error);
     throw error;
   }
 };
@@ -225,7 +225,7 @@ export const uploadStoryVideo = async (userId: string, videoUri: string) => {
 
     return urlData.publicUrl;
   } catch (error) {
-    console.error("Error uploading story video:", error);
+    console.warn("Error uploading story video:", error);
     throw error;
   }
 };

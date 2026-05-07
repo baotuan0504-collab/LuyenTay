@@ -36,12 +36,7 @@ export const createPost = async (postData: {
     })
     return data as PostResponse
   } catch (error: any) {
-    const msg = error?.message || "Đã xảy ra lỗi khi tạo bài viết!"
-    try {
-      require("react-native").Alert.alert("Lỗi", msg)
-    } catch {
-      if (typeof window !== "undefined" && window.alert) window.alert(msg)
-    }
+    console.error("[PostService] Error:", error?.message || error);
     return null
   }
 }
@@ -54,12 +49,7 @@ export const getPosts = async (userId?: string): Promise<PostResponse[] | null> 
     })
     return data as PostResponse[]
   } catch (error: any) {
-    const msg = error?.message || "Đã xảy ra lỗi khi tải bài viết!"
-    try {
-      require("react-native").Alert.alert("Lỗi", msg)
-    } catch {
-      if (typeof window !== "undefined" && window.alert) window.alert(msg)
-    }
+    console.error("[PostService] Error loading posts:", error?.message || error);
     return null
   }
 }
