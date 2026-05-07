@@ -1,15 +1,20 @@
 import React from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
-export const ProfileTabs = () => {
+interface ProfileTabsProps {
+  activeTab: string
+  onTabChange: (tab: string) => void
+}
+
+export const ProfileTabs = ({ activeTab, onTabChange }: ProfileTabsProps) => {
   const tabs = ["Video ngắn", "Ảnh", "Bạn bè", "Giới thiệu"]
-  const activeTab = "Ảnh"
 
   return (
     <View style={styles.container}>
       {tabs.map(tab => (
         <TouchableOpacity
           key={tab}
+          onPress={() => onTabChange(tab)}
           style={[styles.tab, activeTab === tab && styles.activeTab]}>
           <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
             {tab}

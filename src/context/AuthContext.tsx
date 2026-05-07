@@ -21,6 +21,12 @@ type AuthUser = {
   username?: string
   email: string
   avatar?: string
+  coverPhoto?: string
+  school?: string
+  birthday?: string
+  relationship?: string
+  interests?: string
+  hometown?: string
   onboardingCompleted?: boolean
   publicKey?: string
   createdAt?: string

@@ -6,6 +6,12 @@ export class UserSchema extends Realm.Object<UserSchema> {
   username?: string;
   avatar?: string;
   coverPhoto?: string;
+  school?: string;
+  birthday?: string;
+  relationship?: string;
+  interests?: string;
+  hometown?: string;
+  createdAt?: string;
 
   static schema = {
     name: "User",
@@ -16,6 +22,12 @@ export class UserSchema extends Realm.Object<UserSchema> {
       username: "string?",
       avatar: "string?",
       coverPhoto: "string?",
+      school: "string?",
+      birthday: "string?",
+      relationship: "string?",
+      interests: "string?",
+      hometown: "string?",
+      createdAt: "string?",
     },
   };
 }

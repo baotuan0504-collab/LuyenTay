@@ -39,8 +39,9 @@ export const unfriend = async (userId: string) => {
   });
 };
 
-export const getFriendsList = async () => {
-  return apiFetch("/friends/list");
+export const getFriendsList = async (userId?: string) => {
+  const url = userId ? `/friends/list?userId=${userId}` : "/friends/list";
+  return apiFetch(url);
 };
 
 export const getPendingRequests = async (): Promise<{

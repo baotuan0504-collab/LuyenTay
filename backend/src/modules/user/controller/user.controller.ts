@@ -51,10 +51,38 @@ export async function updateProfile(
 ) {
   try {
     const userId = req.userId
-    const { name, username, profileImage, onboardingCompleted } = req.body
+    const { 
+      name, 
+      username, 
+      profileImage, 
+      coverPhoto,
+      onboardingCompleted,
+      school,
+      birthday,
+      relationship,
+      interests,
+      hometown
+    } = req.body
+    
+    const updateData: any = { 
+      name, 
+      username, 
+      avatar: profileImage, 
+      coverPhoto,
+      onboardingCompleted,
+      school,
+      birthday,
+      relationship,
+      interests,
+      hometown
+    }
+
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key])
+
     const user = await User.findByIdAndUpdate(
       userId,
-      { $set: { name, username, avatar: profileImage, onboardingCompleted } },
+      { $set: updateData },
       { new: true, runValidators: true },
     ).select("-password")
     if (!user) {
@@ -121,7 +149,7 @@ export async function getUserById(
   try {
     const { userId } = req.params
     const user = await User.findById(userId).select(
-      "name email avatar username publicKey createdAt",
+      "name email avatar username publicKey createdAt school birthday relationship interests hometown coverPhoto",
     )
     if (!user) {
       res.status(404).json({ message: "User not found" })

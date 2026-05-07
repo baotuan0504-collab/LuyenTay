@@ -10,6 +10,7 @@ interface ProfileHeaderProps {
   onMessage: () => void
   onFriendAction: () => void
   isStartingChat?: boolean
+  onEdit?: () => void
 }
 
 export const ProfileHeader = ({
@@ -19,6 +20,7 @@ export const ProfileHeader = ({
   onMessage,
   onFriendAction,
   isStartingChat,
+  onEdit,
 }: ProfileHeaderProps) => {
   return (
     <View style={styles.container}>
@@ -82,7 +84,7 @@ export const ProfileHeader = ({
             </>
           )}
           {isMe && (
-            <TouchableOpacity style={[styles.button, styles.friendButton]}>
+            <TouchableOpacity style={[styles.button, styles.friendButton]} onPress={onEdit}>
               <Ionicons name="create-outline" size={20} color="#000" />
               <Text style={styles.friendButtonText}>Chỉnh sửa trang cá nhân</Text>
             </TouchableOpacity>

@@ -2,6 +2,9 @@ import { PostCard } from "@/components/PostCard"
 import { ProfileHeader } from "@/components/profile/ProfileHeader"
 import { ProfilePhotos } from "@/components/profile/ProfilePhotos"
 import { ProfileTabs } from "@/components/profile/ProfileTabs"
+import { ProfileFriends } from "@/components/profile/ProfileFriends"
+import { ProfileVideos } from "@/components/profile/ProfileVideos"
+import { ProfileAbout } from "@/components/profile/ProfileAbout"
 import { StoryBar } from "@/components/StoryBar"
 import { StoryViewer } from "@/components/StoryViewer"
 import { useAuth } from "@/context/AuthContext"
@@ -39,6 +42,7 @@ export default function PublicProfileScreen() {
   const [isStartingChat, setIsStartingChat] = useState(false)
   const [friendshipStatus, setFriendshipStatus] = useState<string>("none")
   const [refreshing, setRefreshing] = useState(false)
+  const [activeTab, setActiveTab] = useState("Ảnh")
 
   // React list modals
   const [showReactors, setShowReactors] = useState(false)
@@ -218,6 +222,7 @@ export default function PublicProfileScreen() {
               onMessage={handleMessage}
               onFriendAction={handleFriendAction}
               isStartingChat={isStartingChat}
+              onEdit={() => router.push("/profile/edit")}
             />
 
             {stories.length > 0 && (
@@ -232,8 +237,25 @@ export default function PublicProfileScreen() {
               />
             )}
 
-            <ProfileTabs />
-            <ProfilePhotos posts={posts} />
+            <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
+            
+            {activeTab === "Ảnh" && <ProfilePhotos posts={posts} />}
+            
+            {activeTab === "Bạn bè" && <ProfileFriends userId={userId as string} />}
+            
+            {activeTab === "Video ngắn" && (
+              <ProfileVideos 
+                stories={stories} 
+                onPressStory={(story) => {
+                  setSelectedUserStories([story])
+                  setIsViewerVisible(true)
+                }} 
+              />
+            )}
+
+            {activeTab === "Giới thiệu" && (
+              <ProfileAbout profile={profile} />
+            )}
 
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>Bài viết của {profile.name}</Text>

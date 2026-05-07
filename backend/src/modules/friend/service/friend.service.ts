@@ -123,11 +123,14 @@ export class FriendService {
       }).populate("requester recipient", "name username avatar email");
 
       const friends = friendships.map((f: any) => {
-        const isRequester = f.requester?._id?.toString() === userId;
+        // Chuyển cả 2 về string để so sánh chính xác nhất
+        const requesterId = f.requester?._id?.toString() || f.requester?.toString();
+        const isRequester = requesterId === userId.toString();
+        
         return isRequester ? f.recipient : f.requester;
       });
 
-      return friends.filter(friend => friend !== null);
+      return friends.filter(friend => friend && friend._id?.toString() !== userId.toString());
     } catch (error: any) {
       console.error("Error in getFriends:", error.message);
       throw error;

@@ -7,6 +7,11 @@ export interface IUser extends Document {
   password: string
   avatar: string
   coverPhoto?: string
+  school?: string
+  birthday?: string
+  relationship?: string
+  interests?: string
+  hometown?: string
   onboardingCompleted?: boolean
   publicKey?: string
   createdAt: Date
@@ -46,6 +51,11 @@ const UserSchema = new Schema<IUser>(
       type: String,
       default: "",
     },
+    school: { type: String, default: "" },
+    birthday: { type: String, default: "" },
+    relationship: { type: String, default: "" },
+    interests: { type: String, default: "" },
+    hometown: { type: String, default: "" },
     onboardingCompleted: {
       type: Boolean,
       default: false,

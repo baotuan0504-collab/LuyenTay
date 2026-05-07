@@ -121,12 +121,15 @@ export class FriendController {
 
   static async getFriends(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = (req as AuthRequest).userId;
-      if (!userId || typeof userId !== "string") {
+      // Ưu tiên lấy userId từ query (để xem bạn bè của người khác), 
+      // nếu không có thì lấy của chính người đang đăng nhập.
+      const targetUserId = req.query.userId as string || (req as AuthRequest).userId;
+      
+      if (!targetUserId || typeof targetUserId !== "string") {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const friends = await FriendService.getFriends(userId);
+      const friends = await FriendService.getFriends(targetUserId);
       res.json(friends as FriendResponseDto[]);
     } catch (error) {
       next(error);
