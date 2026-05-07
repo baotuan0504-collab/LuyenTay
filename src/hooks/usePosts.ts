@@ -1,6 +1,6 @@
 import { useAuth } from "@/context/AuthContext"
 import { useQuery, useRealm } from "@/database/RealmContext"
-import { savePostsToRealm } from "@/database/realm.service"
+import { savePostsToRealm, deletePostFromRealm } from "@/database/realm.service"
 import { PostSchema } from "@/database/schema"
 import { uploadPostImage, uploadPostVideo } from "@/lib/supabase/storage"
 import * as postService from "@/services/post.service"
@@ -141,5 +141,21 @@ export const usePosts = (targetUserId?: string) => {
     await loadPosts(tId || targetUserId)
   }
 
-  return { createPost, posts, refreshPosts, isLoading }
+  const handleDeletePost = async (postId: string) => {
+    const success = await postService.deletePost(postId)
+    if (success) {
+      deletePostFromRealm(realm, postId)
+    }
+    return success
+  }
+
+  const handleUpdatePost = async (postId: string, description: string, imageUrl?: string, videoUrl?: string) => {
+    const result = await postService.updatePost(postId, { description, imageUrl, videoUrl })
+    if (result) {
+      savePostsToRealm(realm, [result])
+    }
+    return result
+  }
+
+  return { createPost, posts, refreshPosts, isLoading, deletePost: handleDeletePost, updatePost: handleUpdatePost }
 }

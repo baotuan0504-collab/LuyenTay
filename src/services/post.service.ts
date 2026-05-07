@@ -88,3 +88,34 @@ export const getNestedCommentsByPost = async (postId: string) => {
   })
   return data
 }
+
+export const updatePost = async (
+  postId: string,
+  postData: { description?: string; imageUrl?: string; videoUrl?: string; isActive?: boolean },
+): Promise<PostResponse | null> => {
+  try {
+    const data = await apiFetch(`/posts/${postId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(postData),
+    })
+    return data as PostResponse
+  } catch (error: any) {
+    console.error("[PostService] Error updating post:", error?.message || error)
+    return null
+  }
+}
+
+export const deletePost = async (postId: string): Promise<boolean> => {
+  try {
+    await apiFetch(`/posts/${postId}`, {
+      method: "DELETE",
+    })
+    return true
+  } catch (error: any) {
+    console.error("[PostService] Error deleting post:", error?.message || error)
+    return false
+  }
+}

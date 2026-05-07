@@ -39,9 +39,11 @@ interface PostCardProps {
   post: Post
   currentUserId?: string
   onShowReactors: (post: Post) => void
+  onDelete?: (postId: string) => void
+  onUpdate?: (postId: string, newDescription: string) => void
 }
 
-const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
+const PostCard = ({ post, currentUserId, onShowReactors, onDelete, onUpdate }: PostCardProps) => {
   const { accessToken } = useAuth()
   const postUser = post.profiles
   const isOwnPost = post.user_id === currentUserId
@@ -106,6 +108,49 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
     }
   }
 
+  const handleMorePress = () => {
+    if (!isOwnPost) return;
+
+    Alert.alert(
+      "Tùy chọn bài viết",
+      "Bạn muốn làm gì với bài viết này?",
+      [
+        {
+          text: "Chỉnh sửa",
+          onPress: () => handleEditPost(),
+        },
+        {
+          text: "Xóa bài viết",
+          onPress: () => confirmDelete(),
+          style: "destructive",
+        },
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleEditPost = () => {
+    router.push(`/post/edit/${post.id}` as any);
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.",
+      [
+        { text: "Hủy", style: "cancel" },
+        { 
+          text: "Xóa", 
+          style: "destructive", 
+          onPress: () => onDelete && onDelete(post.id) 
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     if (!post.video_url) return
     if (isPlaying) {
@@ -144,10 +189,18 @@ const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
         </TouchableOpacity>
 
         {/* Post content */}
-        <View style={styles.timeRemainingBadge}>
-          <Text style={styles.timeRemainingText}>
-            {formatTimeRemaining(post.expires_at)}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={styles.timeRemainingBadge}>
+            <Text style={styles.timeRemainingText}>
+              {formatTimeRemaining(post.expires_at)}
+            </Text>
+          </View>
+          
+          {isOwnPost && (
+            <TouchableOpacity onPress={handleMorePress} style={{ padding: 4 }}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -261,6 +314,8 @@ export default function Index() {
     posts,
     refreshPosts,
     isLoading: postsLoading,
+    deletePost,
+    updatePost,
   } = usePosts()
   const {
     createStory,
@@ -616,6 +671,8 @@ export default function Index() {
       post={item}
       currentUserId={user?.id}
       onShowReactors={handleShowReactors}
+      onDelete={deletePost}
+      onUpdate={updatePost}
     />
   )
 

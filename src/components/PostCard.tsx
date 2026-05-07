@@ -24,9 +24,11 @@ interface PostCardProps {
   post: Post
   currentUserId?: string
   onShowReactors: (post: Post) => void
+  onDelete?: (postId: string) => void
+  onUpdate?: (postId: string, newDescription: string) => void
 }
 
-export const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps) => {
+export const PostCard = ({ post, currentUserId, onShowReactors, onDelete, onUpdate }: PostCardProps) => {
   const { accessToken } = useAuth()
   const postUser = post.profiles
   const isOwnPost = post.user_id === currentUserId
@@ -88,6 +90,49 @@ export const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps)
     }
   }
 
+  const handleMorePress = () => {
+    if (!isOwnPost) return;
+
+    Alert.alert(
+      "Tùy chọn bài viết",
+      "Bạn muốn làm gì với bài viết này?",
+      [
+        {
+          text: "Chỉnh sửa",
+          onPress: () => handleEditPost(),
+        },
+        {
+          text: "Xóa bài viết",
+          onPress: () => confirmDelete(),
+          style: "destructive",
+        },
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleEditPost = () => {
+    router.push(`/post/edit/${post.id}` as any);
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Xác nhận xóa",
+      "Bạn có chắc chắn muốn xóa bài viết này không? Hành động này không thể hoàn tác.",
+      [
+        { text: "Hủy", style: "cancel" },
+        { 
+          text: "Xóa", 
+          style: "destructive", 
+          onPress: () => onDelete && onDelete(post.id) 
+        },
+      ]
+    );
+  };
+
   useEffect(() => {
     if (!post.video_url) return
     if (isPlaying) {
@@ -125,10 +170,18 @@ export const PostCard = ({ post, currentUserId, onShowReactors }: PostCardProps)
           </View>
         </TouchableOpacity>
 
-        <View style={styles.timeRemainingBadge}>
-          <Text style={styles.timeRemainingText}>
-            {formatTimeRemaining(post.expires_at)}
-          </Text>
+        <View style={styles.headerRight}>
+          <View style={styles.timeRemainingBadge}>
+            <Text style={styles.timeRemainingText}>
+              {formatTimeRemaining(post.expires_at)}
+            </Text>
+          </View>
+          
+          {isOwnPost && (
+            <TouchableOpacity onPress={handleMorePress} style={styles.moreButton}>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -242,15 +295,23 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   timeRemainingBadge: {
-    backgroundColor: "#000",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   timeRemainingText: {
-    color: "#fff",
-    fontSize: 12,
+    color: "#666",
+    fontSize: 11,
     fontWeight: "600",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  moreButton: {
+    padding: 4,
   },
   postImage: {
     width: "100%",

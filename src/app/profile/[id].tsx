@@ -48,7 +48,7 @@ export default function PublicProfileScreen() {
   const [isViewerVisible, setIsViewerVisible] = useState(false)
   const [selectedUserStories, setSelectedUserStories] = useState<Story[]>([])
 
-  const { posts, refreshPosts, isLoading: postsLoading } = usePosts(userId as string)
+  const { posts, refreshPosts, isLoading: postsLoading, deletePost, updatePost } = usePosts(userId as string)
   const { stories, refreshStories, isLoading: storiesLoading } = useStories(userId as string)
 
   useEffect(() => {
@@ -205,6 +205,8 @@ export default function PublicProfileScreen() {
             post={item}
             currentUserId={currentUser?.id}
             onShowReactors={handleShowReactors}
+            onDelete={deletePost}
+            onUpdate={updatePost}
           />
         )}
         ListHeaderComponent={

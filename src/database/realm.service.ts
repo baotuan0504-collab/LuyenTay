@@ -98,3 +98,13 @@ export const saveUserProfileToRealm = (realm: Realm, user: any) => {
   });
   console.log("[RealmService] Cập nhật profile thành công.");
 };
+
+export const deletePostFromRealm = (realm: Realm, postId: string) => {
+  realm.write(() => {
+    const post = realm.objectForPrimaryKey(PostSchema, postId);
+    if (post) {
+      realm.delete(post);
+      console.log(`[RealmService] Đã xóa bài viết ${postId} khỏi Realm.`);
+    }
+  });
+};

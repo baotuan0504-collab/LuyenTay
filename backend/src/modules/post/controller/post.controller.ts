@@ -121,3 +121,66 @@ export async function getPostById(
     res.status(500).json(ApiResponse.error("Internal server error"))
   }
 }
+
+export async function updatePost(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { id } = req.params
+    const userId = req.userId
+    const { description, imageUrl, videoUrl, isActive } = req.body
+
+    const post = await Post.findById(id)
+    if (!post) {
+      return res.status(404).json(ApiResponse.error("Post not found"))
+    }
+
+    // Kiểm tra quyền: Chỉ chủ bài viết mới được sửa
+    if (post.user.toString() !== userId?.toString()) {
+      return res.status(403).json(ApiResponse.error("Unauthorized to update this post"))
+    }
+
+    // Cập nhật các trường dữ liệu
+    if (description !== undefined) post.description = description
+    if (imageUrl !== undefined) post.imageUrl = imageUrl
+    if (videoUrl !== undefined) post.videoUrl = videoUrl
+    if (isActive !== undefined) post.isActive = isActive
+
+    await post.save()
+    
+    const updatedPost = await Post.findById(id).populate("user", "name username avatar")
+    res.json(ApiResponse.success(updatedPost))
+  } catch (error) {
+    res.status(500)
+    next(error)
+  }
+}
+
+export async function deletePost(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { id } = req.params
+    const userId = req.userId
+
+    const post = await Post.findById(id)
+    if (!post) {
+      return res.status(404).json(ApiResponse.error("Post not found"))
+    }
+
+    // Kiểm tra quyền: Chỉ chủ bài viết mới được xóa
+    if (post.user.toString() !== userId?.toString()) {
+      return res.status(403).json(ApiResponse.error("Unauthorized to delete this post"))
+    }
+
+    await Post.findByIdAndDelete(id)
+    res.json(ApiResponse.success({ message: "Post deleted successfully" }))
+  } catch (error) {
+    res.status(500)
+    next(error)
+  }
+}
