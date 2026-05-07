@@ -37,17 +37,11 @@ export class UserService implements IUserService {
     return new UserResponseDto(user)
   }
 
-  async checkUsernameAvailability(
-    username: string,
-    excludeUserId?: string,
-  ): Promise<boolean> {
-    const filter: Record<string, unknown> = {
-      username: username.toLowerCase(),
-    }
+  async checkUsernameAvailability(username: string, excludeUserId?: string): Promise<boolean> {
+    const filter: Record<string, unknown> = { username: username.toLowerCase() }
     if (excludeUserId) {
       filter._id = { $ne: excludeUserId }
     }
-
     const existingUser = await this.userRepository.findOne(filter)
     return !existingUser
   }
