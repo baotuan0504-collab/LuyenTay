@@ -223,6 +223,7 @@ export default function PublicProfileScreen() {
               onFriendAction={handleFriendAction}
               isStartingChat={isStartingChat}
               onEdit={() => router.push("/profile/edit")}
+              onArchive={() => router.push("/profile/archive")}
             />
 
             {stories.length > 0 && (

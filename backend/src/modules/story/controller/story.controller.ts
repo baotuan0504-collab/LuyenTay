@@ -84,3 +84,29 @@ export async function getStories(
     next(error)
   }
 }
+
+export async function getArchivedStories(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.userId;
+
+    // Lấy các story của chính mình mà đã hết hạn HOẶC không còn active
+    const stories = await Story.find({
+      user: userId,
+      $or: [
+        { expiresAt: { $lte: new Date() } },
+        { isActive: false }
+      ]
+    })
+      .populate("user", "name username avatar")
+      .sort({ createdAt: -1 });
+
+    res.json(ApiResponse.success(stories));
+  } catch (error) {
+    res.status(500);
+    next(error);
+  }
+}

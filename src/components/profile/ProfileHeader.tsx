@@ -11,6 +11,7 @@ interface ProfileHeaderProps {
   onFriendAction: () => void
   isStartingChat?: boolean
   onEdit?: () => void
+  onArchive?: () => void
 }
 
 export const ProfileHeader = ({
@@ -21,6 +22,7 @@ export const ProfileHeader = ({
   onFriendAction,
   isStartingChat,
   onEdit,
+  onArchive,
 }: ProfileHeaderProps) => {
   return (
     <View style={styles.container}>
@@ -84,10 +86,17 @@ export const ProfileHeader = ({
             </>
           )}
           {isMe && (
-            <TouchableOpacity style={[styles.button, styles.friendButton]} onPress={onEdit}>
-              <Ionicons name="create-outline" size={20} color="#000" />
-              <Text style={styles.friendButtonText}>Chỉnh sửa trang cá nhân</Text>
-            </TouchableOpacity>
+            <View style={styles.meActions}>
+              <TouchableOpacity style={[styles.button, styles.friendButton]} onPress={onEdit}>
+                <Ionicons name="create-outline" size={20} color="#000" />
+                <Text style={styles.friendButtonText}>Chỉnh sửa</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={[styles.button, styles.friendButton]} onPress={onArchive}>
+                <Ionicons name="time-outline" size={20} color="#000" />
+                <Text style={styles.friendButtonText}>Kho lưu trữ</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </View>
@@ -154,6 +163,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingHorizontal: 16,
     width: "100%",
+    justifyContent: "center",
+  },
+  meActions: {
+    flexDirection: "row",
+    gap: 12,
+    flex: 1,
     justifyContent: "center",
   },
   button: {

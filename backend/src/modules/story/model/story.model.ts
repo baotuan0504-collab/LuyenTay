@@ -29,7 +29,6 @@ const StorySchema = new Schema<IStory>(
   },
 )
 
-// TTL index: expire the document exactly at the value of 'expiresAt'
-StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+// StorySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 
 export const Story = mongoose.model<IStory>("Story", StorySchema)

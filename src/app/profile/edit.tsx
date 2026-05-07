@@ -71,7 +71,10 @@ export default function EditProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Họ và tên</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="person-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Họ và tên</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={name}
@@ -85,7 +88,10 @@ export default function EditProfileScreen() {
           <Text style={styles.sectionTitle}>Chi tiết về bạn</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Trường học</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="school-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Trường học</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={school}
@@ -95,7 +101,10 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Quê quán</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="home-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Quê quán</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={hometown}
@@ -105,7 +114,10 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Tình trạng mối quan hệ</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="heart-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Tình trạng mối quan hệ</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={relationship}
@@ -115,7 +127,10 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ngày sinh</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="calendar-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Ngày sinh</Text>
+            </View>
             <TextInput
               style={styles.input}
               value={birthday}
@@ -125,9 +140,12 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Sở thích</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name="star-outline" size={20} color="#1877F2" />
+              <Text style={styles.label}>Sở thích</Text>
+            </View>
             <TextInput
-              style={[styles.input, { height: 80 }]}
+              style={[styles.input, { height: 80, textAlignVertical: "top", paddingTop: 12 }]}
               value={interests}
               onChangeText={setInterests}
               placeholder="Đá bóng, nghe nhạc, du lịch..."
@@ -176,12 +194,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
   },
   label: {
-    fontSize: 14,
-    color: "#65676b",
-    marginBottom: 8,
+    fontSize: 15,
+    color: "#050505",
+    fontWeight: "600",
   },
   input: {
     borderWidth: 1,

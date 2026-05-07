@@ -50,3 +50,15 @@ export const getStories = async (userId?: string): Promise<StoryResponse[] | nul
     return null
   }
 }
+
+export const getArchivedStories = async (): Promise<StoryResponse[] | null> => {
+  try {
+    const data = await apiFetch("/stories/archive", {
+      method: "GET",
+    })
+    return data as StoryResponse[]
+  } catch (error: any) {
+    console.error("[StoryService] Error loading archived stories:", error?.message || error);
+    return null
+  }
+}
