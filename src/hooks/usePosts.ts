@@ -23,7 +23,7 @@ export interface Post {
   created_at: string
   expires_at: string
   is_active: boolean
-  privacy: "public" | "private"
+  privacy?: "public" | "private"
   profiles?: PostUser
   reactionCounts?: Record<string, number>
   myReaction?: string | null
