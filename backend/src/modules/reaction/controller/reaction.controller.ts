@@ -1,12 +1,12 @@
 import type { Response } from "express"
 import mongoose from "mongoose"
 import type { AuthRequest } from "../../../middleware/auth"
-import { Reaction } from "../model/reaction.model"
-import { Post } from "../../post/model/post.model"
-import { Comment } from "../../comment/model/comment.model"
-import { Story } from "../../story/model/story.model"
-import { Notification } from "../../notification/model/notification.model"
 import { getIO } from "../../../utils/socket"
+import { Comment } from "../../comment/model/comment.model"
+import { Notification } from "../../notification/model/notification.model"
+import { Post } from "../../post/post.entity"
+import { Story } from "../../story/story.entity"
+import { Reaction } from "../model/reaction.model"
 
 // Get the current user's reaction for a target
 export const getMyReaction = async (req: AuthRequest, res: Response) => {
@@ -42,11 +42,11 @@ export const getReactionCounts = async (req: AuthRequest, res: Response) => {
       : targetId
 
     const counts = await Reaction.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           targetId: mongoTargetId,
-          targetType 
-        } 
+          targetType
+        }
       },
       { $group: { _id: "$reactionType", count: { $sum: 1 } } },
     ])
@@ -113,14 +113,14 @@ export const upsertReaction = async (req: AuthRequest, res: Response) => {
           sender: user,
           type: "REACTION",
           referenceId: targetId,
-          referenceType: targetType === "POST" || targetType === "post" ? "POST" : 
-                         targetType === "COMMENT" || targetType === "comment" ? "COMMENT" : "STORY",
+          referenceType: targetType === "POST" || targetType === "post" ? "POST" :
+            targetType === "COMMENT" || targetType === "comment" ? "COMMENT" : "STORY",
         });
         await notification.save();
         await notification.populate("sender", "name username avatar");
 
         const payload = notification.toObject() as any;
-        
+
         let rootPostId = targetType === "POST" || targetType === "post" ? targetId : null;
         if (!rootPostId && (targetType === "COMMENT" || targetType === "comment")) {
           let currentCommentId = targetId;

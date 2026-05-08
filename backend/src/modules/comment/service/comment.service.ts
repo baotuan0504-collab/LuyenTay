@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { Post } from "../../post/model/post.model"
+import { Post } from "../../post/post.entity"
 import { Comment } from "../model/comment.model"
 
 export default class CommentService {

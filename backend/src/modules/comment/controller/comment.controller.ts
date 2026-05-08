@@ -1,10 +1,10 @@
 import type { Response } from "express"
 import type { AuthRequest } from "../../../middleware/auth"
-import CommentService from "../service/comment.service"
-import { Post } from "../../post/model/post.model"
-import { Comment } from "../model/comment.model"
-import { Notification } from "../../notification/model/notification.model"
 import { getIO } from "../../../utils/socket"
+import { Notification } from "../../notification/model/notification.model"
+import { Post } from "../../post/post.entity"
+import { Comment } from "../model/comment.model"
+import CommentService from "../service/comment.service"
 
 export default class CommentController {
   static async createComment(req: AuthRequest, res: Response) {
@@ -44,7 +44,7 @@ export default class CommentController {
         await notification.populate("sender", "name username avatar");
 
         const payload = notification.toObject() as any;
-        
+
         let rootPostId = targetType === "post" || targetType === "POST" ? targetId : null;
         if (!rootPostId && (targetType === "comment" || targetType === "COMMENT")) {
           let currentCommentId = targetId;
@@ -109,7 +109,7 @@ export default class CommentController {
         await notification.populate("sender", "name username avatar");
 
         const payload = notification.toObject() as any;
-        
+
         let rootPostId = null;
         let currentCommentId = parentComment;
         while (currentCommentId) {

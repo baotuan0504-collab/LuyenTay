@@ -1,15 +1,12 @@
 import express from "express"
 import { protectRoute } from "../middleware/auth"
-import {
-  createStory,
-  getStories,
-  getArchivedStories,
-} from "../modules/story/controller/story.controller"
+import { StoryController } from "../modules/story/story.controller"
 
 const router = express.Router()
+const storyController = new StoryController()
 
-router.post("/", protectRoute, createStory)
-router.get("/archive", protectRoute, getArchivedStories)
-router.get("/", protectRoute, getStories)
+router.post("/", protectRoute, storyController.createStory)
+router.get("/", protectRoute, storyController.getStories)
+router.get("/archived", protectRoute, storyController.getArchivedStories)
 
 export default router
