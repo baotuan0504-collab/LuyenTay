@@ -1,11 +1,11 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose"
 
 export interface IFriend extends Document {
-  requester: mongoose.Types.ObjectId;
-  recipient: mongoose.Types.ObjectId;
-  status: "pending" | "accepted" | "declined" | "blocked";
-  createdAt: Date;
-  updatedAt: Date;
+  requester: mongoose.Types.ObjectId
+  recipient: mongoose.Types.ObjectId
+  status: "pending" | "accepted" | "declined" | "blocked"
+  createdAt: Date
+  updatedAt: Date
 }
 
 const FriendSchema: Schema = new Schema(
@@ -19,9 +19,9 @@ const FriendSchema: Schema = new Schema(
     },
   },
   { timestamps: true }
-);
+)
 
 // Ensure uniqueness of a friendship between two users
-FriendSchema.index({ requester: 1, recipient: 1 }, { unique: true });
+FriendSchema.index({ requester: 1, recipient: 1 }, { unique: true })
 
-export const Friend = mongoose.model<IFriend>("Friend", FriendSchema);
+export const Friend = mongoose.model<IFriend>("Friend", FriendSchema)

@@ -1,29 +1,14 @@
 import express from "express"
-import {
-    getMyReaction,
-    getReactionCounts,
-    getReactionUsers,
-    removeReaction,
-    upsertReaction,
-} from "../modules/reaction/controller/reaction.controller"
-
 import { protectRoute } from "../middleware/auth"
+import { ReactionController } from "../modules/reaction/reaction.controller"
 
 const router = express.Router()
+const reactionController = new ReactionController()
 
-//tha or update reaction
-router.post("/", protectRoute, upsertReaction)
-
-//bo  reaction
-router.delete("/", protectRoute, removeReaction)
-
-//dem reaction theo type
-router.get("/counts", getReactionCounts)
-
-//lay reaction cua user
-router.get("/my", protectRoute, getMyReaction)
-
-//lay danh sach user reaction theo type
-router.get("/users", getReactionUsers)
+router.post("/", protectRoute, reactionController.upsertReaction)
+router.delete("/", protectRoute, reactionController.removeReaction)
+router.get("/counts", reactionController.getReactionCounts)
+router.get("/my", protectRoute, reactionController.getMyReaction)
+router.get("/users", reactionController.getReactionUsers)
 
 export default router

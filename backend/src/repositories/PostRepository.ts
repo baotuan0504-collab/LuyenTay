@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 import { IPost, Post } from "../modules/post/post.entity"
-import { Reaction } from "../modules/reaction/model/reaction.model"
+import { Reaction } from "../modules/reaction/reaction.entity"
 
 export interface IPostRepository {
   create(data: Partial<IPost>): Promise<IPost>

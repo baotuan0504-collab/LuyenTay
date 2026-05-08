@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { User } from "../modules/user/model/user.model"
+import { User } from "../modules/user/user.entity"
 import { hashPassword } from "../utils/auth"
 
 const SEED_USERS = [

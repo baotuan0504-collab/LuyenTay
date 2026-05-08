@@ -32,37 +32,22 @@ import {
 } from "../../services/reaction.service"
 
 // FIX BUILD TREE
-const buildCommentTree = (comments: any[]) => {
-  const map: any = {}
-  const roots: any[] = []
-
-  comments.forEach(c => {
-    map[c._id] = {
-      ...c,
-      children: [],
-    }
-  })
-  comments.forEach(c => {
-    const parentId = c.parentId || c.parentComment
-
-    if (parentId && map[parentId]) {
-      map[parentId].children.push(map[c._id])
-    } else {
-      roots.push(map[c._id])
-    }
-  })
-  return flattenComments(roots)
-}
-
 const flattenComments = (comments: any[], level = 0): any[] => {
   let result: any[] = []
+  if (!Array.isArray(comments)) return result;
+
   comments.forEach(comment => {
+    const currentLevel = comment.level !== undefined ? comment.level : level;
+    console.log(`[Flatten] Comment: ${comment.content.substring(0, 10)}, Level: ${currentLevel}`);
+    
     result.push({
       ...comment,
-      level,
+      level: currentLevel,
     })
-    if (comment.children && comment.children.length > 0) {
-      result = result.concat(flattenComments(comment.children, level + 1))
+    
+    const children = comment.children || comment.replies;
+    if (children && Array.isArray(children) && children.length > 0) {
+      result = result.concat(flattenComments(children, currentLevel + 1))
     }
   })
 
@@ -80,19 +65,29 @@ export default function PostDetailScreen() {
   const [myReaction, setMyReaction] = useState<string>()
   const [reactionCounts, setReactionCounts] = useState<any>({})
   const router = useRouter()
+  
   const loadComments = async () => {
-    const res = await getCommentsByPost(id as string)
-    // Chấp nhận cả trường hợp res là mảng trực tiếp hoặc res.comments là mảng
-    const raw = Array.isArray(res)
-      ? res
-      : Array.isArray(res?.comments)
-        ? res.comments
-        : []
-    console.log("RAW COMMENTS", raw)
-    const tree = buildCommentTree(raw)
-    console.log("TREE COMMENTS", tree)
+    try {
+      const res = await getCommentsByPost(id as string)
+      // Accept direct array or wrapped object
+      const raw = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.comments)
+          ? res.comments
+          : res?.data && Array.isArray(res.data) 
+            ? res.data 
+            : []
+      
+      console.log("RAW COMMENTS FROM BACKEND", raw.length)
+      
+      // Use flattenComments directly on the tree structure from backend
+      const flatList = flattenComments(raw)
+      console.log("FLATTENED TREE FOR LIST", flatList.length)
 
-    setComments(tree)
+      setComments(flatList)
+    } catch (error) {
+      console.error("Error loading comments:", error)
+    }
   }
 
   useEffect(() => {
@@ -204,13 +199,15 @@ export default function PostDetailScreen() {
       ])
     }
 
+    console.log(`[DEBUG] Comment: ${item.content.substring(0, 10)}, Level: ${item.level}`);
+    
     return (
       <View
         style={{
           flexDirection: "row",
           padding: 14,
-          paddingLeft: 14 + item.level * 20,
-          backgroundColor: "#fff",
+          paddingLeft: 14 + (item.level || 0) * 30, // Increased indentation
+          backgroundColor: item.level > 0 ? "#f9f9f9" : "#fff", // Subtle background for replies
           borderBottomWidth: 1,
           borderColor: "#eee",
         }}>

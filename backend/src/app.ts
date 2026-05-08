@@ -67,6 +67,7 @@ app.use("/api/users", userRoutes)
 app.use("/api/stories", storyRoutes)
 app.use("/api/reactions", reactionRoutes)
 app.use("/api/friends", friendRoutes)
+app.get("/api/friends/test", (req, res) => res.json({ message: "Friends test OK" }))
 app.use("/api/notifications", notificationRoutes)
 
 // Catch-all for unmatched api routes

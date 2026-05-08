@@ -1,21 +1,15 @@
 import { Router } from "express"
 import { protectRoute } from "../middleware/auth"
-import {
-  checkUsername,
-  getUserById,
-  getUsers,
-  searchUsers,
-  updateProfile,
-  updatePublicKey,
-} from "../modules/user/controller/user.controller"
+import { UserController } from "../modules/user/user.controller"
 
 const router = Router()
+const userController = new UserController()
 
-router.get("/", protectRoute, getUsers)
-router.get("/check-username/:username", protectRoute, checkUsername)
-router.put("/profile", protectRoute, updateProfile)
-router.put("/public-key", protectRoute, updatePublicKey)
-router.get("/search", protectRoute, searchUsers)
-router.get("/:userId", protectRoute, getUserById)
+router.get("/", protectRoute, userController.getUsers)
+router.get("/search", protectRoute, userController.searchUsers)
+router.get("/check-username/:username", protectRoute, userController.checkUsername)
+router.get("/:userId", protectRoute, userController.getUserById)
+router.put("/profile", protectRoute, userController.updateProfile)
+router.put("/public-key", protectRoute, userController.updatePublicKey)
 
 export default router

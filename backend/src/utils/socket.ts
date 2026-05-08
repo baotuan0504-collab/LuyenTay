@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 import { Server as SocketServer } from "socket.io"
 import { Chat } from "../modules/chat/model/chat.model"
 import { Message } from "../modules/message/model/message.model"
-import { User } from "../modules/user/model/user.model"
+import { User } from "../modules/user/user.entity"
 import { verifyToken } from "../utils/auth"
 
 // store online users in memory: userId -> socketId

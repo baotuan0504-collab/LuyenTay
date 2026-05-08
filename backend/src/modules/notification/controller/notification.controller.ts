@@ -1,9 +1,9 @@
 import type { Response } from "express"
+import mongoose from "mongoose"
 import type { AuthRequest } from "../../../middleware/auth"
 import { ApiResponse } from "../../../utils/ApiResponse"
+import { Comment } from "../../comment/comment.entity"
 import { Notification } from "../model/notification.model"
-import { Comment } from "../../comment/model/comment.model"
-import mongoose from "mongoose"
 
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
@@ -11,7 +11,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
-    
+
     // Fetch notifications sorted by newest first
     const objectIdUser = new mongoose.Types.ObjectId(user)
     console.log(`[Notification API] Fetching notifications for recipient: ${objectIdUser}`);
@@ -43,7 +43,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
         (notif as any).storyId = notif.referenceId;
       }
     }
-      
+
     console.log(`[Notification API] Found ${notifications.length} notifications for user ${user}`);
 
     res.json(ApiResponse.success(notifications))
@@ -59,7 +59,7 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
-    
+
     const count = await Notification.countDocuments({ recipient: new mongoose.Types.ObjectId(user), isRead: false })
     res.json(ApiResponse.success({ unreadCount: count }))
   } catch (error) {
@@ -74,7 +74,7 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
-    
+
     const updated = await Notification.findOneAndUpdate(
       { _id: id, recipient: user },
       { isRead: true },
@@ -92,7 +92,7 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
     if (!user) {
       return res.status(401).json(ApiResponse.error("Unauthorized"))
     }
-    
+
     await Notification.updateMany(
       { recipient: user, isRead: false },
       { isRead: true }
