@@ -31,33 +31,3 @@ export async function globalRateLimiter(
     next()
   }
 }
-
-
-export async function checkOtpLock(
-  email: string,
-): Promise<{ isLocked: boolean; remaining: number }> {
-  const lockKey = `otp_blocked:${email}`
-  const remaining = await redis.ttl(lockKey)
-  return {
-    isLocked: remaining > 0,
-    remaining: Math.max(0, remaining),
-  }
-}
-
-export async function handleOtpFailure(
-  email: string,
-): Promise<{ fails: number; isLocked: boolean }> {
-  const failKey = `otp_fails:${email}`
-  const lockKey = `otp_blocked:${email}`
-
-  const fails = await redis.incr(failKey)
-  await redis.expire(failKey, 150)
-
-  if (fails >= 3) {
-    await redis.set(lockKey, "true", "EX", 3600)
-    await redis.del(failKey)
-    return { fails, isLocked: true }
-  }
-
-  return { fails, isLocked: false }
-}

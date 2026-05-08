@@ -110,8 +110,12 @@ export default function LoginScreen() {
       edges={["top", "bottom"]}
       style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign In to Continue</Text>
+        {step === "login" && (
+          <>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign In to Continue</Text>
+          </>
+        )}
         {step === "login" && (
           <>
             <LoginForm

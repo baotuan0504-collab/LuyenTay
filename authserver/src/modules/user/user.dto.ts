@@ -22,6 +22,17 @@ export class UpdateProfileDto {
       this.onboardingCompleted = Boolean(data.onboardingCompleted)
     }
   }
+
+  /**
+   * OO Logic: DTO tự chịu trách nhiệm áp dụng dữ liệu vào Entity
+   */
+  public applyTo(user: any): void {
+    if (this.name !== undefined) user.name = this.name
+    if (this.username !== undefined) user.username = this.username.toLowerCase()
+    if (this.avatar !== undefined) user.avatar = this.avatar
+    if (this.onboardingCompleted !== undefined)
+      user.onboardingCompleted = this.onboardingCompleted
+  }
 }
 
 export class UserResponseDto {

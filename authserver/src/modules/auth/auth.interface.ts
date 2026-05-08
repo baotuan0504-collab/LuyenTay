@@ -23,6 +23,7 @@ export interface IAuthService {
   verifyToken(dto: VerifyTokenRequestDto): Promise<VerifyTokenResponseDto>
   logout(dto: RefreshTokenDto): Promise<void>
   sendForgotPasswordOtp(dto: ForgotPasswordSendOtpDto): Promise<GeneralResponseDto>
+  sendRegisterOtp(dto: ForgotPasswordSendOtpDto): Promise<GeneralResponseDto>
   verifyForgotPasswordOtpOnly(dto: ForgotPasswordVerifyOtpDto): Promise<GeneralResponseDto>
   resetPassword(dto: ResetPasswordDto): Promise<GeneralResponseDto>
   verifyLoginOtp(dto: VerifyLoginOtpDto): Promise<AuthResponseDto>

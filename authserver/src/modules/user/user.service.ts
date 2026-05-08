@@ -24,15 +24,11 @@ export class UserService implements IUserService {
     userId: string,
     dto: UpdateProfileDto,
   ): Promise<UserResponseDto> {
-    const updateData: Record<string, unknown> = {}
-    if (dto.name !== undefined) updateData.name = dto.name
-    if (dto.username !== undefined) updateData.username = dto.username
-    if (dto.avatar !== undefined) updateData.avatar = dto.avatar
-    if (dto.onboardingCompleted !== undefined)
-      updateData.onboardingCompleted = dto.onboardingCompleted
-
-    const user = await this.userRepository.updateById(userId, updateData)
+    const user = await this.userRepository.findById(userId)
     if (!user) throw new Error("User not found")
+
+    dto.applyTo(user)
+    await this.userRepository.save(user)
 
     return new UserResponseDto(user)
   }

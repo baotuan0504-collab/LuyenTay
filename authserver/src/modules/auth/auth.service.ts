@@ -1,13 +1,5 @@
-import crypto from "crypto"
 import redis from "../../config/redis"
 import { IUserRepository, UserRepository } from "../../repositories/UserRepository"
-import {
-  hashPassword,
-  signToken,
-  verifyPassword,
-  verifyToken
-} from "../../utils/auth"
-import { generateOtp, sendOtpMail } from "../../utils/mailer"
 import {
   AuthResponseDto,
   ForgotPasswordSendOtpDto,
@@ -25,14 +17,27 @@ import {
   VerifyTokenResponseDto,
 } from "./auth.dto"
 
-import { checkOtpLock, handleOtpFailure } from "../../middleware/rateLimiter"
 import { IAuthService } from "./auth.interface"
+import { ISecurityService, SecurityService } from "./security.service"
+import { IMailService, MailService } from "./mail.service"
+import { IOtpRateLimitService, OtpRateLimitService } from "./otp-rate-limit.service"
 
 export class AuthService implements IAuthService {
   private userRepository: IUserRepository
+  private securityService: ISecurityService
+  private mailService: IMailService
+  private otpRateLimitService: IOtpRateLimitService
 
-  constructor(userRepository: IUserRepository = new UserRepository()) {
+  constructor(
+    userRepository: IUserRepository = new UserRepository(),
+    securityService: ISecurityService = new SecurityService(),
+    mailService: IMailService = new MailService(),
+    otpRateLimitService: IOtpRateLimitService = new OtpRateLimitService()
+  ) {
     this.userRepository = userRepository
+    this.securityService = securityService
+    this.mailService = mailService
+    this.otpRateLimitService = otpRateLimitService
   }
 
   async getMe(userId: string): Promise<GetMeResponseDto> {
@@ -66,11 +71,11 @@ export class AuthService implements IAuthService {
   ): Promise<AuthResponseDto | LoginOtpResponseDto> {
     try {
       const user = await this.userRepository.findByEmail(dto.email)
-      if (!user || !(await verifyPassword(dto.password, user.password))) {
+      if (!user || !(await this.securityService.verifyPassword(dto.password, user.password))) {
         throw new Error("Invalid credentials")
       }
 
-      const { isLocked, remaining } = await checkOtpLock(dto.email)
+      const { isLocked, remaining } = await this.otpRateLimitService.checkOtpLock(dto.email)
       if (isLocked) {
         throw new Error(
           `Chức năng OTP đang bị khóa. Thử lại sau ${Math.ceil(remaining / 60)} phút.`,
@@ -81,8 +86,8 @@ export class AuthService implements IAuthService {
         dto.deviceId && user.trustedDevices.includes(dto.deviceId)
 
       if (user.requireOtp && !isTrusted) {
-        const otp = generateOtp(6)
-        await sendOtpMail(user.email, otp)
+        const otp = this.mailService.generateOtp(6)
+        await this.mailService.sendOtpMail(user.email, otp)
         await redis.set(`otp:${user.email}`, otp, "EX", 150)
         return new LoginOtpResponseDto({
           email: user.email,
@@ -107,7 +112,7 @@ export class AuthService implements IAuthService {
       }
 
       await redis.del(`otp:${dto.email}`)
-      const hashedPassword = await hashPassword(dto.password)
+      const hashedPassword = await this.securityService.hashPassword(dto.password)
       const fullName = `${dto.firstName} ${dto.lastName}`.trim()
       const newUser = await this.userRepository.create({
         name: fullName,
@@ -126,7 +131,7 @@ export class AuthService implements IAuthService {
     dto: VerifyTokenRequestDto,
   ): Promise<VerifyTokenResponseDto> {
     try {
-      const payload = verifyToken(dto.token)
+      const payload = this.securityService.verifyToken(dto.token)
       if (!payload.userId) throw new Error("Invalid token")
 
       const user = await this.userRepository.findById(payload.userId as string)
@@ -156,7 +161,7 @@ export class AuthService implements IAuthService {
     dto: ForgotPasswordSendOtpDto,
   ): Promise<GeneralResponseDto> {
     try {
-      const { isLocked, remaining } = await checkOtpLock(dto.email)
+      const { isLocked, remaining } = await this.otpRateLimitService.checkOtpLock(dto.email)
       if (isLocked) {
         throw new Error(
           `Locked. Try again in ${Math.ceil(remaining / 60)} mins.`,
@@ -168,11 +173,33 @@ export class AuthService implements IAuthService {
 
       let otp = await redis.get(`forgot_otp:${dto.email}`)
       if (!otp) {
-        otp = generateOtp(6)
+        otp = this.mailService.generateOtp(6)
         await redis.set(`forgot_otp:${dto.email}`, otp, "EX", 300)
       }
-      await sendOtpMail(dto.email, otp)
+      await this.mailService.sendOtpMail(dto.email, otp)
       return new GeneralResponseDto(true, "OTP sent")
+    } catch (error: Error | unknown) {
+      throw error
+    }
+  }
+
+  async sendRegisterOtp(dto: ForgotPasswordSendOtpDto): Promise<GeneralResponseDto> {
+    try {
+      const { isLocked, remaining } = await this.otpRateLimitService.checkOtpLock(dto.email)
+      if (isLocked) {
+        throw new Error(`Locked. Try again in ${Math.ceil(remaining / 60)} mins.`)
+      }
+
+      const user = await this.userRepository.findByEmail(dto.email)
+      if (user) throw new Error("Email already registered")
+
+      let otp = await redis.get(`otp:${dto.email}`)
+      if (!otp) {
+        otp = this.mailService.generateOtp(6)
+        await redis.set(`otp:${dto.email}`, otp, "EX", 300)
+      }
+      await this.mailService.sendOtpMail(dto.email, otp)
+      return new GeneralResponseDto(true, "Registration OTP sent")
     } catch (error: Error | unknown) {
       throw error
     }
@@ -182,7 +209,7 @@ export class AuthService implements IAuthService {
     dto: ForgotPasswordVerifyOtpDto,
   ): Promise<GeneralResponseDto> {
     try {
-      const { isLocked, remaining } = await checkOtpLock(dto.email)
+      const { isLocked, remaining } = await this.otpRateLimitService.checkOtpLock(dto.email)
       if (isLocked)
         throw new Error(
           `Locked. Try again in ${Math.ceil(remaining / 60)} mins.`,
@@ -190,7 +217,7 @@ export class AuthService implements IAuthService {
 
       const otpInRedis = await redis.get(`forgot_otp:${dto.email}`)
       if (!otpInRedis || otpInRedis !== dto.otp) {
-        const { fails, isLocked: nowLocked } = await handleOtpFailure(dto.email)
+        const { fails, isLocked: nowLocked } = await this.otpRateLimitService.handleOtpFailure(dto.email)
         if (nowLocked) {
           await redis.del(`forgot_otp:${dto.email}`)
           throw new Error("Too many failures. Locked for 1 hour.")
@@ -215,7 +242,7 @@ export class AuthService implements IAuthService {
       const user = await this.userRepository.findByEmail(dto.email)
       if (!user) throw new Error("User not found")
 
-      const hashedPassword = await hashPassword(dto.newPassword)
+      const hashedPassword = await this.securityService.hashPassword(dto.newPassword)
       user.password = hashedPassword
       await this.userRepository.save(user)
 
@@ -264,8 +291,8 @@ export class AuthService implements IAuthService {
     accessToken: string
     refreshToken: string
   }> {
-    const accessToken = signToken({ userId })
-    const refreshToken = crypto.randomBytes(64).toString("hex")
+    const accessToken = this.securityService.signToken({ userId })
+    const refreshToken = this.securityService.generateRandomString(64)
 
     // Lưu vào Redis để quản lý session
     await redis.set(`refresh_token:${refreshToken}`, userId, "EX", 7 * 24 * 60 * 60)
@@ -279,3 +306,4 @@ export class AuthService implements IAuthService {
     return { accessToken, refreshToken }
   }
 }
+

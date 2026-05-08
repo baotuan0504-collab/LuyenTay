@@ -76,7 +76,7 @@ export class AuthController {
         const email = body.email
         if (step === 2) {
           const dto = new ForgotPasswordSendOtpDto({ email })
-          const result = await this.authService.sendForgotPasswordOtp(dto)
+          const result = await this.authService.sendRegisterOtp(dto)
           res.json(ApiResponse.success({ ...result, step: 2 }))
         } else {
           res.json(ApiResponse.success({ step: 1 }))

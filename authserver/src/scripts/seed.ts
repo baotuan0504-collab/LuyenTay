@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { User } from "../entities/User";
-import { hashPassword } from "../utils/auth";
+import { SecurityService } from "../modules/auth/security.service";
 
 const SEED_USERS = [
   {
@@ -59,12 +59,13 @@ async function seed() {
   try {
     const mongoURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chat-app";
     await mongoose.connect(mongoURI);
-    console.log("✅ Connected to MongoDB");
-
-    const usersToInsert = SEED_USERS.map((user) => ({
-      ...user,
-      password: hashPassword("password123"),
-    }));
+    const securityService = new SecurityService();
+    const usersToInsert = await Promise.all(
+      SEED_USERS.map(async (user) => ({
+        ...user,
+        password: await securityService.hashPassword("password123"),
+      }))
+    );
 
     const users = await User.insertMany(usersToInsert);
     console.log(`🌱 Seeded ${users.length} users:`);

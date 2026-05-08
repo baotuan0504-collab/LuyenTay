@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { User } from "../entities/User";
-import { verifyToken } from "../utils/auth";
+import { SecurityService } from "../modules/auth/security.service";
+
+const securityService = new SecurityService();
 
 export type AuthRequest = Request & {
   userId?: string;
@@ -18,7 +20,7 @@ export async function protectRoute(req: AuthRequest, res: Response, next: NextFu
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const payload = verifyToken(token);
+    const payload = securityService.verifyToken(token);
     const userId = typeof payload.userId === "string" ? payload.userId : undefined;
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
