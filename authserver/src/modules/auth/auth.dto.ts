@@ -45,6 +45,11 @@ export class AuthResponseDto {
     email: string
     username: string
     avatar: string
+    school: string
+    hometown: string
+    relationship: string
+    birthday: string
+    interests: string
     onboardingCompleted: boolean
   }
   constructor(data: {
@@ -64,6 +69,11 @@ export class AuthResponseDto {
       email: String(data.user.email),
       username: String(data.user.username),
       avatar: String(data.user.avatar),
+      school: String(data.user.school || ""),
+      hometown: String(data.user.hometown || ""),
+      relationship: String(data.user.relationship || ""),
+      birthday: String(data.user.birthday || ""),
+      interests: String(data.user.interests || ""),
       onboardingCompleted: Boolean(data.user.onboardingCompleted),
     }
   }
@@ -94,6 +104,11 @@ export class GetMeResponseDto {
   email: string
   username: string
   avatar: string
+  school: string
+  hometown: string
+  relationship: string
+  birthday: string
+  interests: string
   onboardingCompleted: boolean
   constructor(user: UserEntity) {
     if (!user) throw new Error("User data is required in GetMeResponseDto")
@@ -102,6 +117,11 @@ export class GetMeResponseDto {
     this.email = String(user.email)
     this.username = String(user.username)
     this.avatar = String(user.avatar)
+    this.school = String(user.school || "")
+    this.hometown = String(user.hometown || "")
+    this.relationship = String(user.relationship || "")
+    this.birthday = String(user.birthday || "")
+    this.interests = String(user.interests || "")
     this.onboardingCompleted = Boolean(user.onboardingCompleted)
   }
 }

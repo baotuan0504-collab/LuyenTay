@@ -55,7 +55,9 @@ export class AuthService implements IAuthService {
       const userId = await redis.get(`refresh_token:${dto.refreshToken}`)
       if (!userId) throw new Error("Invalid or expired refresh token")
 
-      await redis.del(`refresh_token:${dto.refreshToken}`)
+      // Sử dụng Grace Period: Đặt expire ngắn thay vì xóa ngay để tránh race condition
+      await redis.expire(`refresh_token:${dto.refreshToken}`, 30)
+      
       const tokens = await this.createTokenPair(userId)
       const user = await this.userRepository.findById(userId)
       if (!user) throw new Error("User not found")

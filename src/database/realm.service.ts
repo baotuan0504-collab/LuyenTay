@@ -15,6 +15,11 @@ export const savePostsToRealm = (realm: Realm, posts: any[]) => {
           username: post.user.username,
           avatar: post.user.avatar,
           coverPhoto: post.user.coverPhoto,
+          school: post.user.school,
+          hometown: post.user.hometown,
+          relationship: post.user.relationship,
+          birthday: post.user.birthday,
+          interests: post.user.interests,
         },
         Realm.UpdateMode.Modified
       );
@@ -57,6 +62,11 @@ export const saveStoriesToRealm = (realm: Realm, stories: any[]) => {
           username: story.user.username,
           avatar: story.user.avatar,
           coverPhoto: story.user.coverPhoto,
+          school: story.user.school,
+          hometown: story.user.hometown,
+          relationship: story.user.relationship,
+          birthday: story.user.birthday,
+          interests: story.user.interests,
         },
         Realm.UpdateMode.Modified
       );
@@ -93,6 +103,11 @@ export const saveUserProfileToRealm = (realm: Realm, user: any) => {
         username: user.username,
         avatar: user.avatar,
         coverPhoto: user.coverPhoto,
+        school: user.school,
+        hometown: user.hometown,
+        relationship: user.relationship,
+        birthday: user.birthday,
+        interests: user.interests,
       },
       Realm.UpdateMode.Modified
     );

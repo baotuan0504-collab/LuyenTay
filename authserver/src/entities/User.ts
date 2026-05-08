@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose"
+import mongoose, { Document, Schema } from "mongoose"
 
 export interface UserEntity extends Document {
   _id: mongoose.Types.ObjectId
@@ -11,6 +11,11 @@ export interface UserEntity extends Document {
   requireOtp: boolean
   trustedDevices: string[]
   lastAccessToken: string
+  school: string
+  hometown: string
+  relationship: string
+  birthday: string
+  interests: string
   createdAt: Date
   updatedAt: Date
 }
@@ -42,7 +47,7 @@ const UserSchema = new Schema<UserEntity>(
     },
     avatar: {
       type: String,
-      default: "",
+      default: "https://i.pravatar.cc/150",
     },
     onboardingCompleted: {
       type: Boolean,
@@ -50,13 +55,33 @@ const UserSchema = new Schema<UserEntity>(
     },
     requireOtp: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     trustedDevices: {
       type: [String],
       default: [],
     },
     lastAccessToken: {
+      type: String,
+      default: "",
+    },
+    school: {
+      type: String,
+      default: "",
+    },
+    hometown: {
+      type: String,
+      default: "",
+    },
+    relationship: {
+      type: String,
+      default: "",
+    },
+    birthday: {
+      type: String,
+      default: "",
+    },
+    interests: {
       type: String,
       default: "",
     },
