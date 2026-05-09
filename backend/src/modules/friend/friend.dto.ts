@@ -30,10 +30,10 @@ export class PendingRequestDto {
   user: FriendResponseDto
   createdAt: string
 
-  constructor(request: any) {
+  constructor(request: any, otherUser: any) {
     this.id = request._id.toString()
     this._id = request._id.toString()
-    this.user = new FriendResponseDto(request.requester || request.recipient)
+    this.user = new FriendResponseDto(otherUser)
     this.createdAt = request.createdAt?.toISOString()
   }
 }
@@ -43,8 +43,8 @@ export class PendingRequestsResponseDto {
   sent: PendingRequestDto[]
 
   constructor(data: { received: any[], sent: any[] }) {
-    this.received = data.received.map(r => new PendingRequestDto(r))
-    this.sent = data.sent.map(s => new PendingRequestDto(s))
+    this.received = data.received.map(r => new PendingRequestDto(r, r.requester))
+    this.sent = data.sent.map(s => new PendingRequestDto(s, s.recipient))
   }
 }
 
@@ -55,7 +55,7 @@ export class FriendshipStatusResponseDto {
 
   constructor(data: any) {
     this.status = data.status
-    this.requester = data.requester?.toString()
-    this.recipient = data.recipient?.toString()
+    this.requester = (data.requester?._id || data.requester)?.toString()
+    this.recipient = (data.recipient?._id || data.recipient)?.toString()
   }
 }

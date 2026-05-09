@@ -41,6 +41,7 @@ export default function PublicProfileScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [isStartingChat, setIsStartingChat] = useState(false)
   const [friendshipStatus, setFriendshipStatus] = useState<string>("none")
+  const [friendshipRequesterId, setFriendshipRequesterId] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState("Ảnh")
 
@@ -93,6 +94,7 @@ export default function PublicProfileScreen() {
     try {
       const res = await friendService.getFriendshipStatus(userId as string)
       setFriendshipStatus(res.status)
+      setFriendshipRequesterId(res.requester || null)
     } catch (e) {
       console.error("Load friendship status failed", e)
     }
@@ -103,9 +105,24 @@ export default function PublicProfileScreen() {
       try {
         await friendService.sendFriendRequest(userId as string)
         setFriendshipStatus("pending")
+        setFriendshipRequesterId(currentUser?.id || null)
         Alert.alert("Thành công", "Đã gửi lời mời kết bạn")
       } catch (e) {
         Alert.alert("Lỗi", "Không thể gửi lời mời kết bạn")
+      }
+    } else if (friendshipStatus === "pending") {
+      if (friendshipRequesterId !== currentUser?.id) {
+        // We are the recipient, so we can accept
+        try {
+          await friendService.acceptFriendRequest(userId as string)
+          setFriendshipStatus("accepted")
+          Alert.alert("Thành công", "Đã chấp nhận lời mời kết bạn")
+        } catch (e) {
+          Alert.alert("Lỗi", "Không thể chấp nhận lời mời")
+        }
+      } else {
+        // We are the requester, maybe we can cancel?
+        // For now just show "Already sent" or do nothing if button is disabled
       }
     } else if (friendshipStatus === "accepted") {
       Alert.alert("Hủy kết bạn", "Bạn có chắc muốn hủy kết bạn?", [
@@ -219,6 +236,7 @@ export default function PublicProfileScreen() {
               profile={profile}
               isMe={isMe}
               friendshipStatus={friendshipStatus}
+              isReceivedRequest={friendshipStatus === "pending" && friendshipRequesterId !== currentUser?.id}
               onMessage={handleMessage}
               onFriendAction={handleFriendAction}
               isStartingChat={isStartingChat}

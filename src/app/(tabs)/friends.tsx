@@ -26,6 +26,7 @@ export default function FriendsScreen() {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
+  const [receivedRequestIds, setReceivedRequestIds] = useState<Set<string>>(new Set());
   
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +61,10 @@ export default function FriendsScreen() {
       // Track IDs of users we sent requests to
       const sentIds = new Set(requests.sent.map((r: any) => r.user._id));
       setSentRequestIds(sentIds);
+      
+      // Track IDs of users who sent us requests
+      const receivedIds = new Set(requests.received.map((r: any) => r.user._id));
+      setReceivedRequestIds(receivedIds);
       
       updateFilteredData(activeTab, { 
         discover: discoverUsers, 
@@ -226,6 +231,13 @@ export default function FriendsScreen() {
               >
                 <Ionicons name="close-outline" size={18} color="#48484A" />
                 <Text style={styles.declineBtnText}>Hủy lời mời</Text>
+              </TouchableOpacity>
+            ) : receivedRequestIds.has(user._id) ? (
+              <TouchableOpacity 
+                style={[styles.actionBtn, styles.acceptBtn]} 
+                onPress={() => handleAcceptRequest(user._id)}
+              >
+                <Text style={styles.acceptBtnText}>Chấp nhận</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity 

@@ -7,6 +7,7 @@ interface ProfileHeaderProps {
   profile: any
   isMe: boolean
   friendshipStatus: string
+  isReceivedRequest?: boolean
   onMessage: () => void
   onFriendAction: () => void
   isStartingChat?: boolean
@@ -18,6 +19,7 @@ export const ProfileHeader = ({
   profile,
   isMe,
   friendshipStatus,
+  isReceivedRequest,
   onMessage,
   onFriendAction,
   isStartingChat,
@@ -62,7 +64,13 @@ export const ProfileHeader = ({
                 ]}
                 onPress={onFriendAction}>
                 <Ionicons
-                  name={friendshipStatus === "accepted" ? "people" : "person-add"}
+                  name={
+                    friendshipStatus === "accepted" 
+                      ? "people" 
+                      : isReceivedRequest 
+                      ? "checkmark-circle" 
+                      : "person-add"
+                  }
                   size={20}
                   color={friendshipStatus === "accepted" ? "#000" : "#fff"}
                 />
@@ -73,6 +81,8 @@ export const ProfileHeader = ({
                   ]}>
                   {friendshipStatus === "accepted"
                     ? "Bạn bè"
+                    : isReceivedRequest
+                    ? "Chấp nhận"
                     : friendshipStatus === "pending"
                     ? "Đang chờ"
                     : "Thêm bạn bè"}
