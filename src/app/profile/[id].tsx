@@ -16,8 +16,8 @@ import * as friendService from "@/services/friend.service"
 import { getReactionUsers } from "@/services/reaction.service"
 import * as userService from "@/services/user.service"
 import { useProfile } from "@/hooks/useProfile"
-import { useLocalSearchParams, useRouter } from "expo-router"
-import React, { useEffect, useMemo, useState } from "react"
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router"
+import React, { useEffect, useMemo, useState, useCallback } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -55,6 +55,14 @@ export default function PublicProfileScreen() {
 
   const { posts, refreshPosts, isLoading: postsLoading, deletePost, updatePost } = usePosts(userId as string)
   const { stories, refreshStories, isLoading: storiesLoading } = useStories(userId as string)
+
+  useFocusEffect(
+    useCallback(() => {
+      if (accessToken && userId) {
+        loadData()
+      }
+    }, [accessToken, userId])
+  )
 
   useEffect(() => {
     if (accessToken && userId) {

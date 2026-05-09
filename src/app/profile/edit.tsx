@@ -12,8 +12,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+import { Image } from "expo-image"
+import * as ImagePicker from "expo-image-picker"
 import { useAuth } from "@/context/AuthContext"
 import * as userService from "@/services/user.service"
+import { uploadProfileImage, uploadCoverImage } from "@/lib/supabase/storage"
 
 export default function EditProfileScreen() {
   const router = useRouter()
@@ -27,6 +30,51 @@ export default function EditProfileScreen() {
   const [relationship, setRelationship] = useState(user?.relationship || "")
   const [birthday, setBirthday] = useState(user?.birthday || "")
   const [interests, setInterests] = useState(user?.interests || "")
+  
+  const [avatar, setAvatar] = useState(user?.avatar || "")
+  const [coverPhoto, setCoverPhoto] = useState(user?.coverPhoto || "")
+
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    })
+
+    if (!result.canceled && result.assets[0]) {
+      setLoading(true)
+      try {
+        const uploadedUrl = await uploadProfileImage(user!.id, result.assets[0].uri)
+        setAvatar(uploadedUrl)
+      } catch (error) {
+        Alert.alert("Lỗi", "Không thể tải ảnh đại diện lên")
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
+  const pickCover = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    })
+
+    if (!result.canceled && result.assets[0]) {
+      setLoading(true)
+      try {
+        const uploadedUrl = await uploadCoverImage(user!.id, result.assets[0].uri)
+        setCoverPhoto(uploadedUrl)
+      } catch (error) {
+        Alert.alert("Lỗi", "Không thể tải ảnh bìa lên")
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
 
   const handleSave = async () => {
     if (!name.trim()) return Alert.alert("Lỗi", "Tên không được để trống")
@@ -39,7 +87,9 @@ export default function EditProfileScreen() {
         hometown,
         relationship,
         birthday,
-        interests
+        interests,
+        avatar,
+        coverPhoto
       })
       
       Alert.alert("Thành công", "Đã cập nhật thông tin cá nhân")
@@ -68,6 +118,47 @@ export default function EditProfileScreen() {
       </View>
 
       <ScrollView style={styles.content}>
+        {/* Hình ảnh */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hình ảnh</Text>
+          </View>
+
+          {/* Ảnh bìa */}
+          <View style={styles.coverWrapper}>
+            <Text style={styles.imageLabel}>Ảnh bìa</Text>
+            <TouchableOpacity onPress={pickCover} style={styles.coverContainer}>
+              {coverPhoto ? (
+                <Image source={{ uri: coverPhoto }} style={styles.coverPhoto} />
+              ) : (
+                <View style={[styles.coverPhoto, styles.placeholder]}>
+                  <Ionicons name="camera" size={32} color="#666" />
+                </View>
+              )}
+              <View style={styles.editIconBadge}>
+                <Ionicons name="pencil" size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Ảnh đại diện */}
+          <View style={styles.avatarWrapper}>
+            <Text style={styles.imageLabel}>Ảnh đại diện</Text>
+            <TouchableOpacity onPress={pickAvatar} style={styles.avatarContainer}>
+              {avatar ? (
+                <Image source={{ uri: avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.placeholder]}>
+                  <Ionicons name="person" size={32} color="#666" />
+                </View>
+              )}
+              <View style={styles.editIconBadgeAvatar}>
+                <Ionicons name="pencil" size={16} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
           <View style={styles.inputGroup}>
@@ -188,10 +279,88 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 16,
+  },
+  imageLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+    color: "#666",
+  },
+  coverWrapper: {
+    marginBottom: 20,
+  },
+  coverContainer: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: "#f0f2f5",
+    overflow: "hidden",
+    position: "relative",
+  },
+  coverPhoto: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarWrapper: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#f0f2f5",
+    borderWidth: 4,
+    borderColor: "#fff",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    position: "relative",
+  },
+  avatar: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 60,
+  },
+  placeholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editIconBadge: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editIconBadgeAvatar: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#1877F2",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
   inputGroup: {
     marginBottom: 20,

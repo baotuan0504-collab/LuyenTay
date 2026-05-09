@@ -24,8 +24,34 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
     const fileName = `${userId}/profile.${fileExtension}`;
     const data = await getFileData(imageUri);
 
+    const { error } = await supabase.storage
+      .from("profiles")
+      .upload(fileName, data, {
+        contentType: `image/${fileExtension}`,
+        upsert: true,
+      });
 
+    if (error) {
+      throw error;
+    }
 
+    const { data: urlData } = supabase.storage
+      .from("profiles")
+      .getPublicUrl(fileName);
+
+    return `${urlData.publicUrl}?t=${Date.now()}`;
+  } catch (error) {
+    console.warn("Error uploading profile image:", error);
+    throw error;
+  }
+};
+
+export const uploadCoverImage = async (userId: string, imageUri: string) => {
+  if (!userId) throw new Error("userId is required for upload");
+  try {
+    const fileExtension = imageUri.split(".").pop() || "jpg";
+    const fileName = `${userId}/cover.${fileExtension}`;
+    const data = await getFileData(imageUri);
 
     const { error } = await supabase.storage
       .from("profiles")
@@ -34,26 +60,17 @@ export const uploadProfileImage = async (userId: string, imageUri: string) => {
         upsert: true,
       });
 
-
-
-
     if (error) {
       throw error;
     }
-
-
-
 
     const { data: urlData } = supabase.storage
       .from("profiles")
       .getPublicUrl(fileName);
 
-
-
-
     return `${urlData.publicUrl}?t=${Date.now()}`;
   } catch (error) {
-    console.warn("Error uploading profile image:", error);
+    console.warn("Error uploading cover image:", error);
     throw error;
   }
 };
