@@ -166,7 +166,11 @@ export default function MessagesScreen() {
               <Text
                 style={[styles.lastMessage, isTyping && styles.typingText]} 
                 numberOfLines={1}>
-                {isTyping ? "đang soạn tin..." : (item.lastMessage?.text || "Bắt đầu cuộc trò chuyện ngay")}
+                {isTyping 
+                  ? "đang soạn tin..." 
+                  : (item.lastMessage?.text?.startsWith('{"ciphertext":') 
+                    ? "Tin nhắn mới" 
+                    : (item.lastMessage?.text || "Bắt đầu cuộc trò chuyện ngay"))}
               </Text>
               {item.unreadCount > 0 && (
                 <View style={styles.unreadBadge}>

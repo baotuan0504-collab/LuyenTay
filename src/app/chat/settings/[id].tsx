@@ -1,16 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { 
-  StyleSheet, View, Text, TextInput, TouchableOpacity, 
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal, FlatList as RNFlatList
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/context/AuthContext";
 import * as chatService from "@/services/chat.service";
 import * as userService from "@/services/user.service";
-import { useAuth } from "@/context/AuthContext";
-import ColorPickerComponent from "@/components/color-picker.io";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator, Alert, KeyboardAvoidingView,
+  Modal,
+  Platform,
+  FlatList as RNFlatList,
+  ScrollView,
+  StyleSheet,
+  Text, TextInput, TouchableOpacity,
+  View
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function GroupSettingsScreen() {
   const { id: chatId } = useLocalSearchParams();
